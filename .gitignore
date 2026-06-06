@@ -1,0 +1,15 @@
+.DS_Store
+node_modules/
+
+.ui-settings.json
+.noon-profile/
+.cloakbrowser-profile/
+.cloakbrowser-ui-check/
+.codegraph/
+.debug-backups/
+
+outputs/
+products/
+products-debug/
+products-debug-list/
+codex-auto-upload-*.json

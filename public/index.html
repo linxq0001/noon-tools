@@ -1,0 +1,1387 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Noon 1688 Collector</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --ink: #1b211d;
+        --muted: #68736c;
+        --line: #d6ddd7;
+        --paper: #eef1ea;
+        --panel: #fbfcf8;
+        --field: #ffffff;
+        --accent: #0f6956;
+        --danger: #bd3f2d;
+        --amber: #b18220;
+        --blue: #315f86;
+        --shadow: 0 18px 44px rgba(30, 39, 33, 0.11);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        background:
+          linear-gradient(90deg, rgba(27, 33, 29, 0.045) 1px, transparent 1px) 0 0 / 40px 40px,
+          linear-gradient(rgba(27, 33, 29, 0.045) 1px, transparent 1px) 0 0 / 40px 40px,
+          var(--paper);
+        color: var(--ink);
+        font-family: "Avenir Next", "PingFang SC", "Hiragino Sans GB", sans-serif;
+      }
+
+      button,
+      input,
+      select {
+        font: inherit;
+      }
+
+      button {
+        border: 1px solid var(--ink);
+        background: var(--ink);
+        color: white;
+        padding: 11px 14px;
+        cursor: pointer;
+        font-weight: 800;
+      }
+
+      button.secondary {
+        background: transparent;
+        color: var(--ink);
+      }
+
+      button.ghost {
+        border-color: var(--line);
+        background: white;
+        color: var(--ink);
+      }
+
+      button:disabled {
+        cursor: not-allowed;
+        opacity: 0.55;
+      }
+
+      a {
+        color: var(--accent);
+      }
+
+      .shell {
+        min-height: 100vh;
+        display: grid;
+        grid-template-columns: 248px minmax(0, 1fr);
+      }
+
+      .rail {
+        min-height: 100vh;
+        padding: 24px 18px;
+        border-right: 1px solid var(--line);
+        background: rgba(251, 252, 248, 0.88);
+        position: sticky;
+        top: 0;
+      }
+
+      .brand {
+        margin-bottom: 28px;
+      }
+
+      .brand h1 {
+        margin: 0;
+        font-family: Georgia, "Songti SC", serif;
+        font-size: 30px;
+        line-height: 1;
+        letter-spacing: 0;
+      }
+
+      .brand span {
+        display: block;
+        margin-top: 8px;
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 800;
+      }
+
+      .nav {
+        display: grid;
+        gap: 8px;
+      }
+
+      .nav button {
+        display: grid;
+        grid-template-columns: 28px 1fr;
+        align-items: center;
+        gap: 10px;
+        width: 100%;
+        min-height: 48px;
+        border-color: transparent;
+        background: transparent;
+        color: var(--ink);
+        text-align: left;
+      }
+
+      .nav button span:first-child {
+        display: grid;
+        place-items: center;
+        width: 26px;
+        height: 26px;
+        border: 1px solid var(--line);
+        background: white;
+        font-size: 12px;
+      }
+
+      .nav button.active {
+        border-color: var(--ink);
+        background: var(--ink);
+        color: white;
+      }
+
+      .nav button.active span:first-child {
+        border-color: rgba(255, 255, 255, 0.45);
+        background: rgba(255, 255, 255, 0.12);
+      }
+
+      .rail-status {
+        margin-top: 26px;
+        padding: 12px;
+        border: 1px solid var(--line);
+        background: white;
+      }
+
+      .rail-status span {
+        display: block;
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 800;
+      }
+
+      .rail-status strong {
+        display: block;
+        margin-top: 4px;
+        font-size: 20px;
+      }
+
+      .content {
+        min-width: 0;
+        padding: 28px;
+      }
+
+      .page {
+        display: none;
+      }
+
+      .page.active {
+        display: block;
+      }
+
+      .page-head {
+        display: flex;
+        align-items: end;
+        justify-content: space-between;
+        gap: 16px;
+        margin-bottom: 18px;
+      }
+
+      .page-title {
+        margin: 0;
+        font-family: Georgia, "Songti SC", serif;
+        font-size: clamp(30px, 4vw, 54px);
+        line-height: 1;
+        letter-spacing: 0;
+      }
+
+      .page-kicker {
+        margin: 0 0 8px;
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 900;
+        text-transform: uppercase;
+      }
+
+      .panel {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        box-shadow: var(--shadow);
+      }
+
+      .panel.pad {
+        padding: 18px;
+      }
+
+      .panel-title {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 14px;
+        font-weight: 900;
+      }
+
+      .dashboard-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+      }
+
+      .metric {
+        min-height: 112px;
+        padding: 16px;
+      }
+
+      .metric span {
+        display: block;
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 900;
+      }
+
+      .metric strong {
+        display: block;
+        margin-top: 10px;
+        font-size: 34px;
+        line-height: 1;
+      }
+
+      .quick-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+        margin-top: 18px;
+      }
+
+      .quick-card {
+        min-height: 140px;
+        padding: 16px;
+        text-align: left;
+        color: var(--ink);
+        background: var(--panel);
+      }
+
+      .quick-card strong,
+      .quick-card span {
+        display: block;
+      }
+
+      .quick-card strong {
+        margin-bottom: 12px;
+        font-size: 18px;
+      }
+
+      .quick-card span {
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.6;
+      }
+
+      .form-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1.2fr) minmax(280px, 0.8fr);
+        gap: 16px;
+        align-items: start;
+      }
+
+      .grid-2 {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+      }
+
+      label {
+        display: block;
+        margin: 14px 0 7px;
+        color: var(--muted);
+        font-size: 13px;
+        font-weight: 800;
+      }
+
+      input,
+      select {
+        width: 100%;
+        border: 1px solid var(--line);
+        background: var(--field);
+        color: var(--ink);
+        padding: 11px 12px;
+        outline: none;
+      }
+
+      input:focus,
+      select:focus {
+        border-color: var(--accent);
+        box-shadow: 0 0 0 3px rgba(15, 105, 86, 0.12);
+      }
+
+      input[type="checkbox"] {
+        width: auto;
+        margin-right: 8px;
+      }
+
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 18px;
+      }
+
+      .status-strip {
+        margin-top: 14px;
+        padding: 12px;
+        border: 1px solid var(--line);
+        background: white;
+      }
+
+      .status-strip strong {
+        display: block;
+        margin-bottom: 4px;
+      }
+
+      .status-strip span {
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.5;
+      }
+
+      .status-ok strong {
+        color: var(--accent);
+      }
+
+      .status-bad strong {
+        color: var(--danger);
+      }
+
+      .repository-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+        gap: 12px;
+      }
+
+      .repository-tab {
+        min-height: 130px;
+        text-align: left;
+        color: var(--ink);
+        background: var(--panel);
+      }
+
+      .repository-tab strong,
+      .repository-tab span {
+        display: block;
+      }
+
+      .repository-tab strong {
+        margin-bottom: 12px;
+        line-height: 1.35;
+      }
+
+      .repository-tab span {
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.6;
+      }
+
+      .log {
+        height: 260px;
+        overflow: auto;
+        padding: 14px;
+        background: #111711;
+        color: #e5f0df;
+        font-family: "SFMono-Regular", Consolas, monospace;
+        font-size: 12px;
+        line-height: 1.55;
+      }
+
+      .log div {
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        padding: 3px 0;
+      }
+
+      .links {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 12px;
+      }
+
+      .links a,
+      .links button {
+        border: 1px solid var(--line);
+        background: white;
+        color: var(--accent);
+        padding: 6px 8px;
+        text-decoration: none;
+        font-size: 12px;
+        font-weight: 900;
+      }
+
+      .links button {
+        background: var(--accent);
+        color: white;
+      }
+
+      .title {
+        margin: 0 0 8px;
+        font-weight: 900;
+        line-height: 1.35;
+      }
+
+      .meta {
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.6;
+      }
+
+      .warning {
+        margin-top: 8px;
+        color: var(--danger);
+        font-size: 12px;
+      }
+
+      .upload-status {
+        display: inline-block;
+        margin-top: 8px;
+        padding: 3px 7px;
+        border: 1px solid var(--line);
+        color: var(--muted);
+        background: white;
+        font-size: 12px;
+        font-weight: 900;
+      }
+
+      .empty,
+      .notice {
+        padding: 18px;
+        border: 1px dashed var(--line);
+        color: var(--muted);
+        background: rgba(255, 255, 255, 0.5);
+      }
+
+      .notice {
+        display: none;
+        margin-bottom: 18px;
+        border-style: solid;
+        border-color: var(--danger);
+        color: var(--danger);
+        font-weight: 900;
+      }
+
+      .dialog-backdrop {
+        position: fixed;
+        inset: 0;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+        background: rgba(27, 33, 29, 0.48);
+        z-index: 20;
+      }
+
+      .dialog-backdrop.open {
+        display: flex;
+      }
+
+      .dialog {
+        width: min(980px, 100%);
+        max-height: min(760px, calc(100vh - 40px));
+        overflow: hidden;
+        background: var(--panel);
+        border: 1px solid var(--ink);
+        box-shadow: 0 26px 70px rgba(17, 23, 17, 0.32);
+      }
+
+      .dialog-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 14px 16px;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .dialog-title {
+        margin: 0;
+        font-size: 18px;
+      }
+
+      .dialog-body {
+        max-height: calc(100vh - 130px);
+        overflow: auto;
+        padding: 14px;
+      }
+
+      .product-row {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 12px;
+        padding: 12px 0;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .product-row:last-child {
+        border-bottom: 0;
+      }
+
+      @media (max-width: 980px) {
+        .shell {
+          grid-template-columns: 1fr;
+        }
+
+        .rail {
+          min-height: auto;
+          position: static;
+          border-right: 0;
+          border-bottom: 1px solid var(--line);
+        }
+
+        .nav,
+        .dashboard-grid,
+        .quick-grid,
+        .form-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .content {
+          padding: 18px;
+        }
+
+        .page-head {
+          align-items: start;
+          flex-direction: column;
+        }
+
+        .product-row {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <form id="jobForm">
+      <main class="shell">
+        <aside class="rail">
+          <div class="brand">
+            <h1>Noon Tools</h1>
+            <span>1688 collection workspace</span>
+          </div>
+          <nav class="nav" aria-label="业务导航">
+            <button type="button" data-route="dashboard"><span>01</span><span>工作台</span></button>
+            <button type="button" data-route="collect"><span>02</span><span>1688 采集</span></button>
+            <button type="button" data-route="repositories"><span>03</span><span>商品仓库</span></button>
+            <button type="button" data-route="settings"><span>04</span><span>配置</span></button>
+          </nav>
+          <div class="rail-status">
+            <span>任务状态</span>
+            <strong id="jobStatus">Idle</strong>
+          </div>
+        </aside>
+
+        <section class="content">
+          <div class="notice" id="fileNotice">
+            当前是直接打开 HTML 文件，采集/上传按钮无法连接后端。请打开 <a id="serverLink" href="http://localhost:4173">http://localhost:4173</a>
+          </div>
+
+          <section class="page" data-page="dashboard">
+            <div class="page-head">
+              <div>
+                <p class="page-kicker">Overview</p>
+                <h2 class="page-title">工作台</h2>
+              </div>
+              <button class="secondary" id="refreshButton" type="button">刷新数据</button>
+            </div>
+            <div class="dashboard-grid">
+              <div class="panel metric"><span>仓库</span><strong id="repositoryCount">0</strong></div>
+              <div class="panel metric"><span>商品目录</span><strong id="productCount">0</strong></div>
+              <div class="panel metric"><span>图片数量</span><strong id="imageCount">0</strong></div>
+            </div>
+            <div class="quick-grid">
+              <button class="quick-card" type="button" data-route="collect">
+                <strong>新建采集</strong>
+                <span>填写 1688 列表或详情链接，列表采集会进入独立仓库。</span>
+              </button>
+              <button class="quick-card" type="button" data-route="repositories">
+                <strong>查看仓库</strong>
+                <span>按仓库打开商品集合，查看 meta、noon 属性和上传状态。</span>
+              </button>
+              <button class="quick-card" type="button" data-route="repositories">
+                <strong>noon 作业</strong>
+                <span>在商品仓库里选择商品，再执行 AI 生成或上传到 noon。</span>
+              </button>
+              <button class="quick-card" type="button" data-route="settings">
+                <strong>配置</strong>
+                <span>集中维护浏览器、Proxy、noon 链接和 DeepSeek 配置。</span>
+              </button>
+            </div>
+          </section>
+
+          <section class="page" data-page="collect">
+            <div class="page-head">
+              <div>
+                <p class="page-kicker">1688</p>
+                <h2 class="page-title">采集任务</h2>
+              </div>
+            </div>
+            <div class="form-grid">
+              <section class="panel pad">
+                <div class="panel-title"><span>采集来源</span></div>
+                <label for="url">1688 链接</label>
+                <input id="url" name="url" placeholder="https://detail.1688.com/offer/..." />
+
+                <label for="repository">仓库名称</label>
+                <input id="repository" name="repository" placeholder="列表页采集时使用；留空自动命名" />
+
+                <div class="grid-2">
+                  <div>
+                    <label for="limit">本次商品数量</label>
+                    <input id="limit" name="limit" type="number" min="0" max="100" value="0" />
+                  </div>
+                  <div>
+                    <label for="delaySeconds">详情间隔秒数</label>
+                    <input id="delaySeconds" name="delaySeconds" type="number" min="0" max="300" value="30" />
+                  </div>
+                </div>
+
+                <div class="grid-2">
+                  <label><input id="linksOnly" name="linksOnly" type="checkbox" />只收集链接</label>
+                  <label><input id="fromQueue" name="fromQueue" type="checkbox" />继续未完成队列</label>
+                </div>
+              </section>
+
+              <aside class="panel pad">
+                <div class="panel-title"><span>采集作业</span></div>
+                <div class="actions">
+                  <button id="submitButton" type="submit">开始采集</button>
+                  <button class="secondary" id="login1688Button" type="button">登录1688</button>
+                </div>
+
+                <div class="panel-title" style="margin-top: 22px"><span>采集日志</span></div>
+                <div class="actions">
+                  <button class="secondary" id="collectStopButton" type="button" disabled>停止任务</button>
+                  <button class="secondary" id="clearCollectLogButton" type="button">清空日志</button>
+                </div>
+                <div class="panel log" id="collectLog"></div>
+              </aside>
+            </div>
+          </section>
+
+          <section class="page" data-page="repositories">
+            <div class="page-head">
+              <div>
+                <p class="page-kicker">Storage</p>
+                <h2 class="page-title">商品仓库</h2>
+              </div>
+            </div>
+            <div class="form-grid">
+              <section class="panel pad">
+                <div class="panel-title">
+                  <span>仓库商品</span>
+                  <button class="secondary" id="refreshRepositoriesButton" type="button">刷新仓库</button>
+                </div>
+                <div class="repository-grid" id="products"></div>
+              </section>
+
+              <aside class="panel pad">
+                <div class="panel-title"><span>noon 商品作业</span></div>
+                <div class="actions">
+                  <button id="uploadAllButton" type="button">上传全部仓库商品</button>
+                </div>
+
+                <div class="panel-title" style="margin-top: 22px"><span>仓库作业日志</span></div>
+                <div class="actions">
+                  <button class="secondary" id="repositoryStopButton" type="button" disabled>停止任务</button>
+                  <button class="secondary" id="clearRepositoryLogButton" type="button">清空日志</button>
+                </div>
+                <div class="panel log" id="repositoryLog"></div>
+              </aside>
+            </div>
+          </section>
+
+          <section class="page" data-page="settings">
+            <div class="page-head">
+              <div>
+                <p class="page-kicker">Configuration</p>
+                <h2 class="page-title">配置</h2>
+              </div>
+            </div>
+            <div class="form-grid">
+              <section class="panel pad">
+                <div class="panel-title"><span>采集配置</span></div>
+                <label for="headless">1688 浏览器</label>
+                <select id="headless" name="headless">
+                  <option value="false">显示窗口</option>
+                  <option value="true">后台运行</option>
+                </select>
+
+                <label for="proxy">Proxy</label>
+                <input id="proxy" name="proxy" placeholder="http://user:pass@host:port" />
+              </section>
+
+              <aside class="panel pad">
+                <div class="panel-title"><span>noon / AI 配置</span></div>
+                <label for="noonUrl">noon Add Product 链接</label>
+                <input id="noonUrl" name="noonUrl" placeholder="https://.../add-product..." />
+
+                <label for="noonBrowser">noon 内核</label>
+                <select id="noonBrowser" name="noonBrowser">
+                  <option value="chrome">系统 Chrome</option>
+                  <option value="cloak" selected>CloakBrowser</option>
+                </select>
+                <label><input id="noonCloakTyping" name="noonCloakTyping" type="checkbox" />CloakBrowser 逐字输入</label>
+
+                <label for="noonHeadless">noon 运行方式</label>
+                <select id="noonHeadless" name="noonHeadless">
+                  <option value="false">显示窗口</option>
+                  <option value="true">后台运行</option>
+                </select>
+
+                <div class="status-strip" id="noonStatus">
+                  <strong>noon 状态未检测</strong>
+                  <span>填写 noon 链接后点击检测登录。</span>
+                </div>
+
+                <div class="actions">
+                  <button class="secondary" id="checkNoonButton" type="button">检测登录</button>
+                </div>
+
+                <label for="deepSeekModel">DeepSeek 模型</label>
+                <select id="deepSeekModel" name="deepSeekModel">
+                  <option value="deepseek-v4-flash">deepseek-v4-flash</option>
+                  <option value="deepseek-v4-pro">deepseek-v4-pro</option>
+                </select>
+
+                <label for="deepSeekApiKey">DeepSeek API Key</label>
+                <input id="deepSeekApiKey" name="deepSeekApiKey" type="password" placeholder="sk-...，只用于本次 AI 生成，不保存" autocomplete="off" />
+              </aside>
+            </div>
+          </section>
+        </section>
+
+        <div class="dialog-backdrop" id="repositoryDialog" role="dialog" aria-modal="true" aria-labelledby="repositoryDialogTitle">
+          <section class="dialog">
+            <div class="dialog-head">
+              <h2 class="dialog-title" id="repositoryDialogTitle">仓库商品</h2>
+              <button class="secondary" id="closeRepositoryDialog" type="button">关闭</button>
+            </div>
+            <div class="dialog-body" id="repositoryDialogBody"></div>
+          </section>
+        </div>
+      </main>
+    </form>
+
+    <script>
+      const form = document.querySelector("#jobForm");
+      const submitButton = document.querySelector("#submitButton");
+      const login1688Button = document.querySelector("#login1688Button");
+      const uploadAllButton = document.querySelector("#uploadAllButton");
+      const checkNoonButton = document.querySelector("#checkNoonButton");
+      const collectStopButton = document.querySelector("#collectStopButton");
+      const repositoryStopButton = document.querySelector("#repositoryStopButton");
+      const refreshButton = document.querySelector("#refreshButton");
+      const refreshRepositoriesButton = document.querySelector("#refreshRepositoriesButton");
+      const clearCollectLogButton = document.querySelector("#clearCollectLogButton");
+      const clearRepositoryLogButton = document.querySelector("#clearRepositoryLogButton");
+      const collectLogEl = document.querySelector("#collectLog");
+      const repositoryLogEl = document.querySelector("#repositoryLog");
+      const productsEl = document.querySelector("#products");
+      const repositoryDialog = document.querySelector("#repositoryDialog");
+      const repositoryDialogTitle = document.querySelector("#repositoryDialogTitle");
+      const repositoryDialogBody = document.querySelector("#repositoryDialogBody");
+      const closeRepositoryDialog = document.querySelector("#closeRepositoryDialog");
+      const jobStatusEl = document.querySelector("#jobStatus");
+      const repositoryCountEl = document.querySelector("#repositoryCount");
+      const productCountEl = document.querySelector("#productCount");
+      const imageCountEl = document.querySelector("#imageCount");
+      const fileNotice = document.querySelector("#fileNotice");
+      const serverLink = document.querySelector("#serverLink");
+      const noonStatusEl = document.querySelector("#noonStatus");
+      let activeJobId = null;
+      let activeJobBase = "/api/jobs";
+      let activeJobArea = "collect";
+      let activeLogEl = collectLogEl;
+      let pollTimer = null;
+      let saveFormTimer = null;
+      let lastRepositories = [];
+      const savedFormKey = "noon-tools:job-form";
+      const savedFormFields = [
+        "url",
+        "limit",
+        "delaySeconds",
+        "linksOnly",
+        "fromQueue",
+        "headless",
+        "proxy",
+        "repository",
+        "noonUrl",
+        "noonBrowser",
+        "noonCloakTyping",
+        "noonHeadless",
+        "deepSeekModel",
+      ];
+
+      restoreFormState();
+      restoreServerFormState();
+      bindNavigation();
+      renderRoute();
+      form.addEventListener("input", saveFormState);
+      form.addEventListener("change", saveFormState);
+      window.addEventListener("hashchange", renderRoute);
+
+      if (window.location.protocol === "file:") {
+        serverLink.href = "http://localhost:4173";
+        serverLink.textContent = "http://localhost:4173";
+        fileNotice.style.display = "block";
+        submitButton.disabled = true;
+        login1688Button.disabled = true;
+        uploadAllButton.disabled = true;
+        checkNoonButton.disabled = true;
+        collectStopButton.disabled = true;
+        repositoryStopButton.disabled = true;
+        appendLog("请通过本地服务打开界面，不能直接打开 public/index.html。");
+      }
+
+      form.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        if (window.location.protocol === "file:") return;
+        submitButton.disabled = true;
+        activeJobArea = "collect";
+        activeLogEl = collectLogEl;
+        showRoute("collect");
+        collectLogEl.innerHTML = "";
+        await persistFormState();
+
+        const data = Object.fromEntries(new FormData(form).entries());
+        const response = await fetch("/api/jobs", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            url: data.url.trim(),
+            limit: Number(data.limit === "" ? 0 : data.limit),
+            delaySeconds: Number(data.delaySeconds || 30),
+            linksOnly: Boolean(data.linksOnly),
+            fromQueue: Boolean(data.fromQueue),
+            headless: data.headless !== "false",
+            proxy: data.proxy.trim(),
+            repository: data.repository.trim(),
+          }),
+        });
+
+        const job = await readResponseJson(response);
+        if (!response.ok) {
+          appendLog(job.error || "任务创建失败");
+          setBusy(false);
+          return;
+        }
+
+        activeJobId = job.id;
+        activeJobBase = "/api/jobs";
+        renderJob(job);
+        startPolling();
+      });
+
+      uploadAllButton.addEventListener("click", async () => startUploadJob({ all: true }));
+      login1688Button.addEventListener("click", login1688);
+      checkNoonButton.addEventListener("click", checkNoonStatus);
+      collectStopButton.addEventListener("click", stopCurrentJob);
+      repositoryStopButton.addEventListener("click", stopCurrentJob);
+      refreshButton.addEventListener("click", refreshProducts);
+      refreshRepositoriesButton.addEventListener("click", refreshProducts);
+      clearCollectLogButton.addEventListener("click", () => {
+        collectLogEl.innerHTML = "";
+      });
+      clearRepositoryLogButton.addEventListener("click", () => {
+        repositoryLogEl.innerHTML = "";
+      });
+      closeRepositoryDialog.addEventListener("click", closeDialog);
+      repositoryDialog.addEventListener("click", (event) => {
+        if (event.target === repositoryDialog) closeDialog();
+      });
+
+      function bindNavigation() {
+        for (const button of document.querySelectorAll("[data-route]")) {
+          button.addEventListener("click", () => showRoute(button.dataset.route));
+        }
+      }
+
+      function currentRoute() {
+        const route = window.location.hash.replace(/^#\/?/, "");
+        return route || "dashboard";
+      }
+
+      function showRoute(route) {
+        window.location.hash = `#${route}`;
+        renderRoute();
+      }
+
+      function renderRoute() {
+        const route = currentRoute();
+        const knownRoute = document.querySelector(`[data-page="${route}"]`) ? route : "dashboard";
+
+        for (const page of document.querySelectorAll("[data-page]")) {
+          page.classList.toggle("active", page.dataset.page === knownRoute);
+        }
+        for (const button of document.querySelectorAll(".nav [data-route]")) {
+          button.classList.toggle("active", button.dataset.route === knownRoute);
+        }
+      }
+
+      function startPolling() {
+        clearInterval(pollTimer);
+        pollTimer = setInterval(async () => {
+          try {
+            if (!activeJobId) return;
+            const job = await fetchJson(`${activeJobBase}/${activeJobId}`);
+            renderJob(job);
+            if (job.status !== "running") {
+              clearInterval(pollTimer);
+              setBusy(false);
+              await refreshProducts();
+            }
+          } catch (error) {
+            clearInterval(pollTimer);
+            setBusy(false);
+            appendLog(error.message);
+          }
+        }, 1200);
+      }
+
+      function renderJob(job) {
+        jobStatusEl.textContent = job.status;
+        setBusy(job.status === "running");
+        activeLogEl.innerHTML = "";
+        for (const item of job.logs || []) appendLog(item.line);
+      }
+
+      function setBusy(running) {
+        submitButton.disabled = running;
+        login1688Button.disabled = running;
+        uploadAllButton.disabled = running;
+        collectStopButton.disabled = !running || !activeJobId || activeJobArea !== "collect";
+        repositoryStopButton.disabled = !running || !activeJobId || activeJobArea !== "repository";
+      }
+
+      function appendLog(line) {
+        const div = document.createElement("div");
+        div.textContent = line;
+        activeLogEl.append(div);
+        activeLogEl.scrollTop = activeLogEl.scrollHeight;
+      }
+
+      async function login1688() {
+        if (window.location.protocol === "file:") return;
+        login1688Button.disabled = true;
+        activeJobArea = "collect";
+        activeLogEl = collectLogEl;
+        showRoute("collect");
+        collectLogEl.innerHTML = "";
+        await persistFormState();
+
+        const data = Object.fromEntries(new FormData(form).entries());
+        const response = await fetch("/api/login-1688", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ url: data.url.trim() }),
+        });
+        const job = await readResponseJson(response);
+
+        if (!response.ok) {
+          appendLog(job.error || "登录任务创建失败");
+          setBusy(false);
+          return;
+        }
+
+        activeJobId = job.id;
+        activeJobBase = "/api/jobs";
+        activeJobArea = "collect";
+        activeLogEl = collectLogEl;
+        renderJob(job);
+        startPolling();
+      }
+
+      async function refreshProducts() {
+        if (window.location.protocol === "file:") return;
+        const repositories = await fetchJson("/api/products");
+        lastRepositories = repositories;
+        const productCount = repositories.reduce((sum, repository) => sum + (repository.productCount || 0), 0);
+        repositoryCountEl.textContent = repositories.length;
+        productCountEl.textContent = productCount;
+        imageCountEl.textContent = repositories.reduce((sum, repository) => sum + (repository.imageCount || 0), 0);
+        productsEl.innerHTML = "";
+
+        if (repositories.length === 0) {
+          productsEl.innerHTML = '<div class="empty">还没有生成商品目录。</div>';
+          return;
+        }
+
+        for (const repository of repositories) {
+          const tab = document.createElement("button");
+          tab.className = "repository-tab";
+          tab.type = "button";
+          tab.innerHTML = `
+            <strong></strong>
+            <span>${repository.productCount || 0} 个商品</span>
+            <span>${repository.uploadableCount || 0} 个可上传 · ${repository.blockedCount || 0} 个需检查</span>
+            <span>${repository.imageCount || 0} 张本地图片</span>
+          `;
+          tab.querySelector("strong").textContent = repository.name;
+          tab.addEventListener("click", () => openRepositoryDialog(repository));
+          productsEl.append(tab);
+        }
+      }
+
+      function openRepositoryDialog(repository) {
+        repositoryDialogTitle.textContent = repository.name;
+        repositoryDialogBody.innerHTML = "";
+
+        if (!repository.products?.length) {
+          repositoryDialogBody.innerHTML = '<div class="empty">这个仓库还没有商品。</div>';
+        } else {
+          for (const product of repository.products) {
+            const row = document.createElement("article");
+            row.className = "product-row";
+            row.innerHTML = `
+              <div>
+                <p class="title"></p>
+                <div class="meta">
+                  <div>${product.imageCount || 0} 张本地图片 · ${product.noonSummary?.variantCount || 0} 个 noon SKU · ${product.noonSummary?.imageCount || 0} 张上传图</div>
+                  <div>${escapeHtml(product.noonSummary?.title || "未生成 noon 标题")}</div>
+                  <div class="upload-status">${escapeHtml(product.noonUploadStatus?.status || "not_uploaded")}</div>
+                  ${
+                    product.noonSummary?.blockingCount
+                      ? `<div class="warning">${formatBlockingIssues(product.noonSummary)}</div>`
+                      : ""
+                  }
+                </div>
+                ${product.warnings?.length ? `<div class="warning">${product.warnings.map(escapeHtml).join(" / ")}</div>` : ""}
+                <div class="links">
+                  <a href="${product.metaUrl}" target="_blank">meta.json</a>
+                  <a href="${product.noonUrl}" target="_blank">noon 属性</a>
+                  ${product.sourceUrl ? `<a href="${product.sourceUrl}" target="_blank">1688</a>` : ""}
+                  <button type="button" data-ai-dir="${escapeHtml(product.dirName)}">AI noon</button>
+                </div>
+              </div>
+              <div>
+                <button type="button" data-upload-dir="${escapeHtml(product.dirName)}">上传到 noon</button>
+              </div>
+            `;
+            row.querySelector(".title").textContent = product.title;
+            row.querySelector("[data-ai-dir]").addEventListener("click", async () => {
+              closeDialog();
+              await startNoonGenerateJob(product.dirName);
+            });
+            row.querySelector("[data-upload-dir]").addEventListener("click", async () => {
+              closeDialog();
+              await startUploadJob({ productDir: product.dirName });
+            });
+            repositoryDialogBody.append(row);
+          }
+        }
+
+        repositoryDialog.classList.add("open");
+      }
+
+      function closeDialog() {
+        repositoryDialog.classList.remove("open");
+      }
+
+      async function startUploadJob(payload) {
+        if (window.location.protocol === "file:") return;
+
+        await persistFormState();
+        const data = Object.fromEntries(new FormData(form).entries());
+        if (!data.noonUrl.trim()) {
+          showRoute("settings");
+          renderNoonStatus({ status: "error", error: "请先填写 noon Add Product 链接。" });
+          return;
+        }
+
+        submitButton.disabled = true;
+        uploadAllButton.disabled = true;
+        activeJobArea = "repository";
+        activeLogEl = repositoryLogEl;
+        showRoute("repositories");
+        repositoryLogEl.innerHTML = "";
+
+        const response = await fetch("/api/upload-jobs", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            ...payload,
+            noonUrl: data.noonUrl.trim(),
+            noonBrowser: data.noonBrowser || "cloak",
+            noonCloakTyping: form.elements.noonCloakTyping.checked,
+            headless: data.noonHeadless === "true",
+          }),
+        });
+
+        const job = await readResponseJson(response);
+        if (!response.ok) {
+          appendLog(job.error || "上传任务创建失败");
+          setBusy(false);
+          return;
+        }
+
+        activeJobId = job.id;
+        activeJobBase = "/api/upload-jobs";
+        activeJobArea = "repository";
+        activeLogEl = repositoryLogEl;
+        renderJob(job);
+        startPolling();
+      }
+
+      async function startNoonGenerateJob(productDir) {
+        if (window.location.protocol === "file:") return;
+
+        const data = Object.fromEntries(new FormData(form).entries());
+        setBusy(true);
+        activeJobArea = "repository";
+        activeLogEl = repositoryLogEl;
+        showRoute("repositories");
+        repositoryLogEl.innerHTML = "";
+        appendLog(`开始根据 meta.json 生成 noon-product: ${productDir}`);
+
+        const response = await fetch("/api/noon-generate-jobs", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            productDir,
+            deepSeekApiKey: data.deepSeekApiKey.trim(),
+            deepSeekModel: data.deepSeekModel || "deepseek-v4-flash",
+          }),
+        });
+        const job = await readResponseJson(response);
+
+        if (!response.ok) {
+          appendLog(job.error || "AI 生成任务创建失败");
+          setBusy(false);
+          return;
+        }
+
+        activeJobId = job.id;
+        activeJobBase = "/api/jobs";
+        activeJobArea = "repository";
+        activeLogEl = repositoryLogEl;
+        renderJob(job);
+        startPolling();
+      }
+
+      async function stopCurrentJob() {
+        if (!activeJobId || window.location.protocol === "file:") return;
+
+        collectStopButton.disabled = true;
+        repositoryStopButton.disabled = true;
+        try {
+          const job = await postJson(`${activeJobBase}/${activeJobId}/cancel`, {});
+          renderJob(job);
+          clearInterval(pollTimer);
+          setBusy(false);
+          await refreshProducts();
+        } catch (error) {
+          appendLog(error.message);
+          setBusy(true);
+        }
+      }
+
+      async function checkNoonStatus() {
+        if (window.location.protocol === "file:") return;
+
+        await persistFormState();
+        const data = Object.fromEntries(new FormData(form).entries());
+        if (!data.noonUrl.trim()) {
+          renderNoonStatus({ status: "error", error: "请先填写 noon Add Product 链接。" });
+          return;
+        }
+
+        checkNoonButton.disabled = true;
+        renderNoonStatus({ status: "checking" });
+
+        try {
+          const params = new URLSearchParams({ noonUrl: data.noonUrl.trim() });
+          const status = await fetchJson(`/api/noon-status?${params}`);
+          renderNoonStatus(status);
+        } catch (error) {
+          renderNoonStatus({ status: "error", error: error.message });
+        } finally {
+          checkNoonButton.disabled = false;
+        }
+      }
+
+      function renderNoonStatus(status) {
+        noonStatusEl.classList.remove("status-ok", "status-bad");
+
+        if (status.status === "checking") {
+          noonStatusEl.innerHTML = "<strong>正在检测 noon 登录...</strong><span>只读打开上传页，不填写数据。</span>";
+          return;
+        }
+
+        if (status.uploadPageReachable) {
+          noonStatusEl.classList.add("status-ok");
+          noonStatusEl.innerHTML = `<strong>noon 已登录，上传页可达</strong><span>${escapeHtml(status.title || "")}<br>${escapeHtml(status.finalUrl || "")}</span>`;
+          return;
+        }
+
+        noonStatusEl.classList.add("status-bad");
+        if (status.status === "logged_out") {
+          noonStatusEl.innerHTML = `<strong>noon 未登录</strong><span>${escapeHtml(status.finalUrl || "")}</span>`;
+        } else {
+          noonStatusEl.innerHTML = `<strong>noon 状态未知</strong><span>${escapeHtml(status.error || status.finalUrl || "检测失败")}</span>`;
+        }
+      }
+
+      function restoreFormState() {
+        try {
+          const saved = JSON.parse(localStorage.getItem(savedFormKey) || "{}");
+          applyFormState(saved);
+        } catch {
+          localStorage.removeItem(savedFormKey);
+        }
+      }
+
+      async function restoreServerFormState() {
+        if (window.location.protocol === "file:") return;
+
+        try {
+          const saved = await fetchJson("/api/settings");
+          applyFormState(saved);
+          saveLocalFormState(readFormState());
+        } catch {}
+      }
+
+      async function resumeRunningJob() {
+        if (window.location.protocol === "file:") return;
+
+        try {
+          const [collectJobs, uploadJobs] = await Promise.all([fetchJson("/api/jobs"), fetchJson("/api/upload-jobs")]);
+          const runningCollect = [...collectJobs].reverse().find((job) => job.status === "running");
+          const runningUpload = [...uploadJobs].reverse().find((job) => job.status === "running");
+          const runningJob = runningCollect || runningUpload;
+          if (!runningJob) return;
+
+          activeJobId = runningJob.id;
+          activeJobBase = runningCollect ? "/api/jobs" : "/api/upload-jobs";
+          activeJobArea = runningUpload || runningJob.kind === "generateNoonProduct" ? "repository" : "collect";
+          activeLogEl = activeJobArea === "repository" ? repositoryLogEl : collectLogEl;
+          renderJob(runningJob);
+          startPolling();
+        } catch (error) {
+          appendLog(`读取运行中任务失败：${error.message}`);
+        }
+      }
+
+      function saveFormState() {
+        const saved = readFormState();
+
+        saveLocalFormState(saved);
+        clearTimeout(saveFormTimer);
+        saveFormTimer = setTimeout(() => {
+          saveServerFormState(saved);
+        }, 350);
+      }
+
+      async function persistFormState() {
+        const saved = readFormState();
+
+        clearTimeout(saveFormTimer);
+        saveLocalFormState(saved);
+        await saveServerFormState(saved);
+      }
+
+      function readFormState() {
+        const saved = {};
+
+        for (const name of savedFormFields) {
+          const element = form.elements[name];
+          if (!element) continue;
+          saved[name] = element.type === "checkbox" ? String(element.checked) : element.value;
+        }
+
+        return saved;
+      }
+
+      function applyFormState(saved) {
+        for (const name of savedFormFields) {
+          const element = form.elements[name];
+          if (!element || saved?.[name] === undefined) continue;
+          if (element.type === "checkbox") {
+            element.checked = saved[name] === "true";
+            continue;
+          }
+          if (saved[name] === "" && element.value) continue;
+          element.value = saved[name];
+        }
+      }
+
+      function saveLocalFormState(saved) {
+        localStorage.setItem(savedFormKey, JSON.stringify(saved));
+      }
+
+      async function saveServerFormState(saved) {
+        if (window.location.protocol === "file:") return;
+
+        try {
+          await fetch("/api/settings", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify(saved),
+          });
+        } catch {}
+      }
+
+      async function fetchJson(url) {
+        const response = await fetch(url);
+        const data = await readResponseJson(response);
+        if (!response.ok) throw new Error(data.error || `请求失败: ${response.status}`);
+        return data;
+      }
+
+      async function postJson(url, payload) {
+        const response = await fetch(url, {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        const data = await readResponseJson(response);
+        if (!response.ok) throw new Error(data.error || `请求失败: ${response.status}`);
+        return data;
+      }
+
+      async function readResponseJson(response) {
+        const text = await response.text();
+
+        try {
+          return text ? JSON.parse(text) : {};
+        } catch {
+          return { error: text || `请求失败: ${response.status}` };
+        }
+      }
+
+      function escapeHtml(value) {
+        return String(value)
+          .replaceAll("&", "&amp;")
+          .replaceAll('"', "&quot;")
+          .replaceAll("<", "&lt;")
+          .replaceAll(">", "&gt;");
+      }
+
+      function formatGateStatus(status) {
+        if (status === "blocked") return "需人工复核";
+        if (status === "ready_for_manual_review") return "可人工复核";
+        if (status === "missing_noon_attributes") return "缺少 noon 属性";
+        return status || "需人工复核";
+      }
+
+      function formatBlockingIssues(noonSummary) {
+        const issues = (noonSummary.blockingIssues || []).map(formatBlockingIssue);
+        return escapeHtml(`${noonSummary.blockingCount || issues.length} 个生成检查项未通过：${issues.join("；") || formatGateStatus(noonSummary.gateStatus)}`);
+      }
+
+      function formatBlockingIssue(issue) {
+        if (issue.includes("Source price is CNY")) return "1688 成本价是 CNY，需换算 noon 销售价";
+        if (issue.includes("No product images")) return "没有可上传图片";
+        if (issue.includes("English title")) return "英文标题缺失或仍含中文";
+        if (issue.includes("Multiple colours")) return "多颜色 SKU 需确认每个颜色的库存";
+        return issue;
+      }
+
+      refreshProducts();
+      resumeRunningJob();
+    </script>
+  </body>
+</html>

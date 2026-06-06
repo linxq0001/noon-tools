@@ -1,0 +1,95 @@
+{
+  "templateVersion": "2.0.0",
+  "marketplace": "noon",
+  "purpose": "Draft template for noon Add Product data using product_group + colour variants.",
+  "rules": [
+    "One colour = one independent SKU.",
+    "One colour = one independent Barcode.",
+    "One colour = independent stock.",
+    "One colour = independent price.",
+    "Same style colours are merged in noon backend Groups into one frontend product link.",
+    "Do not submit automatically; prepare a local draft for manual review."
+  ],
+  "product": {
+    "product_group": {
+      "product_group_name_en": "",
+      "product_group_name_ar": "",
+      "category": "Bags & Luggage > Handbag > Clutch",
+      "brand": "Generic",
+      "gender": "Women",
+      "hs_code": "420222",
+      "country_of_origin": "China",
+      "model_name": "",
+      "exterior_material": "",
+      "interior_material": "",
+      "material_composition": "",
+      "occasion": "Party",
+      "size": "One Size",
+      "size_unit": "cm",
+      "year": "2026",
+      "features": "Rhinestone, Compact Size",
+      "care_instructions": "Wipe clean with a dry cloth",
+      "casing": "Hard Case",
+      "closure": "",
+      "type": "Clutch",
+      "strap_material": "Metal",
+      "item_condition": "New",
+      "what_is_in_the_box": "1 x Evening Clutch Bag",
+      "variation_axis": "Colour Name"
+    },
+    "variants": [
+      {
+        "partner_sku": "",
+        "barcode": "",
+        "colour": "",
+        "colour_name": "",
+        "title_en": "",
+        "title_ar": "",
+        "subtitle_en": "",
+        "subtitle_ar": "",
+        "description_en": "",
+        "description_ar": "",
+        "feature_bullets_en": [],
+        "feature_bullets_ar": [],
+        "model_number": "",
+        "length_cm": 17,
+        "width_cm": 6,
+        "height_cm": 15,
+        "actual_weight_kg": 1,
+        "vm_weight_cm": null,
+        "price_sar_initial": null,
+        "price_usd": null,
+        "stock": null,
+        "processing_time": "2_days",
+        "warehouse_name": "China NGS Test Warehouse",
+        "warehouse_code": "W00183886CN",
+        "images": []
+      }
+    ],
+    "upload_config": {
+      "country_code": "sa",
+      "id_partner": "517205",
+      "legal_entity": "LE4PFJU3HCN",
+      "contract_order_number": "MPC4NRVOLTSA",
+      "origin": "noon SA (Origin CN)",
+      "warehouse_code": "W00183886CN",
+      "warehouse_name": "China NGS Test Warehouse",
+      "global_product_update_required": true,
+      "global_price_update_required": true,
+      "stock_import_required": true,
+      "group_after_live": true
+    },
+    "submission_gate": {
+      "status": "blocked",
+      "successDefinition": [
+        "Product group data is saved as a local draft only.",
+        "Each colour variant must be reviewed as an independent SKU with its own Barcode, stock, price, and matching images.",
+        "Backend Groups can merge live colour SKUs into one frontend product link.",
+        "Automation must not submit the listing to noon review automatically."
+      ],
+      "blockingIssues": [],
+      "warnings": [],
+      "sourcePrice": null
+    }
+  }
+}
