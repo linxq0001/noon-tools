@@ -1,11 +1,19 @@
 #!/usr/bin/env node
 
-import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
+import { execFile } from "node:child_process";
+import { mkdir, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import path from "node:path";
+import { promisify } from "node:util";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { isLikelyDimensionImage, resolveProductDimensions } from "./lib/dimension-extractor.js";
 import { constrainNoonSelectValue } from "./lib/noon-field-constraints.js";
+import { normalizeNoonProductVariantImages } from "./lib/noon-product-normalizer.js";
+import { cleanProductTitle } from "./lib/title-cleaner.js";
+import { assignImagesToVariants } from "./lib/variant-image-assignment.js";
 
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const execFileAsync = promisify(execFile);
 const templatePath = path.join(rootDir, "templates", "noon-product-attribute-template.json");
 const productAttributeKeys = [
   "材质",
@@ -25,10 +33,16 @@ const productAttributeKeys = [
   "品牌",
   "颜色",
   "上市年份季节",
+  "尺寸",
+  "规格",
+  "长宽高",
+  "产品尺寸",
 ];
 
 const args = parseArgs(process.argv.slice(2));
 const template = JSON.parse(await readFile(templatePath, "utf8"));
+let colourVisionConsecutiveFailures = 0;
+let colourVisionDisabled = false;
 
 if (args["from-meta"]) {
   await generateNoonProductFromMeta(args["from-meta"], { beautify: args.deepseek === "true" });
@@ -311,10 +325,11 @@ async function collectProduct(url) {
   meta.attributes = pageData.attributes.length > 0 ? pageData.attributes : filterProductAttributes(meta.attributes);
   meta.packageInfo = pageData.packageInfo;
   meta.imageUrls = filterProductImageUrls(pageData.detailImageUrls);
-  meta.title = buildListingTitle(meta.sourceTitle, meta.attributes);
+  Object.assign(meta, buildListingTitle(meta.sourceTitle, meta.attributes));
   const productDir = path.join(outDir, safeFileName(`${productId}-${meta.title || "product"}`));
 
   logStep("title", `最终标题: ${meta.title || "(空)"}`);
+  if (meta.productTypeText) logStep("title", `包型: ${meta.productTypeText}`);
   logStep("attributes", `属性数量: ${meta.attributes.length}`);
   logStep("package", `重量(g): ${meta.packageInfo.weightG || "(空)"}`);
   logStep("image-urls", `详情区原始图片URL数量: ${pageData.detailImageUrls.length}`);
@@ -331,6 +346,7 @@ async function collectProduct(url) {
 
   const downloads = await downloadImages(meta.imageUrls, productDir);
   meta.images = downloads.saved;
+  meta.dimensions = resolveProductDimensions({ attributes: meta.attributes, packageInfo: meta.packageInfo });
   meta.generatedAt = new Date().toISOString();
   logStep("download", `准备下载URL数量: ${meta.imageUrls.length}`);
   logStep("download", `成功保存图片文件数: ${downloads.saved.length}`);
@@ -340,7 +356,7 @@ async function collectProduct(url) {
   }
 
   meta.productDir = productDir;
-  const noonProduct = await buildNoonProduct(template.product, meta);
+  const noonProduct = normalizeNoonProductVariantImages(await buildNoonProduct(template.product, meta));
   const outputMeta = buildOutputMeta(meta, downloads.failed);
 
   await writeJson(path.join(productDir, "meta.json"), outputMeta);
@@ -355,7 +371,7 @@ async function generateNoonProductFromMeta(metaPath, options = {}) {
   const productDir = path.dirname(resolvedMetaPath);
   const storedMeta = JSON.parse(await readFile(resolvedMetaPath, "utf8"));
   const meta = await normalizeStoredMetaForNoon(storedMeta, productDir);
-  const noonProduct = await buildNoonProduct(template.product, meta, options);
+  const noonProduct = normalizeNoonProductVariantImages(await buildNoonProduct(template.product, meta, options));
   const outputPath = path.join(productDir, "noon-product-attributes.json");
 
   await writeJson(outputPath, noonProduct);
@@ -371,6 +387,11 @@ async function normalizeStoredMetaForNoon(storedMeta, productDir) {
   const localImages = await listLocalImages(productDir);
   const productId = storedMeta.productId || extractProductId(storedMeta.sourceUrl || "") || path.basename(productDir);
   const priceValue = Number.parseFloat(storedMeta.price);
+  const sourceHtml = await readFile(path.join(productDir, "source.html"), "utf8").catch(() => "");
+  const sourceAttributes = sourceHtml ? extractAttributes(sourceHtml) : [];
+  const sourcePackageInfo = sourceHtml ? extractPackageInfo(sourceHtml) : { weightG: "", dimensionsText: "" };
+  const storedPackageInfo = storedMeta.packageInfo || {};
+  const attributes = mergeAttributeLists(objectAttributesToList(storedMeta.attributes), sourceAttributes);
 
   return {
     source: {
@@ -378,7 +399,7 @@ async function normalizeStoredMetaForNoon(storedMeta, productDir) {
       url: storedMeta.sourceUrl || "",
       productId,
     },
-    title: storedMeta.title || buildListingTitle(storedMeta.sourceTitle || "", objectAttributesToList(storedMeta.attributes)),
+    ...buildStoredTitle(storedMeta),
     sourceTitle: storedMeta.sourceTitle || storedMeta.title || "",
     description: storedMeta.description || "",
     price: Number.isFinite(priceValue)
@@ -388,12 +409,41 @@ async function normalizeStoredMetaForNoon(storedMeta, productDir) {
           note: "1688 source price; convert manually before noon publishing.",
         }
       : null,
-    packageInfo: storedMeta.packageInfo || { weightG: "" },
-    attributes: objectAttributesToList(storedMeta.attributes),
+    packageInfo: {
+      ...sourcePackageInfo,
+      ...storedPackageInfo,
+      dimensionsText: storedPackageInfo.dimensionsText || sourcePackageInfo.dimensionsText || "",
+    },
+    attributes,
     imageUrls: storedMeta.images || [],
     images: localImages.map((image) => ({ path: image })),
+    dimensions: storedMeta.dimensions,
     productDir,
     parseWarnings: [],
+  };
+}
+
+function mergeAttributeLists(primary, fallback) {
+  const items = [];
+  const seen = new Set();
+
+  for (const attribute of [...primary, ...fallback]) {
+    if (!attribute.name || seen.has(attribute.name)) continue;
+    seen.add(attribute.name);
+    items.push(attribute);
+  }
+
+  return items;
+}
+
+function buildStoredTitle(storedMeta) {
+  const generated = buildListingTitle(storedMeta.sourceTitle || storedMeta.title || "", objectAttributesToList(storedMeta.attributes));
+
+  return {
+    ...generated,
+    title: storedMeta.title || generated.title,
+    titleParts: storedMeta.titleParts || generated.titleParts,
+    productTypeText: storedMeta.productTypeText || generated.productTypeText,
   };
 }
 
@@ -458,6 +508,12 @@ function buildOutputMeta(meta, failedDownloads) {
     sourceUrl: `https://detail.1688.com/offer/${meta.source.productId}.html`,
     sourceTitle: meta.sourceTitle,
     title: meta.title,
+    titleParts: meta.titleParts || [],
+    productTypeText: meta.productTypeText || "",
+    dimensions: meta.dimensions,
+    dimensionVision: meta.dimensionVision,
+    colourVision: meta.colourVision,
+    imageAssignmentWarnings: meta.imageAssignmentWarnings || [],
     downloadedCount: meta.images.length,
     failedDownloads,
   };
@@ -495,13 +551,23 @@ async function buildNoonProduct(productTemplate, meta, options = {}) {
   });
   const longDescriptionAr = buildArabicDescription({ groupNameAr, featureBulletsAr });
   const colours = sourceColours.length > 0 ? sourceColours : [""];
-  const imageItems = meta.images.map((image) => ({ path: image.path })).filter((image) => image.path);
+  const imageItems = meta.images.map((image) => image.path).filter(Boolean);
+  const dimensions = await resolveDimensionsForNoon(meta, options);
+  meta.dimensions = dimensions;
+  const visualAssignments = await classifyColourImagesWithDeepSeek(meta, sourceColours, options);
+  const imageAssignment = assignImagesToVariants({
+    colours,
+    images: meta.images,
+    visualAssignments,
+  });
+  meta.imageAssignmentWarnings = imageAssignment.warnings;
   const variants = colours.map((sourceColour, index) => {
     const variantColour = safeEnglishValue(translateChinesePhrase(sourceColour), `Colour ${index + 1}`);
     const variantColourAr = translateEnglishToArabic(variantColour);
     const variantSku = sourceColour ? `${partnerSku}-${skuColourCode(variantColour || sourceColour, index)}` : partnerSku;
     const variantTitle = [groupName, variantColour].filter(Boolean).join(", ");
     const variantTitleAr = [groupNameAr, variantColourAr].filter(Boolean).join("، ");
+    const assignedImages = imageAssignment.imagesByColour[sourceColour || "_default"]?.map((image) => image.path).filter(Boolean) || imageItems;
 
     return {
       partner_sku: variantSku,
@@ -517,9 +583,9 @@ async function buildNoonProduct(productTemplate, meta, options = {}) {
       feature_bullets_en: featureBullets,
       feature_bullets_ar: featureBulletsAr,
       model_number: variantSku,
-      length_cm: 17,
-      width_cm: 6,
-      height_cm: 15,
+      length_cm: dimensions.lengthCm,
+      width_cm: dimensions.widthCm,
+      height_cm: dimensions.heightCm,
       actual_weight_kg: suggestedNoonWeightKg(meta.packageInfo.weightG),
       vm_weight_cm: null,
       price_sar_initial: offerPrice,
@@ -528,7 +594,7 @@ async function buildNoonProduct(productTemplate, meta, options = {}) {
       processing_time: "2_days",
       warehouse_name: productTemplate.upload_config?.warehouse_name || "China NGS Test Warehouse",
       warehouse_code: productTemplate.upload_config?.warehouse_code || "W00183886CN",
-      images: imageItems,
+      images: assignedImages,
     };
   });
 
@@ -667,10 +733,304 @@ async function applyDeepSeekBeautification(noonProduct, meta) {
   logStep("deepseek", "已完成标题、描述、卖点美化。");
 }
 
+async function classifyColourImagesWithDeepSeek(meta, sourceColours, options = {}) {
+  const apiKey = process.env.DEEPSEEK_API_KEY;
+  const model = process.env.DEEPSEEK_MODEL || "deepseek-v4-flash";
+  const baseUrl = (process.env.DEEPSEEK_BASE_URL || "https://api.deepseek.com").replace(/\/+$/, "");
+  const colours = sourceColours.filter(Boolean);
+
+  if (!options.beautify || !apiKey || colours.length < 2 || colourVisionDisabled) return [];
+
+  const candidates = meta.images
+    .filter((image) => image.path && !isLikelyDimensionImage(image))
+    .slice(0, 6);
+
+  if (candidates.length === 0) return [];
+
+  const startedAt = Date.now();
+
+  try {
+    const imageMessages = [];
+
+    for (const image of candidates) {
+      const imagePath = path.join(meta.productDir, image.path);
+      const { bytes, mimeType } = await readVisionImage(imagePath, image.contentType || mimeTypeFromImagePath(image.path));
+
+      imageMessages.push({ type: "text", text: `Image ${image.path}` });
+      imageMessages.push({
+        type: "image_url",
+        image_url: { url: `data:${mimeType};base64,${Buffer.from(bytes).toString("base64")}` },
+      });
+    }
+
+    const response = await fetch(`${baseUrl}/chat/completions`, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model,
+        temperature: 0,
+        response_format: { type: "json_object" },
+        messages: [
+          {
+            role: "system",
+            content: "Assign each product image to one existing colour or _shared. Return only valid JSON.",
+          },
+          {
+            role: "user",
+            content: [
+              {
+                type: "text",
+                text: JSON.stringify({
+                  task: "Assign each image to one of the allowed colours or _shared. Do not create new colours.",
+                  allowedColours: colours,
+                  outputSchema: {
+                    imageAssignments: [{ image: "001.jpg", assignedColour: "金色|_shared", confidence: "high|medium|low", reason: "short" }],
+                  },
+                }),
+              },
+              ...imageMessages,
+            ],
+          },
+        ],
+      }),
+    });
+    const data = await response.json().catch(() => null);
+
+    if (!response.ok) throw new Error(`HTTP ${response.status} ${JSON.stringify(data)}`);
+
+    const patch = parseAiJson(data?.choices?.[0]?.message?.content);
+    const assignments = sanitizeColourAssignments(patch.imageAssignments, candidates, colours);
+
+    if (assignments.length === 0) throw new Error("DeepSeek vision returned no usable colour assignments.");
+
+    colourVisionConsecutiveFailures = 0;
+    meta.colourVision = {
+      provider: "deepseek",
+      model,
+      status: "completed",
+      imageAssignments: assignments,
+      elapsedMs: Date.now() - startedAt,
+    };
+    logStep(
+      "colour-vision",
+      `识别 ${candidates.length} 张图片，分配到 ${new Set(assignments.map((item) => item.assignedColour)).size} 个颜色，耗时 ${((Date.now() - startedAt) / 1000).toFixed(1)}s`,
+    );
+
+    return assignments;
+  } catch (error) {
+    colourVisionConsecutiveFailures += 1;
+    meta.colourVision = {
+      provider: "deepseek",
+      model,
+      status: "failed",
+      error: error.message,
+      consecutiveFailures: colourVisionConsecutiveFailures,
+    };
+    logStep("colour-vision", `DeepSeek vision failed: ${error.message}; using shared images fallback.`);
+
+    if (colourVisionConsecutiveFailures >= 3) {
+      colourVisionDisabled = true;
+      logStep("colour-vision", "连续 3 个商品视觉识别失败，本轮关闭颜色图片区分，后续商品使用 shared 图片。");
+    }
+
+    return [];
+  }
+}
+
+async function resolveDimensionsForNoon(meta, options = {}) {
+  if (meta.dimensions && meta.dimensions.source !== "default") return meta.dimensions;
+
+  const fromAttributes = resolveProductDimensions({ attributes: meta.attributes, packageInfo: meta.packageInfo });
+
+  if (fromAttributes.source !== "default") return fromAttributes;
+
+  const imageDimensions = await classifyDimensionsWithDeepSeek(meta, options);
+  if (imageDimensions) return imageDimensions;
+
+  return fromAttributes;
+}
+
+async function classifyDimensionsWithDeepSeek(meta, options = {}) {
+  const apiKey = process.env.DEEPSEEK_API_KEY;
+  const model = process.env.DEEPSEEK_MODEL || "deepseek-v4-flash";
+  const baseUrl = (process.env.DEEPSEEK_BASE_URL || "https://api.deepseek.com").replace(/\/+$/, "");
+
+  if (!options.beautify || !apiKey) return null;
+
+  const likely = meta.images.filter(isLikelyDimensionImage);
+  const candidates = (likely.length > 0 ? likely.slice(0, 3) : meta.images.slice(0, 2)).filter((image) => image.path);
+
+  if (candidates.length === 0) return null;
+
+  try {
+    const imageMessages = [];
+
+    for (const image of candidates) {
+      const imagePath = path.join(meta.productDir, image.path);
+      const { bytes, mimeType } = await readVisionImage(imagePath, image.contentType || mimeTypeFromImagePath(image.path));
+
+      imageMessages.push({ type: "text", text: `Image ${image.path}` });
+      imageMessages.push({
+        type: "image_url",
+        image_url: { url: `data:${mimeType};base64,${Buffer.from(bytes).toString("base64")}` },
+      });
+    }
+
+    const response = await fetch(`${baseUrl}/chat/completions`, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model,
+        temperature: 0,
+        response_format: { type: "json_object" },
+        messages: [
+          {
+            role: "system",
+            content: "Read product dimension labels from images. Return only valid JSON.",
+          },
+          {
+            role: "user",
+            content: [
+              {
+                type: "text",
+                text: JSON.stringify({
+                  task: "Find handbag dimensions from size chart images only. Do not estimate from models, hands, or background scale.",
+                  dimensionOrder: "When an unlabelled triple appears, treat it as length x width x height.",
+                  labelMapping: "If the image uses Chinese labels 宽度/高度/厚度, map 宽度 to lengthCm, 厚度 to widthCm, and 高度 to heightCm.",
+                  outputSchema: {
+                    hasDimensions: true,
+                    lengthCm: 17,
+                    widthCm: 6,
+                    heightCm: 15,
+                    thicknessCm: 6,
+                    confidence: "high|medium|low",
+                    evidence: "17 x 6 x 15 cm",
+                    image: "003.jpg",
+                  },
+                }),
+              },
+              ...imageMessages,
+            ],
+          },
+        ],
+      }),
+    });
+    const data = await response.json().catch(() => null);
+
+    if (!response.ok) throw new Error(`HTTP ${response.status} ${JSON.stringify(data)}`);
+
+    const patch = parseAiJson(data?.choices?.[0]?.message?.content);
+    if (!patch.hasDimensions) return null;
+
+    let lengthCm = Number(patch.lengthCm);
+    let widthCm = Number(patch.widthCm);
+    const heightCm = Number(patch.heightCm);
+    const thicknessCm = Number(patch.thicknessCm ?? patch.depthCm);
+
+    if (!Number.isFinite(lengthCm) && Number.isFinite(widthCm) && Number.isFinite(thicknessCm)) {
+      lengthCm = widthCm;
+      widthCm = thicknessCm;
+    }
+
+    if (![lengthCm, widthCm, heightCm].every((value) => Number.isFinite(value) && value > 0)) return null;
+
+    meta.dimensionVision = {
+      provider: "deepseek",
+      model,
+      status: "completed",
+      confidence: cleanText(patch.confidence),
+      evidence: cleanText(patch.evidence),
+      image: cleanText(patch.image),
+    };
+    logStep("dimension-vision", `图片识别尺寸: ${lengthCm} x ${widthCm} x ${heightCm} cm`);
+
+    return {
+      lengthCm,
+      widthCm,
+      heightCm,
+      source: "image_vision",
+      candidates: [
+        {
+          lengthCm,
+          widthCm,
+          heightCm,
+          source: "image_vision",
+          image: cleanText(patch.image),
+          evidence: cleanText(patch.evidence),
+        },
+      ],
+      warnings: [],
+    };
+  } catch (error) {
+    meta.dimensionVision = {
+      provider: "deepseek",
+      model,
+      status: "failed",
+      error: error.message,
+    };
+    logStep("dimension-vision", `DeepSeek dimension vision failed: ${error.message}; using default dimensions fallback.`);
+    return null;
+  }
+}
+
+function sanitizeColourAssignments(items, candidates, colours) {
+  const allowedImages = new Set(candidates.map((image) => image.path));
+  const allowedColours = new Set([...colours, "_shared"]);
+  const output = [];
+
+  for (const item of Array.isArray(items) ? items : []) {
+    const image = cleanText(item.image || item.path);
+    const assignedColour = cleanText(item.assignedColour);
+
+    if (!allowedImages.has(image) || !allowedColours.has(assignedColour)) continue;
+    output.push({
+      path: image,
+      assignedColour,
+      confidence: cleanText(item.confidence),
+      reason: cleanText(item.reason).slice(0, 160),
+    });
+  }
+
+  return output;
+}
+
+async function readVisionImage(imagePath, fallbackMimeType) {
+  const tempDir = await mkdtemp(path.join(tmpdir(), "noon-vision-"));
+  const outputPath = path.join(tempDir, "image.jpg");
+
+  try {
+    await execFileAsync("/usr/bin/sips", ["-Z", "768", "-s", "format", "jpeg", imagePath, "--out", outputPath], { timeout: 10000 });
+    return {
+      bytes: await readFile(outputPath),
+      mimeType: "image/jpeg",
+    };
+  } catch {
+    return {
+      bytes: await readFile(imagePath),
+      mimeType: fallbackMimeType,
+    };
+  } finally {
+    await rm(tempDir, { recursive: true, force: true }).catch(() => {});
+  }
+}
+
+function mimeTypeFromImagePath(imagePath) {
+  if (/\.png$/i.test(imagePath)) return "image/png";
+  if (/\.webp$/i.test(imagePath)) return "image/webp";
+  if (/\.gif$/i.test(imagePath)) return "image/gif";
+  return "image/jpeg";
+}
+
 function buildDeepSeekBeautifyInput(noonProduct, meta) {
   return {
     task:
-      "Improve the generated noon product content. Keep the product as a women's evening clutch bag. Use polished English and Arabic. Keep one variant per source colour. Do not change SKU, barcode, price, stock, dimensions, weight, category, warehouse, or upload_config.",
+      "Improve only the marketplace copy for a women's evening clutch product. Use the cleaned bag type and style signals to make polished English and Arabic content. Keep one variant per source colour. Do not change SKU, barcode, price, stock, colour fields, images, dimensions, weight, category, materials, warehouse, or upload_config.",
     output_schema: {
       product_group_name_en: "string",
       product_group_name_ar: "Arabic string",
@@ -690,8 +1050,10 @@ function buildDeepSeekBeautifyInput(noonProduct, meta) {
       ],
     },
     rules: [
-      "English title format: Women's + descriptive material/design + Evening Clutch Bag + colour when variant has colour.",
-      "Arabic title must match the English title meaning.",
+      "English title format: core material or decoration + occasion/style + main bag type + key carry structure. Keep it around 70 characters and avoid stacking more than two bag types.",
+      "Arabic title must be natural Arabic marketplace copy and match the English title meaning without word-for-word translation.",
+      "Use enhanced but truthful selling copy for dinners, parties, weddings, and formal occasions.",
+      "Do not invent waterproofing, scratch resistance, genuine leather, pure silver, real diamonds, luxury branding, adjustable chain, large capacity, or phone compatibility.",
       "Description must describe product features and occasions only.",
       "Do not mention 1688, Alibaba, wholesale, factory, stock, delivery, refund, shipping, MOQ, cross-border sourcing, or supplier service text.",
       "Do not promise branded goods. Use Generic positioning.",
@@ -701,8 +1063,11 @@ function buildDeepSeekBeautifyInput(noonProduct, meta) {
       productId: meta.source.productId,
       sourceTitle: meta.sourceTitle,
       extractedTitle: meta.title,
+      titleParts: meta.titleParts || [],
+      productTypeText: meta.productTypeText || "",
       attributes: Object.fromEntries(meta.attributes.map((item) => [item.name, item.value])),
       packageInfo: meta.packageInfo,
+      dimensions: meta.dimensions,
     },
     current_noon_product: {
       product_group: noonProduct.product_group,
@@ -904,7 +1269,7 @@ async function createBrowser() {
           html,
           detailImageUrls: [],
           attributes: [],
-          packageInfo: { weightG: "" },
+          packageInfo: { weightG: "", dimensionsText: "" },
           sourceTitle: "",
         };
       },
@@ -1370,9 +1735,16 @@ async function waitForDetailData(page) {
           doc.querySelector("#productPackInfoModule") ??
           doc.querySelector(".module-od-product-pack-info") ??
           doc.body;
-        const packageInfo = { weightG: "" };
+        const packageInfo = { weightG: "", dimensionsText: "" };
+        const packageText = clean(packageRoot.innerText);
+        const dimensionTexts = [];
 
         for (const table of packageRoot.querySelectorAll("table")) {
+          const tableText = clean(table.innerText);
+          if (/尺寸|长\s*(?:\(cm\)|（cm）)?|宽\s*(?:\(cm\)|（cm）)?|高\s*(?:\(cm\)|（cm）)?|\d+(?:\.\d+)?\s*(?:x|\*|×)\s*\d+/i.test(tableText)) {
+            dimensionTexts.push(tableText);
+          }
+
           const rows = [...table.querySelectorAll("tr")].map((row) =>
             [...row.querySelectorAll("th,td")].map((cell) => clean(cell.textContent)),
           );
@@ -1387,12 +1759,13 @@ async function waitForDetailData(page) {
           }
         }
 
+        packageInfo.dimensionsText = dimensionTexts[0] || packageText;
+
         if (!packageInfo.weightG) {
-          const text = clean(packageRoot.innerText);
           const match =
-            /重量\s*(?:\(g\)|（g）)?\s*([0-9]+(?:\.[0-9]+)?)/.exec(text) ??
-            /重量\s*(?:\(g\)|（g）)?\s+([0-9]+(?:\.[0-9]+)?)/.exec(text) ??
-            /商品件重尺[\s\S]{0,80}?重量\s*(?:\(g\)|（g）)?[\s\S]{0,40}?([0-9]+(?:\.[0-9]+)?)/.exec(text);
+            /重量\s*(?:\(g\)|（g）)?\s*([0-9]+(?:\.[0-9]+)?)/.exec(packageText) ??
+            /重量\s*(?:\(g\)|（g）)?\s+([0-9]+(?:\.[0-9]+)?)/.exec(packageText) ??
+            /商品件重尺[\s\S]{0,80}?重量\s*(?:\(g\)|（g）)?[\s\S]{0,40}?([0-9]+(?:\.[0-9]+)?)/.exec(packageText);
           packageInfo.weightG = match?.[1] ?? "";
         }
 
@@ -1508,7 +1881,7 @@ async function waitForDetailData(page) {
   return {
     imageUrls: [],
     attributes: [],
-    packageInfo: { weightG: "" },
+    packageInfo: { weightG: "", dimensionsText: "" },
     sourceTitle: "",
   };
 }
@@ -1626,8 +1999,17 @@ function filterProductAttributes(attributes) {
 }
 
 function buildListingTitle(sourceTitle, attributes) {
+  const cleaned = cleanProductTitle(sourceTitle, attributes);
+  if (cleaned.title) return cleaned;
+
   const attributeMap = Object.fromEntries(attributes.map((item) => [item.name, item.value]));
-  return extractCoreProductTitle(sourceTitle) || inferProductClass(sourceTitle, attributeMap);
+  const fallback = inferProductClass(sourceTitle, attributeMap);
+
+  return {
+    title: fallback,
+    titleParts: cleaned.titleParts || [],
+    productTypeText: cleaned.productTypeText || "",
+  };
 }
 
 function inferProductClass(sourceTitle, attributeMap) {
@@ -1962,6 +2344,8 @@ function buildSubmissionGate({ englishTitle, featureBullets, longDescription, me
   if (meta.images.length === 0) blockingIssues.push("No product images were downloaded.");
   if (featureBullets.length === 0) warnings.push("Feature bullets need English review.");
   if (!longDescription) warnings.push("Long description is blank because 1688 service/supplier text was removed or no safe product description was found.");
+  for (const warning of meta.dimensions?.warnings || []) warnings.push(warning);
+  for (const warning of meta.imageAssignmentWarnings || []) warnings.push(warning);
 
   return {
     status: blockingIssues.length > 0 ? "blocked" : "ready_for_manual_review",
@@ -2143,9 +2527,16 @@ function extractPackageInfo(html) {
     readJsonLikeValue(html, "weight") ??
     readJsonLikeValue(html, "weightG") ??
     matchFirst(html, /(?:重量|weight)[^0-9]{0,20}([0-9]+(?:\.[0-9]+)?)/i);
+  const dimensionsText = cleanText(
+    matchFirst(
+      html,
+      /((?:包装信息|商品件重尺|尺寸)[\s\S]{0,400}?\d+(?:\.\d+)?\s*(?:x|\*|×)\s*\d+(?:\.\d+)?\s*(?:x|\*|×)\s*\d+(?:\.\d+)?\s*(?:cm|厘米|公分)?)/i,
+    ),
+  );
 
   return {
     weightG: weight ? String(weight) : "",
+    dimensionsText,
   };
 }
 

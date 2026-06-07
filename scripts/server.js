@@ -30,6 +30,7 @@ const uiSettingKeys = [
   "noonCloakTyping",
   "noonHeadless",
   "deepSeekModel",
+  "deepSeekApiKey",
 ];
 
 const server = createServer(async (request, response) => {
@@ -133,8 +134,10 @@ server.listen(port, () => {
 
 async function createJob(request, response) {
   const body = await readJsonBody(request);
+  const url = String(body.url || "").trim();
+  const useQueue = Boolean(body.fromQueue) && !url;
 
-  if (!body.fromQueue && (!body.url || !/^https?:\/\/.+1688\.com\//i.test(body.url))) {
+  if (!useQueue && (!url || !/^https?:\/\/.+1688\.com\//i.test(url))) {
     sendJson(response, { error: "请输入有效的 1688 链接。" }, 400);
     return;
   }
@@ -152,14 +155,14 @@ async function createJob(request, response) {
   const id = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
   const args = ["scripts/collect-1688.js"];
 
-  if (!body.fromQueue) args.push(body.url);
+  if (!useQueue) args.push(url);
 
   args.push("--out", "products");
 
   if (body.limit !== undefined) args.push("--limit", String(body.limit));
   if (body.delaySeconds) args.push("--delay-seconds", String(body.delaySeconds));
   if (body.linksOnly) args.push("--links-only", "true");
-  if (body.fromQueue) args.push("--from-queue", "true");
+  if (useQueue) args.push("--from-queue", "true");
   if (body.repository) args.push("--repository", body.repository);
   if (body.headless === false) args.push("--headless", "false");
   args.push("--profile", default1688Profile);
@@ -169,7 +172,7 @@ async function createJob(request, response) {
     id,
     kind: "collect1688",
     status: "running",
-    url: body.fromQueue ? "collection-queue.json" : body.url,
+    url: useQueue ? "collection-queue.json" : url,
     startedAt: new Date().toISOString(),
     finishedAt: null,
     exitCode: null,

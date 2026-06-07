@@ -748,7 +748,7 @@
                 </select>
 
                 <label for="deepSeekApiKey">DeepSeek API Key</label>
-                <input id="deepSeekApiKey" name="deepSeekApiKey" type="password" placeholder="sk-...，只用于本次 AI 生成，不保存" autocomplete="off" />
+                <input id="deepSeekApiKey" name="deepSeekApiKey" type="password" placeholder="sk-...，保存到本机配置" autocomplete="off" />
               </aside>
             </div>
           </section>
@@ -814,6 +814,7 @@
         "noonCloakTyping",
         "noonHeadless",
         "deepSeekModel",
+        "deepSeekApiKey",
       ];
 
       restoreFormState();
@@ -848,15 +849,16 @@
         await persistFormState();
 
         const data = Object.fromEntries(new FormData(form).entries());
+        const collectUrl = data.url.trim();
         const response = await fetch("/api/jobs", {
           method: "POST",
           headers: { "content-type": "application/json" },
           body: JSON.stringify({
-            url: data.url.trim(),
+            url: collectUrl,
             limit: Number(data.limit === "" ? 0 : data.limit),
             delaySeconds: Number(data.delaySeconds || 30),
             linksOnly: Boolean(data.linksOnly),
-            fromQueue: Boolean(data.fromQueue),
+            fromQueue: Boolean(data.fromQueue) && !collectUrl,
             headless: data.headless !== "false",
             proxy: data.proxy.trim(),
             repository: data.repository.trim(),
