@@ -682,7 +682,9 @@
                 <div class="panel-title"><span>noon 商品作业</span></div>
                 <div class="actions">
                   <button id="uploadAllButton" type="button">上传全部仓库商品</button>
+                  <button class="secondary" id="bulkUpdateAllButton" type="button">生成批量更新表</button>
                 </div>
+                <div class="links" id="bulkUpdateLinks"></div>
 
                 <div class="panel-title" style="margin-top: 22px"><span>仓库作业日志</span></div>
                 <div class="actions">
@@ -771,6 +773,7 @@
       const submitButton = document.querySelector("#submitButton");
       const login1688Button = document.querySelector("#login1688Button");
       const uploadAllButton = document.querySelector("#uploadAllButton");
+      const bulkUpdateAllButton = document.querySelector("#bulkUpdateAllButton");
       const checkNoonButton = document.querySelector("#checkNoonButton");
       const collectStopButton = document.querySelector("#collectStopButton");
       const repositoryStopButton = document.querySelector("#repositoryStopButton");
@@ -780,6 +783,7 @@
       const clearRepositoryLogButton = document.querySelector("#clearRepositoryLogButton");
       const collectLogEl = document.querySelector("#collectLog");
       const repositoryLogEl = document.querySelector("#repositoryLog");
+      const bulkUpdateLinksEl = document.querySelector("#bulkUpdateLinks");
       const productsEl = document.querySelector("#products");
       const repositoryDialog = document.querySelector("#repositoryDialog");
       const repositoryDialogTitle = document.querySelector("#repositoryDialogTitle");
@@ -832,6 +836,7 @@
         submitButton.disabled = true;
         login1688Button.disabled = true;
         uploadAllButton.disabled = true;
+        bulkUpdateAllButton.disabled = true;
         checkNoonButton.disabled = true;
         collectStopButton.disabled = true;
         repositoryStopButton.disabled = true;
@@ -879,6 +884,7 @@
       });
 
       uploadAllButton.addEventListener("click", async () => startUploadJob({ all: true }));
+      bulkUpdateAllButton.addEventListener("click", async () => createBulkUpdateFiles(""));
       login1688Button.addEventListener("click", login1688);
       checkNoonButton.addEventListener("click", checkNoonStatus);
       collectStopButton.addEventListener("click", stopCurrentJob);
@@ -955,6 +961,7 @@
         submitButton.disabled = running;
         login1688Button.disabled = running;
         uploadAllButton.disabled = running;
+        bulkUpdateAllButton.disabled = running;
         collectStopButton.disabled = !running || !activeJobId || activeJobArea !== "collect";
         repositoryStopButton.disabled = !running || !activeJobId || activeJobArea !== "repository";
       }
@@ -1035,6 +1042,15 @@
         if (!repository.products?.length) {
           repositoryDialogBody.innerHTML = '<div class="empty">这个仓库还没有商品。</div>';
         } else {
+          const actions = document.createElement("div");
+          actions.className = "actions";
+          actions.innerHTML = '<button class="secondary" type="button">生成本仓库批量更新表</button>';
+          actions.querySelector("button").addEventListener("click", async () => {
+            closeDialog();
+            await createBulkUpdateFiles(repository.id === "__default__" ? "" : repository.id);
+          });
+          repositoryDialogBody.append(actions);
+
           for (const product of repository.products) {
             const row = document.createElement("article");
             row.className = "product-row";
@@ -1162,6 +1178,36 @@
         activeLogEl = repositoryLogEl;
         renderJob(job);
         startPolling();
+      }
+
+      async function createBulkUpdateFiles(repository) {
+        if (window.location.protocol === "file:") return;
+
+        activeJobArea = "repository";
+        activeLogEl = repositoryLogEl;
+        showRoute("repositories");
+        bulkUpdateAllButton.disabled = true;
+        repositoryLogEl.innerHTML = "";
+        bulkUpdateLinksEl.innerHTML = "";
+        appendLog(repository ? `生成 ${repository} 的 noon 批量更新表...` : "生成全部商品的 noon 批量更新表...");
+
+        try {
+          const result = await postJson("/api/noon-bulk-updates", { repository });
+          appendLog(`已生成 ${result.productCount} 个商品、${result.skuCount} 个 SKU 的批量更新表。`);
+          renderBulkUpdateLinks(result.files);
+        } catch (error) {
+          appendLog(error.message);
+        } finally {
+          bulkUpdateAllButton.disabled = false;
+        }
+      }
+
+      function renderBulkUpdateLinks(files) {
+        bulkUpdateLinksEl.innerHTML = `
+          <a href="${files.product}" target="_blank">Global Product Update</a>
+          <a href="${files.price}" target="_blank">Global Price Update</a>
+          <a href="${files.stock}" target="_blank">Stock Import</a>
+        `;
       }
 
       async function stopCurrentJob() {

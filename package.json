@@ -6,6 +6,7 @@
   "scripts": {
     "collect:1688": "node scripts/collect-1688.js",
     "check:noon": "node scripts/check-noon-status.js",
+    "export:noon-bulk": "node scripts/export-noon-bulk-updates.js",
     "export:nis-meta": "node scripts/export-nis-meta.js",
     "import:nis-meta": "node scripts/import-nis-meta.js",
     "login:noon": "node scripts/login-noon.js",

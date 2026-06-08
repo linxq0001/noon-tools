@@ -6,10 +6,12 @@ import { createServer } from "node:http";
 import path from "node:path";
 import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
+import { bulkUpdateFileNames, exportNoonBulkUpdates } from "./lib/noon-bulk-update-exporter.js";
 
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const publicDir = path.join(rootDir, "public");
 const productsDir = path.join(rootDir, "products");
+const exportsDir = path.join(rootDir, "exports");
 const uiSettingsPath = path.join(rootDir, ".ui-settings.json");
 const default1688Profile = ".cloakbrowser-profile";
 const defaultNoonProfile = ".noon-profile";
@@ -116,8 +118,18 @@ const server = createServer(async (request, response) => {
       return;
     }
 
+    if (request.method === "POST" && url.pathname === "/api/noon-bulk-updates") {
+      await createNoonBulkUpdateFiles(request, response);
+      return;
+    }
+
     if (request.method === "GET" && url.pathname.startsWith("/products/")) {
       await serveFile(response, productsDir, decodeURIComponent(url.pathname.replace(/^\/products\//, "")));
+      return;
+    }
+
+    if (request.method === "GET" && url.pathname.startsWith("/exports/")) {
+      await serveFile(response, exportsDir, decodeURIComponent(url.pathname.replace(/^\/exports\//, "")));
       return;
     }
 
@@ -358,6 +370,30 @@ async function createNoonGenerateJob(request, response) {
   sendJson(response, serializeJob(job), 201);
 }
 
+async function createNoonBulkUpdateFiles(request, response) {
+  const body = await readJsonBody(request);
+  const repository = cleanPathSegment(body.repository || "");
+  if (repository.includes("..") || path.isAbsolute(repository)) {
+    sendJson(response, { error: "仓库路径不合法。" }, 400);
+    return;
+  }
+  const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+  const exportName = repository ? `${stamp}-${repository.replaceAll("/", "-")}` : `${stamp}-all`;
+  const outputDir = path.join(exportsDir, "noon-bulk-updates", exportName);
+  const result = await exportNoonBulkUpdates({ productsDir, outputDir, repository });
+  const baseUrl = `/exports/noon-bulk-updates/${encodeURIComponent(exportName)}`;
+
+  sendJson(response, {
+    skuCount: result.skuCount,
+    productCount: result.productCount,
+    files: {
+      product: `${baseUrl}/${encodeURIComponent(bulkUpdateFileNames.product)}`,
+      price: `${baseUrl}/${encodeURIComponent(bulkUpdateFileNames.price)}`,
+      stock: `${baseUrl}/${encodeURIComponent(bulkUpdateFileNames.stock)}`,
+    },
+  });
+}
+
 async function checkNoonStatus(url, response) {
   const noonUrl = url.searchParams.get("noonUrl");
   const profile = defaultNoonProfile;
@@ -430,6 +466,10 @@ function safeProductFilePath(productDir, fileName) {
   }
 
   return fullPath;
+}
+
+function cleanPathSegment(value) {
+  return String(value || "").replace(/^\/+|\/+$/g, "");
 }
 
 async function readUiSettings() {
