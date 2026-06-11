@@ -1194,6 +1194,9 @@
         try {
           const result = await postJson("/api/noon-bulk-updates", { repository });
           appendLog(`已生成 ${result.productCount} 个商品、${result.skuCount} 个 SKU 的批量更新表。`);
+          if (result.duplicateProducts?.length) {
+            appendLog(`已跳过 ${result.duplicateProducts.length} 个重复商品。`);
+          }
           renderBulkUpdateLinks(result.files);
         } catch (error) {
           appendLog(error.message);

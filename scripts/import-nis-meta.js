@@ -4,6 +4,7 @@ import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import XLSX from "xlsx";
+import { ensureRepository, productStoragePath, rebuildProductIndexes } from "./lib/product-storage.js";
 
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const args = parseArgs(process.argv.slice(2));
@@ -23,12 +24,15 @@ if (args["dry-run"] === "true") {
 }
 
 await mkdir(outDir, { recursive: true });
+await ensureRepository(outDir, { platform: "1688", repository: "default" });
 
 for (const product of products) {
-  const productDir = path.join(outDir, safeFileName(`${product.productId}-${product.title || "NIS product"}`));
+  const productDir = productStoragePath(outDir, { platform: "1688", repository: "default", productId: product.productId });
   await mkdir(productDir, { recursive: true });
   await writeJson(path.join(productDir, "meta.json"), product);
 }
+
+await rebuildProductIndexes(outDir, "1688");
 
 console.log(`Imported ${products.length} product meta file(s) to ${path.relative(rootDir, outDir) || outDir}`);
 
@@ -186,13 +190,6 @@ function removeEmpty(value) {
   }
 
   return output;
-}
-
-function safeFileName(value) {
-  return cleanText(value)
-    .replace(/[\\/:*?"<>|]/g, "-")
-    .replace(/\s+/g, " ")
-    .slice(0, 180);
 }
 
 function writeJson(filePath, data) {

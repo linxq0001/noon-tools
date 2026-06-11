@@ -1,12 +1,13 @@
 #!/usr/bin/env node
 
 import { execFile } from "node:child_process";
-import { mkdir, mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { promisify } from "node:util";
 import XLSX from "xlsx";
 import { imageUrlsForSku } from "./lib/publishable-images.js";
+import { readProductDirs } from "./lib/product-storage.js";
 
 const run = promisify(execFile);
 
@@ -55,12 +56,10 @@ function uniqueRowsBySku(rows) {
 }
 
 async function readProducts(dir) {
-  const entries = await readdir(dir, { withFileTypes: true });
   const products = [];
 
-  for (const entry of entries) {
-    if (!entry.isDirectory()) continue;
-    const productDir = path.join(dir, entry.name);
+  for (const product of await readProductDirs(dir)) {
+    const productDir = product.fullPath;
     const meta = await readJsonIfExists(path.join(productDir, "meta.json"));
     if (!meta) continue;
     const noonAttributes = (await readJsonIfExists(path.join(productDir, "noon-product-attributes.json"))) ?? {};

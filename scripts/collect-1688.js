@@ -6,9 +6,11 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { promisify } from "node:util";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { detect1688AccessState } from "./lib/1688-access-state.js";
 import { isLikelyDimensionImage, resolveProductDimensions } from "./lib/dimension-extractor.js";
 import { constrainNoonSelectValue } from "./lib/noon-field-constraints.js";
 import { normalizeNoonProductVariantImages } from "./lib/noon-product-normalizer.js";
+import { ensureRepository, productStoragePath, rebuildProductIndexes, resolveRepositoryId } from "./lib/product-storage.js";
 import { cleanProductTitle } from "./lib/title-cleaner.js";
 import { assignImagesToVariants } from "./lib/variant-image-assignment.js";
 
@@ -58,8 +60,9 @@ const fromQueue = args["from-queue"] === "true";
 const listLimit = linksOnly ? Number.MAX_SAFE_INTEGER : effectiveLimit;
 const listPageDelayMinSeconds = 10;
 const listPageDelayMaxSeconds = 30;
-let outDir = baseOutDir;
+let outDir = path.join(baseOutDir, "1688", resolveRepositoryId(args.repository || ""));
 let queuePath = path.join(outDir, "collection-queue.json");
+let currentRepository = resolveRepositoryId(args.repository || "");
 
 if (!args.url && !fromQueue) {
   console.error(
@@ -72,10 +75,7 @@ const browser = await createBrowser();
 
 try {
   await mkdir(baseOutDir, { recursive: true });
-  if (fromQueue && args.repository) {
-    setRepositoryOutputDir(args.repository);
-    await mkdir(outDir, { recursive: true });
-  }
+  await setRepositoryOutputDir(args.repository || "");
 
   const productUrls = fromQueue ? await readPendingQueue(effectiveLimit) : await resolveProductUrls(args.url, listLimit);
 
@@ -144,7 +144,7 @@ async function resolveProductUrls(url, maxItems) {
     listTitle = cleanTitle(matchFirst(html, /<title[^>]*>([\s\S]*?)<\/title>/i));
   }
 
-  setRepositoryOutputDir(args.repository || buildRepositoryName(url, listTitle));
+  await setRepositoryOutputDir(args.repository || buildRepositoryName(url, listTitle), { sourceListUrl: url });
   await mkdir(outDir, { recursive: true });
   logStep("repository", `仓库目录: ${path.relative(rootDir, outDir)}`);
 
@@ -155,10 +155,17 @@ async function resolveProductUrls(url, maxItems) {
   return productUrls;
 }
 
-function setRepositoryOutputDir(name) {
-  const safeName = safeFileName(cleanTitle(name) || "1688-list");
-  outDir = path.join(baseOutDir, safeName);
+async function setRepositoryOutputDir(name, options = {}) {
+  const repository = resolveRepositoryId(name);
+  currentRepository = repository;
+  outDir = path.join(baseOutDir, "1688", repository);
   queuePath = path.join(outDir, "collection-queue.json");
+  await ensureRepository(baseOutDir, {
+    platform: "1688",
+    repository,
+    name: cleanTitle(name),
+    sourceListUrl: options.sourceListUrl || "",
+  });
 }
 
 function buildRepositoryName(url, title) {
@@ -291,6 +298,11 @@ async function summarizeQueue() {
 }
 
 async function hasCollectedProduct(productId) {
+  try {
+    await readFile(path.join(outDir, productId, "meta.json"), "utf8");
+    return true;
+  } catch {}
+
   let entries = [];
 
   try {
@@ -326,7 +338,12 @@ async function collectProduct(url) {
   meta.packageInfo = pageData.packageInfo;
   meta.imageUrls = filterProductImageUrls(pageData.detailImageUrls);
   Object.assign(meta, buildListingTitle(meta.sourceTitle, meta.attributes));
-  const productDir = path.join(outDir, safeFileName(`${productId}-${meta.title || "product"}`));
+  const productDir = productStoragePath(baseOutDir, {
+    platform: "1688",
+    repository: currentRepository,
+    productId,
+  });
+  const imageDir = path.join(productDir, "images");
 
   logStep("title", `最终标题: ${meta.title || "(空)"}`);
   if (meta.productTypeText) logStep("title", `包型: ${meta.productTypeText}`);
@@ -340,11 +357,11 @@ async function collectProduct(url) {
     "#description > div > div.od-collapse-module > div.collapse-body > v-detail-*::shadow #detail img";
   meta.parseWarnings = buildWarnings({ title: meta.title, imageUrls: meta.imageUrls });
 
-  await mkdir(productDir, { recursive: true });
+  await mkdir(imageDir, { recursive: true });
   await writeFile(path.join(productDir, "source.html"), html, "utf8");
   logStep("collect", `输出目录: ${path.relative(rootDir, productDir)}`);
 
-  const downloads = await downloadImages(meta.imageUrls, productDir);
+  const downloads = await downloadImages(meta.imageUrls, imageDir, "images");
   meta.images = downloads.saved;
   meta.dimensions = resolveProductDimensions({ attributes: meta.attributes, packageInfo: meta.packageInfo });
   meta.generatedAt = new Date().toISOString();
@@ -361,6 +378,7 @@ async function collectProduct(url) {
 
   await writeJson(path.join(productDir, "meta.json"), outputMeta);
   await writeJson(path.join(productDir, "noon-product-attributes.json"), noonProduct);
+  await rebuildProductIndexes(baseOutDir, "1688");
 
   console.log(`Collected ${meta.title || productId}`);
   console.log(`  ${path.relative(rootDir, productDir)}`);
@@ -415,7 +433,7 @@ async function normalizeStoredMetaForNoon(storedMeta, productDir) {
       dimensionsText: storedPackageInfo.dimensionsText || sourcePackageInfo.dimensionsText || "",
     },
     attributes,
-    imageUrls: storedMeta.images || [],
+    imageUrls: storedMeta.imageUrls || storedMeta.images || [],
     images: localImages.map((image) => ({ path: image })),
     dimensions: storedMeta.dimensions,
     productDir,
@@ -448,6 +466,15 @@ function buildStoredTitle(storedMeta) {
 }
 
 async function listLocalImages(productDir) {
+  const imageDir = path.join(productDir, "images");
+  const imageEntries = await readdir(imageDir).catch(() => []);
+  if (imageEntries.length > 0) {
+    return imageEntries
+      .filter((entry) => /\.(?:jpe?g|png|webp|gif)$/i.test(entry))
+      .sort((left, right) => left.localeCompare(right, "en", { numeric: true }))
+      .map((entry) => `images/${entry}`);
+  }
+
   const entries = await readdir(productDir);
 
   return entries
@@ -499,15 +526,19 @@ function extractProductMeta(html, url, productId) {
 
 function buildOutputMeta(meta, failedDownloads) {
   return {
+    source: "1688",
     productId: meta.source.productId,
     attributes: Object.fromEntries(filterProductAttributes(meta.attributes).map((item) => [item.name, item.value])),
-    images: meta.imageUrls,
+    imageUrls: meta.imageUrls,
+    images: meta.images,
     packageInfo: meta.packageInfo,
     price: meta.price ? meta.price.value.toFixed(2) : "",
     sourceRoot: "shadow:#detail",
     sourceUrl: `https://detail.1688.com/offer/${meta.source.productId}.html`,
     sourceTitle: meta.sourceTitle,
     title: meta.title,
+    status: meta.images.length >= 3 ? "ready" : "needs_review",
+    collectedAt: new Date().toISOString(),
     titleParts: meta.titleParts || [],
     productTypeText: meta.productTypeText || "",
     dimensions: meta.dimensions,
@@ -516,6 +547,8 @@ function buildOutputMeta(meta, failedDownloads) {
     imageAssignmentWarnings: meta.imageAssignmentWarnings || [],
     downloadedCount: meta.images.length,
     failedDownloads,
+    blockingIssues: meta.images.length >= 3 ? [] : ["Less than 3 local images were downloaded."],
+    warnings: [...(meta.parseWarnings || []), ...(meta.imageAssignmentWarnings || [])],
   };
 }
 
@@ -1145,7 +1178,7 @@ function hasBlockedMarketplaceText(value) {
   );
 }
 
-async function downloadImages(urls, imageDir) {
+async function downloadImages(urls, imageDir, relativeDir = "") {
   const saved = [];
   const failed = [];
 
@@ -1180,7 +1213,7 @@ async function downloadImages(urls, imageDir) {
 
       saved.push({
         sourceUrl: url,
-        path: filename,
+        path: relativeDir ? `${relativeDir}/${filename}` : filename,
         contentType,
         width: dimensions.width,
         height: dimensions.height,
@@ -1420,13 +1453,13 @@ async function waitForLoginIfNeeded(page, originalUrl, scope) {
 
   if (!loginState.isLoginPage) return;
 
-  logStep(scope, `页面跳转到登录页: ${loginState.url}`);
+  logStep(scope, `${loginState.message}: ${loginState.url}`);
 
   if (args.headless !== "false") {
-    throw new Error("该 1688 页面在后台运行时触发了登录校验。登录信息已保存在 Profile 时，也请把浏览器切换为“显示窗口”后采集，以复用已登录会话。");
+    throw new Error(`${loginState.message} 后台运行无法完成验证。请把浏览器切换为“显示窗口”后采集，并在打开的页面完成登录/验证。`);
   }
 
-  logStep(scope, "等待手动登录，登录完成后会继续采集。");
+  logStep(scope, "等待手动登录/验证，完成后会继续采集。");
 
   for (let attempt = 0; attempt < 120; attempt += 1) {
     await sleep(1000);
@@ -1442,21 +1475,21 @@ async function waitForLoginIfNeeded(page, originalUrl, scope) {
     }
   }
 
-  throw new Error(`Still on 1688 login page after waiting. Original page: ${originalUrl}`);
+  throw new Error(`Still on 1688 login/access challenge page after waiting. Original page: ${originalUrl}`);
 }
 
 async function detectLoginPage(page) {
-  return page.evaluate(() => {
+  const snapshot = await page.evaluate(() => {
     const url = location.href;
     const title = document.title || "";
     const text = document.body?.innerText || "";
-    const isLoginPage =
-      /login\.(taobao|1688)\.com/i.test(url) ||
-      /密码登录|短信登录|扫码登录|免费注册/.test(text) ||
-      /登录/.test(title);
+    const html = document.documentElement?.outerHTML || "";
 
-    return { isLoginPage, url, title };
+    return { url, title, text, html };
   });
+  const state = detect1688AccessState(snapshot);
+
+  return { isLoginPage: state.blocked, url: snapshot.url, title: snapshot.title, message: state.message };
 }
 
 async function collectVisibleListLinks(page, productLinks, seenProductIds, maxItems) {

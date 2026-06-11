@@ -4,6 +4,7 @@ import { access, mkdir, mkdtemp, readdir, readFile, rm, writeFile } from "node:f
 import os from "node:os";
 import path from "node:path";
 import { promisify } from "node:util";
+import { readProductDirs } from "./product-storage.js";
 
 const run = promisify(execFile);
 const GOOGLE_TOKEN_SCOPE = "https://www.googleapis.com/auth/drive";
@@ -82,12 +83,10 @@ export function imageUrlsForSku(manifest, sku) {
 }
 
 async function collectProductImageInputs(productsDir) {
-  const entries = await readdir(productsDir, { withFileTypes: true });
   const products = [];
 
-  for (const entry of entries) {
-    if (!entry.isDirectory()) continue;
-    const productDir = path.join(productsDir, entry.name);
+  for (const product of await readProductDirs(productsDir)) {
+    const productDir = product.fullPath;
     const meta = await readJsonIfExists(path.join(productDir, "meta.json"));
     if (!meta) continue;
     const noonAttributes = (await readJsonIfExists(path.join(productDir, "noon-product-attributes.json"))) ?? {};
@@ -129,6 +128,15 @@ async function localProductImages(productDir, noonAttributes) {
 }
 
 async function imageFilesInDir(productDir) {
+  const imageDir = path.join(productDir, "images");
+  const imageEntries = await readdir(imageDir, { withFileTypes: true }).catch(() => []);
+  if (imageEntries.length > 0) {
+    return imageEntries
+      .filter((entry) => entry.isFile() && /\.(?:jpe?g|png|gif|webp)$/i.test(entry.name))
+      .map((entry) => `images/${entry.name}`)
+      .sort((left, right) => left.localeCompare(right, "en", { numeric: true }));
+  }
+
   const entries = await readdir(productDir, { withFileTypes: true });
   return entries
     .filter((entry) => entry.isFile() && /\.(?:jpe?g|png|gif|webp)$/i.test(entry.name))

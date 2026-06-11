@@ -8,9 +8,11 @@ export const bulkUpdateFileNames = {
   stock: "stock-import.xlsx",
 };
 
-export async function exportNoonBulkUpdates({ productsDir, outputDir, repository = "" }) {
-  const products = await readNoonProducts(productsDir, repository);
-  const rows = products.flatMap(toSkuRows).filter((row) => row.partnerSku);
+export async function exportNoonBulkUpdates({ productsDir, outputDir, platform = "", repository = "" }) {
+  const products = await readNoonProducts(productsDir, { platform, repository });
+  const { products: uniqueProducts, duplicateProducts } = dedupeProducts(products);
+  const allRows = uniqueProducts.flatMap(toSkuRows).filter((row) => row.partnerSku);
+  const { rows, duplicateSkus } = dedupeSkuRows(allRows);
 
   await mkdir(outputDir, { recursive: true });
 
@@ -26,13 +28,19 @@ export async function exportNoonBulkUpdates({ productsDir, outputDir, repository
 
   return {
     skuCount: rows.length,
-    productCount: products.length,
+    productCount: uniqueProducts.length,
+    duplicateProducts,
+    duplicateSkus,
     files,
   };
 }
 
-async function readNoonProducts(productsDir, repository) {
-  const roots = repository ? [path.join(productsDir, repository)] : [productsDir];
+async function readNoonProducts(productsDir, { platform = "", repository = "" } = {}) {
+  const roots = platform
+    ? [repository ? path.join(productsDir, platform, repository) : path.join(productsDir, platform)]
+    : repository
+      ? [path.join(productsDir, defaultPlatformName(), repository), path.join(productsDir, repository)]
+      : [productsDir];
   const products = [];
 
   for (const root of roots) {
@@ -40,6 +48,10 @@ async function readNoonProducts(productsDir, repository) {
   }
 
   return products.sort((left, right) => left.relativeDir.localeCompare(right.relativeDir));
+}
+
+function defaultPlatformName() {
+  return "1688";
 }
 
 async function readProductsUnder(dir, prefix = "") {
@@ -79,13 +91,20 @@ function toSkuRows(product) {
   const variants = Array.isArray(product.noonAttributes.variants) ? product.noonAttributes.variants : [];
 
   return variants.map((variant) => ({
+    source: product.relativeDir,
     partnerSku: cleanText(variant.partner_sku),
+    barcode: cleanText(variant.barcode),
+    colour: cleanText(variant.colour || variant.colour_name),
+    titleEn: cleanText(variant.title_en),
+    titleAr: cleanText(variant.title_ar),
+    images: normalizeImages(variant.images),
     countryCode: cleanText(uploadConfig.country_code) || "sa",
     idPartner: cleanText(uploadConfig.id_partner) || "517205",
     hsCode: cleanText(group.hs_code),
     countryOfOrigin: countryCode(group.country_of_origin),
     vmWeightCm: blankNull(variant.vm_weight_cm ?? volumetricWeight(variant)),
     weightKg: blankNull(variant.actual_weight_kg),
+    lengthCm: blankNull(variant.length_cm),
     widthCm: blankNull(variant.width_cm),
     heightCm: blankNull(variant.height_cm),
     priceUsd: blankNull(variant.price_usd),
@@ -93,6 +112,89 @@ function toSkuRows(product) {
     processingTime: cleanText(variant.processing_time) || "2_days",
     warehouseCode: cleanText(variant.warehouse_code || uploadConfig.warehouse_code) || "W00183886CN",
   }));
+}
+
+function dedupeProducts(products) {
+  const byProduct = new Map();
+  const duplicateProducts = [];
+
+  for (const product of products) {
+    const productKey = productIdentity(product.relativeDir);
+    const current = byProduct.get(productKey);
+    if (!current) {
+      byProduct.set(productKey, product);
+      continue;
+    }
+
+    const existing = duplicateProducts.find((item) => item.productKey === productKey);
+    if (existing) {
+      existing.sources.push(product.relativeDir);
+    } else {
+      duplicateProducts.push({ productKey, sources: [current.relativeDir, product.relativeDir] });
+    }
+  }
+
+  return { products: [...byProduct.values()], duplicateProducts };
+}
+
+function productIdentity(relativeDir) {
+  const leaf = path.basename(relativeDir);
+  return leaf.match(/^\d+/)?.[0] || relativeDir;
+}
+
+function dedupeSkuRows(rows) {
+  const bySku = new Map();
+  const duplicateSkus = [];
+
+  for (const row of rows) {
+    const current = bySku.get(row.partnerSku);
+    if (!current) {
+      bySku.set(row.partnerSku, row);
+      continue;
+    }
+
+    if (current.source !== row.source && skuContentKey(current) !== skuContentKey(row)) {
+      throw new Error(`Conflicting duplicate SKU ${row.partnerSku}: ${current.source}, ${row.source}`);
+    }
+
+    addDuplicateSku(duplicateSkus, row.partnerSku, current.source, row.source);
+  }
+
+  return { rows: [...bySku.values()], duplicateSkus };
+}
+
+function addDuplicateSku(duplicateSkus, partnerSku, ...sources) {
+  const existing = duplicateSkus.find((item) => item.partnerSku === partnerSku);
+  if (existing) {
+    for (const source of sources) {
+      if (!existing.sources.includes(source)) existing.sources.push(source);
+    }
+    return;
+  }
+
+  duplicateSkus.push({ partnerSku, sources: [...new Set(sources)] });
+}
+
+function skuContentKey(row) {
+  return JSON.stringify({
+    barcode: row.barcode,
+    colour: row.colour,
+    priceUsd: row.priceUsd,
+    stock: row.stock,
+    lengthCm: row.lengthCm,
+    widthCm: row.widthCm,
+    heightCm: row.heightCm,
+    weightKg: row.weightKg,
+    titleEn: row.titleEn,
+    titleAr: row.titleAr,
+    images: row.images,
+  });
+}
+
+function normalizeImages(images) {
+  return (Array.isArray(images) ? images : [])
+    .map((image) => (typeof image === "string" ? image : image?.path || ""))
+    .filter(Boolean);
 }
 
 function productRows(rows) {
