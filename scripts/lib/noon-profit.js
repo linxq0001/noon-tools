@@ -24,7 +24,16 @@ export function calculateNoonProfit(input = {}) {
   }
 
   const totalCostAed = (config.costCny + config.shippingCny) / config.exchangeRate;
-  const suggestedPriceAed = roundMoney(totalCostAed / (1 - config.platformFeeRate - config.targetMargin));
+  const denominator = 1 - config.platformFeeRate - config.targetMargin;
+  if (denominator <= 0) {
+    warnings.push({
+      code: "invalid_margin_config",
+      message: "平台费率和目标利润率之和必须小于 100%。",
+    });
+    return emptyResult(warnings);
+  }
+
+  const suggestedPriceAed = roundMoney(totalCostAed / denominator);
   const hasSalePrice = numberValue(input.salePriceAed) > 0;
   const salePriceAed = hasSalePrice ? numberValue(input.salePriceAed) : suggestedPriceAed;
 

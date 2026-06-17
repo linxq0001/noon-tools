@@ -69,6 +69,25 @@ test("calculateNoonProfit treats rounded tie margin as meeting target", () => {
   assert.equal(result.belowTarget, false);
 });
 
+test("calculateNoonProfit reports invalid margin config", () => {
+  const result = calculateNoonProfit({
+    costCny: 38,
+    shippingCny: 12,
+    exchangeRate: 1.96,
+    platformFeeRate: 0.8,
+    targetMargin: 0.25,
+  });
+
+  assert.equal(result.suggestedPriceAed, 0);
+  assert.equal(result.belowTarget, true);
+  assert.deepEqual(result.warnings, [
+    {
+      code: "invalid_margin_config",
+      message: "平台费率和目标利润率之和必须小于 100%。",
+    },
+  ]);
+});
+
 test("normalizeProfitConfig accepts numeric strings and defaults", () => {
   assert.deepEqual(
     normalizeProfitConfig({
