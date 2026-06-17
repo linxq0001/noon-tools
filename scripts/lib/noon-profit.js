@@ -30,7 +30,7 @@ export function calculateNoonProfit(input = {}) {
 
   const estimatedProfitAed = roundMoney(salePriceAed * (1 - config.platformFeeRate) - totalCostAed);
   const margin = salePriceAed ? roundRate(estimatedProfitAed / salePriceAed) : 0;
-  const belowTarget = salePriceAed ? estimatedProfitAed / salePriceAed < config.targetMargin : true;
+  const belowTarget = salePriceAed ? margin < config.targetMargin : true;
 
   if (belowTarget) {
     warnings.push({

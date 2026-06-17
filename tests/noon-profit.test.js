@@ -55,6 +55,20 @@ test("calculateNoonProfit evaluates an existing sale price", () => {
   ]);
 });
 
+test("calculateNoonProfit treats rounded tie margin as meeting target", () => {
+  const result = calculateNoonProfit({
+    costCny: 72.1,
+    shippingCny: 0,
+    exchangeRate: 1,
+    platformFeeRate: 0,
+    targetMargin: 0.28,
+    salePriceAed: 100,
+  });
+
+  assert.equal(result.margin, 0.28);
+  assert.equal(result.belowTarget, false);
+});
+
 test("normalizeProfitConfig accepts numeric strings and defaults", () => {
   assert.deepEqual(
     normalizeProfitConfig({
