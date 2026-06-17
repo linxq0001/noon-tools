@@ -19,12 +19,45 @@ test("applyBulkOperation sets price on every variant", async () => {
   assert.equal(noon.operation_status, "active");
 });
 
+test("applyBulkOperation rejects malformed price strings", async () => {
+  const { productsDir, productDir } = await createProduct();
+  const result = await applyBulkOperation({
+    productsDir,
+    productDirs: [productDir],
+    operation: { type: "set_price", priceUsd: "18.5usd" },
+  });
+
+  const noon = await readNoon(productsDir, productDir);
+  assert.equal(result.changedCount, 0);
+  assert.equal(result.failedCount, 1);
+  assert.equal(result.failed[0].productDir, productDir);
+  assert.match(result.failed[0].error, /priceUsd/i);
+  assert.equal(noon.variants[0].price_usd, 10);
+  assert.equal(noon.operation_status, "active");
+});
+
 test("applyBulkOperation sets stock on every variant", async () => {
   const { productsDir, productDir } = await createProduct();
   await applyBulkOperation({ productsDir, productDirs: [productDir], operation: { type: "set_stock", stock: 9 } });
 
   const noon = await readNoon(productsDir, productDir);
   assert.equal(noon.variants[0].stock, 9);
+});
+
+test("applyBulkOperation rejects malformed stock strings", async () => {
+  const { productsDir, productDir } = await createProduct();
+  const result = await applyBulkOperation({
+    productsDir,
+    productDirs: [productDir],
+    operation: { type: "set_stock", stock: "9abc" },
+  });
+
+  const noon = await readNoon(productsDir, productDir);
+  assert.equal(result.changedCount, 0);
+  assert.equal(result.failedCount, 1);
+  assert.equal(result.failed[0].productDir, productDir);
+  assert.match(result.failed[0].error, /stock/i);
+  assert.equal(noon.variants[0].stock, 3);
 });
 
 test("applyBulkOperation deactivates product and sets stock to zero", async () => {
