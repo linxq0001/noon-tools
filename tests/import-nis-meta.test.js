@@ -85,7 +85,7 @@ test("import:nis-meta writes one meta.json per NIS product row", async () => {
   });
 
   assert.equal(result.status, 0, result.stderr || result.stdout);
-  const meta = JSON.parse(await readFile(path.join(outDir, "SBS-123-GLD-Rhinestone Clutch Bag", "meta.json"), "utf8"));
+  const meta = JSON.parse(await readFile(path.join(outDir, "1688", "default", "SBS-123-GLD", "meta.json"), "utf8"));
   assert.equal(meta.productId, "SBS-123-GLD");
   assert.equal(meta.title, "Rhinestone Clutch Bag");
   assert.deepEqual(meta.images, ["https://example.com/1.jpg", "https://example.com/2.jpg"]);
@@ -131,7 +131,7 @@ test("import:nis-meta keeps category-only rows traceable when Partner SKU is mis
   });
 
   assert.equal(result.status, 0, result.stderr || result.stdout);
-  const meta = JSON.parse(await readFile(path.join(outDir, "nis-row-10-Clutch", "meta.json"), "utf8"));
+  const meta = JSON.parse(await readFile(path.join(outDir, "1688", "default", "nis-row-10", "meta.json"), "utf8"));
   assert.equal(meta.productId, "nis-row-10");
   assert.equal(meta.title, "Clutch");
   assert.deepEqual(meta.missingFields, ["Partner SKU Unique", "Product Title EN"]);

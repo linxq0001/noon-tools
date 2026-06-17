@@ -1,12 +1,13 @@
 #!/usr/bin/env node
 
 import { createReadStream } from "node:fs";
-import { readdir, readFile, stat, writeFile } from "node:fs/promises";
+import { readFile, stat, writeFile } from "node:fs/promises";
 import { createServer } from "node:http";
 import path from "node:path";
 import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { bulkUpdateFileNames, exportNoonBulkUpdates } from "./lib/noon-bulk-update-exporter.js";
+import { readPlatformRepositories } from "./lib/product-storage.js";
 
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const publicDir = path.join(rootDir, "public");
@@ -386,6 +387,8 @@ async function createNoonBulkUpdateFiles(request, response) {
   sendJson(response, {
     skuCount: result.skuCount,
     productCount: result.productCount,
+    duplicateProducts: result.duplicateProducts,
+    duplicateSkus: result.duplicateSkus,
     files: {
       product: `${baseUrl}/${encodeURIComponent(bulkUpdateFileNames.product)}`,
       price: `${baseUrl}/${encodeURIComponent(bulkUpdateFileNames.price)}`,
@@ -515,68 +518,18 @@ async function listProducts() {
 }
 
 async function listRepositories() {
-  let entries = [];
+  const repositories = await readPlatformRepositories(productsDir, "1688");
+  const summaries = [];
 
-  try {
-    entries = await readdir(productsDir, { withFileTypes: true });
-  } catch {
-    return [];
-  }
-
-  const legacyProducts = [];
-  const repositories = [];
-
-  for (const entry of entries) {
-    if (!entry.isDirectory()) continue;
-
-    const dirName = entry.name;
-    const fullDir = path.join(productsDir, dirName);
-
-    if (await hasMetaJson(fullDir)) {
-      legacyProducts.push(await readProductSummary(dirName, "默认仓库"));
-      continue;
+  for (const repository of repositories) {
+    const products = [];
+    for (const productDir of repository.productDirs) {
+      products.push(await readProductSummary(productDir.relativeDir, repository.id));
     }
-
-    const products = await listRepositoryProducts(dirName);
-    if (products.length === 0) continue;
-
-    repositories.push(buildRepositorySummary(dirName, dirName, products));
+    summaries.push(buildRepositorySummary(repository.id, repository.name, products));
   }
 
-  if (legacyProducts.length > 0) {
-    repositories.unshift(buildRepositorySummary("__default__", "默认仓库", legacyProducts));
-  }
-
-  return repositories.sort((left, right) => String(right.updatedAt).localeCompare(String(left.updatedAt)));
-}
-
-async function listRepositoryProducts(repositoryDirName) {
-  let entries = [];
-
-  try {
-    entries = await readdir(path.join(productsDir, repositoryDirName), { withFileTypes: true });
-  } catch {
-    return [];
-  }
-
-  const products = [];
-
-  for (const entry of entries) {
-    if (!entry.isDirectory()) continue;
-    if (!(await hasMetaJson(path.join(productsDir, repositoryDirName, entry.name)))) continue;
-    products.push(await readProductSummary(`${repositoryDirName}/${entry.name}`, repositoryDirName));
-  }
-
-  return products.sort((left, right) => String(right.generatedAt).localeCompare(String(left.generatedAt)));
-}
-
-async function hasMetaJson(dirPath) {
-  try {
-    await readFile(path.join(dirPath, "meta.json"), "utf8");
-    return true;
-  } catch {
-    return false;
-  }
+  return summaries.sort((left, right) => String(right.updatedAt).localeCompare(String(left.updatedAt)));
 }
 
 async function readProductSummary(relativeDir, repository) {
@@ -585,7 +538,11 @@ async function readProductSummary(relativeDir, repository) {
   try {
     const meta = JSON.parse(await readFile(metaPath, "utf8"));
     const noonSummary = await readNoonProductSummary(relativeDir);
-    const firstLocalImage = meta.downloadedCount > 0 ? "001.jpg" : meta.images?.[0]?.path;
+    const firstImage = Array.isArray(meta.images) ? meta.images[0] : "";
+    const firstLocalImage =
+      typeof firstImage === "string"
+        ? firstImage
+        : firstImage?.path || (meta.downloadedCount > 0 ? "001.jpg" : "");
 
     return {
       dirName: relativeDir,
@@ -668,13 +625,13 @@ function buildRepositorySummary(id, name, products) {
     uploadableCount: products.filter((product) => (product.noonSummary?.imageCount || 0) > 0).length,
     blockedCount: products.filter((product) => (product.noonSummary?.blockingCount || 0) > 0).length,
     updatedAt: products[0]?.generatedAt || "",
-    uploadStatus: readNoonUploadStatus(id === "__default__" ? "" : id),
+    uploadStatus: readNoonUploadStatus(id),
     products,
   };
 }
 
 function productFileUrl(relativeDir, filename) {
-  return `/products/${relativeDir.split("/").map(encodeURIComponent).join("/")}/${encodeURIComponent(filename)}`;
+  return `/products/${[...relativeDir.split("/"), ...String(filename).split("/")].map(encodeURIComponent).join("/")}`;
 }
 
 function readNoonUploadStatus(productDir) {

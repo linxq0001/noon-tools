@@ -6,11 +6,15 @@ import { exportNoonBulkUpdates } from "./lib/noon-bulk-update-exporter.js";
 const args = process.argv.slice(2);
 const productsDir = path.resolve(positional(0) || "products");
 const outputDir = path.resolve(positional(1) || "exports/noon-bulk-updates");
+const platform = optionValue("--platform");
 const repository = optionValue("--repository");
 
-const result = await exportNoonBulkUpdates({ productsDir, outputDir, repository });
+const result = await exportNoonBulkUpdates({ productsDir, outputDir, platform, repository });
 
 console.log(`Exported ${result.skuCount} SKU row(s) from ${result.productCount} product(s) to ${outputDir}`);
+if (result.duplicateProducts.length) {
+  console.log(`Skipped ${result.duplicateProducts.length} duplicate product(s).`);
+}
 for (const filePath of Object.values(result.files)) console.log(filePath);
 
 function positional(index) {
@@ -23,5 +27,5 @@ function optionValue(name) {
 }
 
 function optionNames() {
-  return new Set(["--repository"]);
+  return new Set(["--platform", "--repository"]);
 }
