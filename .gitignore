@@ -10,6 +10,7 @@ __pycache__/
 .codegraph/
 .debug-backups/
 .cache/
+.worktrees/
 
 outputs/
 products/
