@@ -17,7 +17,7 @@ class SellerLabPageAdapter {
     await this.operations.fillRequiredField("English Title", product.productIdentity.englishTitle);
     await this.operations.fillOptionalField("Arabic Title", product.productIdentity.arabicTitle);
     await this.operations.fillRequiredField("Partner SKU", product.productIdentity.partnerSku);
-    await this.operations.selectBrand(product.productIdentity.brand || "Generic");
+    await this.operations.selectBrand(product.productIdentity.brand || "No Brand");
     await this.operations.uploadImages(product.imagePaths);
   }
 

@@ -27,7 +27,7 @@ test("seller lab page operations binds helpers to a page", async () => {
   await operations.waitForUploadPage(() => {});
   await operations.fillRequiredField("English Title", "Bag");
   await operations.fillOptionalField("Arabic Title", "", { blocking: false });
-  await operations.selectBrand("Generic");
+  await operations.selectBrand("No Brand");
   await operations.uploadImages(["001.jpg"]);
   await operations.prepareProductCategory(["Bags & Luggage"]);
   await operations.clickButton(["Continue"], { required: true });
@@ -42,7 +42,7 @@ test("seller lab page operations binds helpers to a page", async () => {
     ["waitForUploadPage", "page-1", "function"],
     ["fillRequiredField", "page-1", "English Title", "Bag"],
     ["fillOptionalField", "page-1", "Arabic Title", "", { blocking: false }],
-    ["selectBrand", "page-1", "Generic"],
+    ["selectBrand", "page-1", "No Brand"],
     ["uploadImages", "page-1", ["001.jpg"]],
     ["prepareProductCategory", "page-1", ["Bags & Luggage"]],
     ["clickButton", "page-1", ["Continue"], { required: true }],

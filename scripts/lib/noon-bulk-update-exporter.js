@@ -8,10 +8,28 @@ export const bulkUpdateFileNames = {
   stock: "stock-import.xlsx",
 };
 
-export async function exportNoonBulkUpdates({ productsDir, outputDir, platform = "", repository = "" }) {
+const platformIds = {
+  "1688": "1001",
+  amazon: "1002",
+  "亚马逊": "1002",
+  pinduoduo: "1003",
+  pdd: "1003",
+  "拼多多": "1003",
+  noon: "1004",
+};
+
+const platformIdValues = new Set(Object.values(platformIds));
+
+const catalogPrefixes = {
+  noon: "N",
+  supermall: "S",
+  global: "G",
+};
+
+export async function exportNoonBulkUpdates({ productsDir, outputDir, platform = "", repository = "", catalogType = "global" }) {
   const products = await readNoonProducts(productsDir, { platform, repository });
   const { products: uniqueProducts, duplicateProducts } = dedupeProducts(products);
-  const allRows = uniqueProducts.flatMap(toSkuRows).filter((row) => row.partnerSku);
+  const allRows = uniqueProducts.flatMap((product) => toSkuRows(product, { platform, catalogType })).filter((row) => row.partnerSku);
   const { rows, duplicateSkus } = dedupeSkuRows(allRows);
 
   await mkdir(outputDir, { recursive: true });
@@ -85,14 +103,14 @@ async function readJsonIfExists(filePath) {
   }
 }
 
-function toSkuRows(product) {
+function toSkuRows(product, { platform = "", catalogType = "global" } = {}) {
   const group = product.noonAttributes.product_group ?? {};
   const uploadConfig = product.noonAttributes.upload_config ?? {};
   const variants = Array.isArray(product.noonAttributes.variants) ? product.noonAttributes.variants : [];
 
   return variants.map((variant) => ({
     source: product.relativeDir,
-    partnerSku: cleanText(variant.partner_sku),
+    partnerSku: catalogPartnerSku(variant.partner_sku, { platform, catalogType }),
     barcode: cleanText(variant.barcode),
     colour: cleanText(variant.colour || variant.colour_name),
     titleEn: cleanText(variant.title_en),
@@ -112,6 +130,24 @@ function toSkuRows(product) {
     processingTime: cleanText(variant.processing_time) || "2_days",
     warehouseCode: cleanText(variant.warehouse_code || uploadConfig.warehouse_code) || "W00183886CN",
   }));
+}
+
+function catalogPartnerSku(partnerSku, { platform = "", catalogType = "global" } = {}) {
+  const sku = cleanText(partnerSku);
+  if (!sku) return "";
+
+  const hasCatalogPrefix = /^[GNS]-/.test(sku);
+  const sourceSku = hasCatalogPrefix ? sku.slice(2) : sku;
+  const parts = sourceSku.split("-");
+  const platformPart = parts[0];
+  const sourcePlatform =
+    platformIds[platformPart] || (hasCatalogPrefix && platformIdValues.has(platformPart))
+      ? parts.shift()
+      : cleanText(platform) || defaultPlatformName();
+  const platformId = platformIds[sourcePlatform] || sourcePlatform;
+  const prefix = catalogPrefixes[catalogType] || catalogPrefixes.global;
+
+  return `${prefix}-${platformId}-${parts.join("-")}`;
 }
 
 function dedupeProducts(products) {

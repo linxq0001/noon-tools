@@ -1,12 +1,13 @@
 #!/usr/bin/env node
 
-import { createReadStream } from "node:fs";
+import { createReadStream, existsSync } from "node:fs";
 import { readFile, stat, writeFile } from "node:fs/promises";
 import { createServer } from "node:http";
 import path from "node:path";
 import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { bulkUpdateFileNames, exportNoonBulkUpdates } from "./lib/noon-bulk-update-exporter.js";
+import { readNoonUploadStatusFromProductDir } from "./lib/noon-upload-status.js";
 import { readPlatformRepositories } from "./lib/product-storage.js";
 
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -23,8 +24,6 @@ const uiSettingKeys = [
   "url",
   "limit",
   "delaySeconds",
-  "linksOnly",
-  "fromQueue",
   "headless",
   "proxy",
   "repository",
@@ -32,6 +31,7 @@ const uiSettingKeys = [
   "noonBrowser",
   "noonCloakTyping",
   "noonHeadless",
+  "catalogType",
   "deepSeekModel",
   "deepSeekApiKey",
 ];
@@ -148,9 +148,8 @@ server.listen(port, () => {
 async function createJob(request, response) {
   const body = await readJsonBody(request);
   const url = String(body.url || "").trim();
-  const useQueue = Boolean(body.fromQueue) && !url;
 
-  if (!useQueue && (!url || !/^https?:\/\/.+1688\.com\//i.test(url))) {
+  if (url && !/^https?:\/\/.+1688\.com\//i.test(url)) {
     sendJson(response, { error: "请输入有效的 1688 链接。" }, 400);
     return;
   }
@@ -168,24 +167,26 @@ async function createJob(request, response) {
   const id = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
   const args = ["scripts/collect-1688.js"];
 
-  if (!useQueue) args.push(url);
+  if (url) args.push(url);
 
   args.push("--out", "products");
 
   if (body.limit !== undefined) args.push("--limit", String(body.limit));
   if (body.delaySeconds) args.push("--delay-seconds", String(body.delaySeconds));
-  if (body.linksOnly) args.push("--links-only", "true");
-  if (useQueue) args.push("--from-queue", "true");
   if (body.repository) args.push("--repository", body.repository);
   if (body.headless === false) args.push("--headless", "false");
+  if (body.deepSeekApiKey) args.push("--deepseek", "true");
   args.push("--profile", default1688Profile);
   if (body.proxy) args.push("--proxy", body.proxy);
+  const env = { ...process.env };
+  if (body.deepSeekApiKey) env.DEEPSEEK_API_KEY = String(body.deepSeekApiKey);
+  if (body.deepSeekModel) env.DEEPSEEK_MODEL = String(body.deepSeekModel);
 
   const job = {
     id,
     kind: "collect1688",
     status: "running",
-    url: useQueue ? "collection-queue.json" : url,
+    url: url || "collection-queue.json",
     startedAt: new Date().toISOString(),
     finishedAt: null,
     exitCode: null,
@@ -195,7 +196,7 @@ async function createJob(request, response) {
 
   jobs.set(id, job);
 
-  const child = spawn(process.execPath, args, { cwd: rootDir, env: process.env });
+  const child = spawn(process.execPath, args, { cwd: rootDir, env });
   job.child = child;
   child.stdout.on("data", (chunk) => appendLog(job, chunk));
   child.stderr.on("data", (chunk) => appendLog(job, chunk));
@@ -263,7 +264,9 @@ async function createUploadJob(request, response) {
     return;
   }
 
-  if (!body.all && !body.productDir) {
+  const productDirs = Array.isArray(body.productDirs) ? body.productDirs.map(String).filter(Boolean) : [];
+
+  if (!body.all && !body.productDir && productDirs.length === 0) {
     sendJson(response, { error: "请选择一个商品目录，或选择全部上传。" }, 400);
     return;
   }
@@ -273,13 +276,14 @@ async function createUploadJob(request, response) {
 
   if (body.all) {
     args.push("--all");
+  } else if (productDirs.length > 0) {
+    args.push("--product-dirs", JSON.stringify(productDirs.map((productDir) => `products/${productDir}`)));
   } else {
     args.push("--product-dir", `products/${body.productDir}`);
   }
 
   args.push("--profile", defaultNoonProfile);
   args.push("--browser", body.noonBrowser || "cloak");
-  args.push("--stop-after-offer-details", "true");
   if (body.noonCloakTyping === true || body.noonCloakTyping === "true") args.push("--cloak-typing", "true");
   if (body.headless === true) args.push("--headless", "true");
   if (body.manualWaitMs) args.push("--manual-wait-ms", String(body.manualWaitMs));
@@ -289,6 +293,8 @@ async function createUploadJob(request, response) {
     status: "running",
     url: body.noonUrl,
     productDir: body.productDir ?? "",
+    productDirs,
+    repository: body.all ? "" : repositoryFromProductDir(productDirs[0] || body.productDir || ""),
     startedAt: new Date().toISOString(),
     finishedAt: null,
     exitCode: null,
@@ -302,10 +308,11 @@ async function createUploadJob(request, response) {
   job.child = child;
   child.stdout.on("data", (chunk) => appendLog(job, chunk));
   child.stderr.on("data", (chunk) => appendLog(job, chunk));
-  child.on("close", (code) => {
+  child.on("close", async (code) => {
     if (job.status === "cancelled") return;
-    job.status = code === 0 ? "completed" : "failed";
     job.exitCode = code;
+    if (code === 0 || hasSuccessfulUploadedProducts(job)) await recordSuccessfulGlobalBulkUpdates(job);
+    job.status = code === 0 ? "completed" : "failed";
     job.finishedAt = new Date().toISOString();
   });
 
@@ -374,27 +381,80 @@ async function createNoonGenerateJob(request, response) {
 async function createNoonBulkUpdateFiles(request, response) {
   const body = await readJsonBody(request);
   const repository = cleanPathSegment(body.repository || "");
+  const catalogType = cleanPathSegment(body.catalogType || "global");
   if (repository.includes("..") || path.isAbsolute(repository)) {
     sendJson(response, { error: "仓库路径不合法。" }, 400);
     return;
   }
+  if (!["noon", "supermall", "global"].includes(catalogType)) {
+    sendJson(response, { error: "商品目录类型不合法。" }, 400);
+    return;
+  }
   const stamp = new Date().toISOString().replace(/[:.]/g, "-");
-  const exportName = repository ? `${stamp}-${repository.replaceAll("/", "-")}` : `${stamp}-all`;
-  const outputDir = path.join(exportsDir, "noon-bulk-updates", exportName);
-  const result = await exportNoonBulkUpdates({ productsDir, outputDir, repository });
-  const baseUrl = `/exports/noon-bulk-updates/${encodeURIComponent(exportName)}`;
+  const exportKey = repository || "all";
+  const exportName = repository ? `${stamp}-${catalogType}-${repository.replaceAll("/", "-")}` : `${stamp}-${catalogType}-all`;
+  const outputDir = catalogType === "global"
+    ? globalBulkUpdateOutputDir(exportKey)
+    : path.join(exportsDir, "noon-bulk-updates", exportName);
+  const result = await exportNoonBulkUpdates({ productsDir, outputDir, repository, catalogType });
+  const files = catalogType === "global"
+    ? globalBulkUpdateFileUrls(exportKey)
+    : timestampedBulkUpdateFileUrls(exportName);
 
   sendJson(response, {
     skuCount: result.skuCount,
     productCount: result.productCount,
+    catalogType,
     duplicateProducts: result.duplicateProducts,
     duplicateSkus: result.duplicateSkus,
-    files: {
-      product: `${baseUrl}/${encodeURIComponent(bulkUpdateFileNames.product)}`,
-      price: `${baseUrl}/${encodeURIComponent(bulkUpdateFileNames.price)}`,
-      stock: `${baseUrl}/${encodeURIComponent(bulkUpdateFileNames.stock)}`,
-    },
+    files,
   });
+}
+
+async function recordSuccessfulGlobalBulkUpdates(job) {
+  try {
+    const repository = cleanPathSegment(job.repository || "");
+    const exportKey = repository || "all";
+    const outputDir = globalBulkUpdateOutputDir(exportKey);
+    const result = await exportNoonBulkUpdates({ productsDir, outputDir, repository, catalogType: "global" });
+    const files = globalBulkUpdateFileUrls(exportKey);
+
+    job.globalBulkUpdate = {
+      repository,
+      skuCount: result.skuCount,
+      productCount: result.productCount,
+      files,
+    };
+
+    appendLog(
+      job,
+      `Global 批量更新表已记录 ${result.productCount} 个商品、${result.skuCount} 个 SKU：${files.product} / ${files.price} / ${files.stock}`,
+    );
+  } catch (error) {
+    appendLog(job, `Global 批量更新表记录失败：${error.message}`);
+  }
+}
+
+function globalBulkUpdateFileUrls(exportKey) {
+  const baseUrl = `/exports/noon-bulk-updates/global/${encodeURIComponent(exportKey)}`;
+  return {
+    product: `${baseUrl}/${encodeURIComponent(bulkUpdateFileNames.product)}`,
+    price: `${baseUrl}/${encodeURIComponent(bulkUpdateFileNames.price)}`,
+    stock: `${baseUrl}/${encodeURIComponent(bulkUpdateFileNames.stock)}`,
+  };
+}
+
+function globalBulkUpdateOutputDir(exportKey) {
+  return path.join(exportsDir, "noon-bulk-updates", "global", exportKey);
+}
+
+function timestampedBulkUpdateFileUrls(exportName) {
+  const baseUrl = `/exports/noon-bulk-updates/${encodeURIComponent(exportName)}`;
+  return {
+    product: `${baseUrl}/${encodeURIComponent(bulkUpdateFileNames.product)}`,
+    price: `${baseUrl}/${encodeURIComponent(bulkUpdateFileNames.price)}`,
+    stock: `${baseUrl}/${encodeURIComponent(bulkUpdateFileNames.stock)}`,
+  };
 }
 
 async function checkNoonStatus(url, response) {
@@ -473,6 +533,14 @@ function safeProductFilePath(productDir, fileName) {
 
 function cleanPathSegment(value) {
   return String(value || "").replace(/^\/+|\/+$/g, "");
+}
+
+function repositoryFromProductDir(value) {
+  const parts = cleanPathSegment(value).split("/").filter(Boolean);
+  if (parts.length === 0) return "";
+  if (parts[0] === "1688") return parts[1] || "default";
+  if (parts.length === 1) return "default";
+  return parts[0];
 }
 
 async function readUiSettings() {
@@ -626,6 +694,7 @@ function buildRepositorySummary(id, name, products) {
     blockedCount: products.filter((product) => (product.noonSummary?.blockingCount || 0) > 0).length,
     updatedAt: products[0]?.generatedAt || "",
     uploadStatus: readNoonUploadStatus(id),
+    globalBulkUpdate: readGlobalBulkUpdateStatus(id),
     products,
   };
 }
@@ -635,13 +704,32 @@ function productFileUrl(relativeDir, filename) {
 }
 
 function readNoonUploadStatus(productDir) {
+  const relativeDir = cleanPathSegment(productDir || "");
+  try {
+    return readNoonUploadStatusFromProductDir(path.dirname(safeProductFilePath(relativeDir, "meta.json")), relativeDir);
+  } catch {
+    return readNoonUploadStatusFromProductDir(path.join(productsDir, "__missing__"), relativeDir);
+  }
+}
+
+function hasSuccessfulUploadedProducts(job) {
+  return uploadJobProductDirs(job).some((productDir) => readNoonUploadStatus(productDir).uploaded);
+}
+
+function uploadJobProductDirs(job) {
+  if (Array.isArray(job.productDirs) && job.productDirs.length > 0) return job.productDirs;
+  if (job.productDir) return [job.productDir];
+  return [];
+}
+
+function readGlobalBulkUpdateStatus(repository) {
+  const exportKey = repository || "all";
+  const outputDir = globalBulkUpdateOutputDir(exportKey);
+  const files = globalBulkUpdateFileUrls(exportKey);
+
   return {
-    productDir: productDir || "",
-    status: "not_uploaded",
-    uploaded: false,
-    uploadedAt: "",
-    noonSku: "",
-    message: "noon 上传状态接口预留，等待接入真实状态存储。",
+    available: existsSync(path.join(outputDir, bulkUpdateFileNames.product)),
+    files,
   };
 }
 
@@ -682,6 +770,9 @@ function serializeJob(job) {
     status: job.status,
     url: job.url,
     productDir: job.productDir ?? "",
+    productDirs: job.productDirs ?? [],
+    repository: job.repository ?? "",
+    globalBulkUpdate: job.globalBulkUpdate ?? null,
     startedAt: job.startedAt,
     finishedAt: job.finishedAt,
     exitCode: job.exitCode,

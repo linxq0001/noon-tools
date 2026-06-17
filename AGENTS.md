@@ -1,13 +1,292 @@
-## Agent skills
+# AGENTS.md
 
-### Issue tracker
+## 1. 项目目标
 
-Issues are tracked as local markdown files under `.scratch/`. See `docs/agents/issue-tracker.md`.
+本项目使用 Next.js 构建全栈 Web 应用。
 
-### Triage labels
+Agent 的职责：
 
-Triage uses the default five-label vocabulary. See `docs/agents/triage-labels.md`.
+- 理解需求后再修改代码。
+- 优先复用现有组件、工具和项目约定。
+- 使用最小完整改动完成需求。
+- 保持代码可读、可测试、可维护。
+- 完成后执行必要检查，并如实汇报结果。
 
-### Domain docs
+## 2. 技术栈
 
-This repo uses a single-context domain docs layout. See `docs/agents/domain.md`.
+### 默认基础栈
+
+项目默认使用：
+
+- Next.js（App Router）
+- React
+- TypeScript
+- pnpm
+- Tailwind CSS
+- shadcn/ui
+- Zod
+- ESLint
+- Prettier
+
+### 按需求启用
+
+以下技术只有在需求明确或现有项目已经使用时才引入：
+
+- PostgreSQL + Prisma：仅当项目需要持久化数据时使用。
+- Auth.js：仅当项目需要登录、会话或权限系统时使用。
+- React Hook Form：仅当表单复杂到需要客户端状态、动态字段或即时校验时使用。
+- TanStack Query：仅当客户端需要异步请求缓存、刷新、重试、乐观更新或复杂请求状态时使用。
+- TanStack Table：仅当表格需要排序、筛选、分页、列控制、行选择等复杂交互时使用。
+- Zustand：仅当存在跨组件共享的客户端 UI 状态，且 URL、组件状态或 TanStack Query 不适合时使用。
+- Vitest：用于单元测试和轻量集成测试。
+- Playwright：用于端到端流程测试。
+- Vercel：作为默认部署目标，但不要把实现绑定到 Vercel 专有能力，除非需求明确。
+
+未经明确要求，不得替换核心技术栈，也不要引入功能重复的依赖。
+
+## 3. 编码前思考
+
+不要假设。不要隐藏困惑。呈现权衡。
+
+- 明确说明假设：如果不确定，先说明假设；高风险歧义应询问用户。
+- 呈现多种解释：当需求存在多种合理理解时，不要默默选择。
+- 适时提出异议：如果存在更简单或更稳妥的方法，应直接说明。
+- 困惑时停下来：如果继续执行会造成明显返工，应先澄清。
+
+## 4. Agent 工作方式
+
+### 小任务
+
+适用：单文件修改、样式调整、文案修改、小型 Bug、简单字段增删。
+
+处理方式：
+
+- 不拆分子 Agent。
+- 直接完成最小修改。
+- 不进行无关重构。
+- 完成后运行与改动范围匹配的检查。
+
+### 中任务
+
+适用：涉及多个文件、新增完整页面或接口、数据库读写、多个业务模块。
+
+处理方式：
+
+- 先给出简短计划。
+- 按模块实现。
+- 必要时调用子 Agent。
+- 主控 Agent 负责审查和整合。
+- 每个主要步骤都应有对应验证方式。
+
+### 大任务
+
+适用：完整业务模块、前后端与数据库联动、第三方 API、批量任务、队列、核心架构调整。
+
+处理方式：
+
+- 先拆分任务。
+- 自动调用子 Agent 分模块执行。
+- 主控 Agent 负责接口设计、代码审查、整合和验收。
+- 在实现前明确成功标准。
+
+## 5. Next.js 开发规则
+
+- 使用 App Router。
+- 页面和路由放在 `src/app`。
+- 默认使用 Server Components。
+- 只有需要浏览器 API、事件处理或客户端状态时才使用 `"use client"`。
+- 服务端更新优先使用 Server Actions。
+- Webhook、第三方回调和公共接口使用 Route Handlers。
+- 不在客户端暴露密钥。
+- 不使用 `useEffect` 代替正常的服务端数据获取。
+- 页面应根据实际需要处理 loading、empty、error 和 success 状态。
+
+## 6. TypeScript 与校验
+
+- 开启 TypeScript strict mode。
+- 禁止滥用 `any`、`@ts-ignore` 和类型断言。
+- 所有外部输入先视为 `unknown`。
+- 表单、接口参数、环境变量和第三方响应必须使用 Zod 校验。
+- 前端校验不能代替服务端校验。
+- 公共函数应有清晰的输入和输出类型。
+
+## 7. 数据库规则
+
+- 仅在项目需要持久化数据时使用 PostgreSQL 和 Prisma。
+- Prisma Schema 放在 `prisma/schema.prisma`。
+- 数据库结构变化必须创建 migration。
+- 禁止直接修改生产数据库。
+- 数据访问逻辑放在服务层或 `src/lib/db`。
+- 不在页面组件中编写复杂数据库查询。
+- 多步写操作优先使用事务。
+
+## 8. UI 与状态管理
+
+- 使用 Tailwind CSS 和 shadcn/ui。
+- 优先复用 `src/components/ui`。
+- 通用组件放在 `src/components`。
+- 业务组件放在对应业务模块。
+- 筛选、分页和搜索条件优先保存在 URL。
+- 服务端数据优先由 Server Components 获取。
+- 简单客户端状态优先使用组件本地 state。
+- 客户端异步数据只有在需要缓存、刷新、重试、乐观更新或复杂请求状态时才使用 TanStack Query。
+- Zustand 只用于真正需要跨组件共享的客户端 UI 状态，不用于服务端数据缓存。
+- 简单表格直接实现；复杂表格交互再使用 TanStack Table。
+
+## 9. 权限与安全
+
+- 仅当项目需要登录、会话或权限系统时使用 Auth.js。
+- 所有权限检查必须在服务端执行。
+- 隐藏按钮不能代替权限校验。
+- 所有用户输入必须校验。
+- 文件上传必须校验类型、大小和权限。
+- Webhook 必须验证签名。
+- 禁止在日志中输出密码、Cookie、完整 Token 和密钥。
+- 只有允许公开的变量才能使用 `NEXT_PUBLIC_`。
+
+## 10. 第三方 API
+
+第三方平台代码放在：
+
+```text
+src/lib/integrations/<platform>/
+```
+
+推荐拆分：
+
+```text
+client.ts
+schemas.ts
+types.ts
+services.ts
+errors.ts
+```
+
+必须根据实际风险处理：
+
+- 超时
+- 重试
+- 限流
+- Token 失效
+- 错误响应
+- 幂等性
+- 日志脱敏
+
+禁止在页面组件中直接编写复杂第三方接口调用。
+
+## 11. 推荐目录
+
+```text
+src/
+├── app/
+├── components/
+│   ├── ui/
+│   └── shared/
+├── features/
+│   └── <module>/
+│       ├── components/
+│       ├── actions/
+│       ├── schemas/
+│       ├── services/
+│       └── types/
+├── lib/
+│   ├── auth/
+│   ├── db/
+│   ├── integrations/
+│   └── utils/
+├── hooks/
+└── types/
+
+prisma/
+├── schema.prisma
+└── migrations/
+
+tests/
+└── e2e/
+```
+
+规则：
+
+- 页面路由放在 `src/app`。
+- 业务逻辑优先放在 `src/features`。
+- 通用工具放在 `src/lib`。
+- 不要把大量业务逻辑写在 `page.tsx` 中。
+- 不要为了符合目录模板而创建空目录。
+
+## 12. 编码原则
+
+- 先搜索现有实现，再新增代码。
+- 优先最小完整修改。
+- 不修改与当前任务无关的文件。
+- 不进行无明确收益的大规模重构。
+- 不伪造接口、字段、测试或执行结果。
+- 不安装没有实际需要的依赖。
+- 重复逻辑应提取，但不要过度抽象。
+- 注释解释“为什么”，不要重复代码本身。
+
+修改现有代码时：
+
+- 不要改进相邻的代码、注释或格式。
+- 不要重构没坏的东西。
+- 匹配现有风格，即使你更倾向于不同写法。
+- 如果注意到无关问题，可以在最终汇报中提及，但不要擅自修改。
+
+当改动产生孤儿代码时：
+
+- 删除因本次改动而变得无用的导入、变量和函数。
+- 不删除预先存在的死代码，除非用户明确要求。
+
+## 13. 环境变量
+
+项目必须维护 `.env.example`。
+
+新增环境变量时：
+
+- 同步更新 `.env.example`。
+- 不提交真实密钥。
+- 在服务端启动时校验必要变量。
+- 禁止在代码中写死生产地址和密钥。
+
+## 14. 测试与验收
+
+核心业务必须补充测试。
+
+根据改动范围尽可能执行：
+
+```bash
+pnpm lint
+pnpm typecheck
+pnpm test
+pnpm build
+```
+
+涉及端到端流程时执行：
+
+```bash
+pnpm test:e2e
+```
+
+不得在未执行测试时声称测试通过。若检查未执行，必须说明原因。
+
+## 15. 最终汇报
+
+完成后简要说明：
+
+1. 完成了什么。
+2. 修改了哪些主要文件。
+3. 是否有数据库或环境变量变化。
+4. 执行了哪些检查。
+5. 哪些检查未执行及原因。
+6. 当前已知限制。
+
+## 16. 核心原则
+
+- 先理解，再修改。
+- 先复用，再新增。
+- 默认服务端，必要时才客户端。
+- 所有外部输入都必须校验。
+- 所有敏感操作都必须鉴权。
+- 小任务直接完成。
+- 中任务先计划再实现。
+- 大任务拆分并调用子 Agent。
+- 主控 Agent 负责最终审查、整合和验收。

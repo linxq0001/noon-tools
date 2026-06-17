@@ -1,0 +1,430 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Noon Tools UI Style Options</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        background: #eef1f5;
+        color: #1b1d22;
+        font-family: "Avenir Next", "PingFang SC", "Hiragino Sans GB", sans-serif;
+      }
+
+      .sheet {
+        width: 1600px;
+        min-height: 1200px;
+        padding: 34px;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 28px;
+      }
+
+      .option {
+        height: 550px;
+        overflow: hidden;
+        border-radius: 18px;
+        box-shadow: 0 20px 55px rgba(25, 31, 43, 0.16);
+        background: var(--bg);
+        color: var(--text);
+        position: relative;
+      }
+
+      .label {
+        position: absolute;
+        z-index: 4;
+        right: 20px;
+        top: 18px;
+        padding: 8px 12px;
+        border-radius: 999px;
+        background: var(--tag);
+        color: var(--tagText);
+        font-size: 18px;
+        font-weight: 900;
+      }
+
+      .mock {
+        height: 100%;
+        display: grid;
+        grid-template-columns: 168px 1fr;
+      }
+
+      .rail {
+        padding: 22px 16px;
+        background: var(--rail);
+        border-right: 1px solid var(--line);
+      }
+
+      .brand {
+        margin-bottom: 24px;
+        font-size: 23px;
+        font-weight: 950;
+        letter-spacing: 0;
+      }
+
+      .brand span {
+        display: block;
+        margin-top: 5px;
+        color: var(--muted);
+        font-size: 11px;
+        font-weight: 800;
+      }
+
+      .nav {
+        display: grid;
+        gap: 9px;
+      }
+
+      .nav div {
+        min-height: 42px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 0 12px;
+        border-radius: var(--radius);
+        color: var(--mutedText);
+        font-size: 14px;
+        font-weight: 900;
+      }
+
+      .nav div:first-child {
+        background: var(--active);
+        color: var(--activeText);
+      }
+
+      .dot {
+        width: 22px;
+        height: 22px;
+        display: grid;
+        place-items: center;
+        border-radius: 7px;
+        background: var(--dot);
+        color: var(--dotText);
+        font-size: 11px;
+      }
+
+      .content {
+        padding: 24px;
+      }
+
+      .head {
+        display: flex;
+        justify-content: space-between;
+        align-items: end;
+        gap: 18px;
+        margin-bottom: 20px;
+      }
+
+      .kicker {
+        color: var(--accent);
+        font-size: 12px;
+        font-weight: 950;
+        text-transform: uppercase;
+      }
+
+      h2 {
+        margin: 3px 0 0;
+        font-size: 34px;
+        line-height: 1;
+        letter-spacing: 0;
+      }
+
+      .button {
+        min-width: 92px;
+        height: 38px;
+        display: grid;
+        place-items: center;
+        border-radius: var(--radius);
+        background: var(--button);
+        color: var(--buttonText);
+        font-size: 14px;
+        font-weight: 900;
+      }
+
+      .metrics {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 12px;
+        margin-bottom: 14px;
+      }
+
+      .metric,
+      .panel,
+      .log,
+      .repo {
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        background: var(--panel);
+      }
+
+      .metric {
+        padding: 15px;
+        min-height: 92px;
+      }
+
+      .metric span {
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 900;
+      }
+
+      .metric strong {
+        display: block;
+        margin-top: 9px;
+        font-size: 31px;
+      }
+
+      .work {
+        display: grid;
+        grid-template-columns: 1.25fr 0.75fr;
+        gap: 14px;
+      }
+
+      .panel {
+        padding: 16px;
+      }
+
+      .panel-title {
+        margin-bottom: 12px;
+        font-size: 15px;
+        font-weight: 950;
+      }
+
+      .field {
+        height: 38px;
+        margin-bottom: 11px;
+        border: 1px solid var(--fieldLine);
+        border-radius: var(--radius);
+        background: var(--field);
+      }
+
+      .grid2 {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+      }
+
+      .repo {
+        padding: 14px;
+        margin-bottom: 10px;
+      }
+
+      .repo strong {
+        display: block;
+        margin-bottom: 8px;
+        font-size: 14px;
+      }
+
+      .repo span {
+        display: block;
+        color: var(--muted);
+        font-size: 11px;
+        line-height: 1.55;
+      }
+
+      .actions {
+        display: flex;
+        gap: 9px;
+        margin: 0 0 12px;
+      }
+
+      .actions .button {
+        min-width: 84px;
+      }
+
+      .log {
+        height: 145px;
+        padding: 12px;
+        background: var(--log);
+        color: var(--logText);
+        font-family: "SFMono-Regular", Consolas, monospace;
+        font-size: 11px;
+        line-height: 1.7;
+      }
+
+      .light {
+        --bg: #f6f8fb;
+        --rail: #ffffff;
+        --panel: #ffffff;
+        --text: #1f2937;
+        --muted: #728096;
+        --mutedText: #475569;
+        --line: #dfe6ef;
+        --field: #f8fafc;
+        --fieldLine: #d9e2ec;
+        --active: #e9f2ff;
+        --activeText: #1666c5;
+        --dot: #d7e8ff;
+        --dotText: #1666c5;
+        --accent: #2274d4;
+        --button: #176bd2;
+        --buttonText: #ffffff;
+        --tag: #dbeafe;
+        --tagText: #1d4ed8;
+        --log: #111827;
+        --logText: #d8f3dc;
+        --radius: 10px;
+      }
+
+      .noon {
+        --bg: #fff8dc;
+        --rail: #2a2d33;
+        --panel: #ffffff;
+        --text: #202124;
+        --muted: #6c6f76;
+        --mutedText: #f4f2e8;
+        --line: #e3d9b6;
+        --field: #fffdf3;
+        --fieldLine: #e4d8aa;
+        --active: #ffd84d;
+        --activeText: #1f2329;
+        --dot: #42464f;
+        --dotText: #ffd84d;
+        --accent: #c79800;
+        --button: #ffd84d;
+        --buttonText: #202124;
+        --tag: #2a2d33;
+        --tagText: #ffd84d;
+        --log: #252932;
+        --logText: #ffef99;
+        --radius: 8px;
+      }
+
+      .cn {
+        --bg: #f3f6fb;
+        --rail: #17324f;
+        --panel: #ffffff;
+        --text: #1f2a37;
+        --muted: #67758a;
+        --mutedText: #dce8f7;
+        --line: #d9e2ef;
+        --field: #f8fbff;
+        --fieldLine: #d9e2ef;
+        --active: #16a085;
+        --activeText: #ffffff;
+        --dot: rgba(255, 255, 255, 0.16);
+        --dotText: #ffffff;
+        --accent: #16a085;
+        --button: #16a085;
+        --buttonText: #ffffff;
+        --tag: #e5f8f3;
+        --tagText: #08765f;
+        --log: #0f2438;
+        --logText: #d4f8ed;
+        --radius: 6px;
+      }
+
+      .minimal {
+        --bg: #fbfaf7;
+        --rail: #f2efe8;
+        --panel: #fffefd;
+        --text: #20201e;
+        --muted: #7a756b;
+        --mutedText: #45423c;
+        --line: #ded8cb;
+        --field: #faf8f2;
+        --fieldLine: #ded8cb;
+        --active: #20201e;
+        --activeText: #ffffff;
+        --dot: #ded8cb;
+        --dotText: #20201e;
+        --accent: #8d6f2d;
+        --button: #20201e;
+        --buttonText: #ffffff;
+        --tag: #ece5d7;
+        --tagText: #6d521f;
+        --log: #24211c;
+        --logText: #f4ead7;
+        --radius: 4px;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="sheet">
+      <section class="option light">
+        <div class="label">A 清爽运营后台</div>
+        <div class="mock">
+          <aside class="rail">
+            <div class="brand">Noon Tools<span>1688 collection workspace</span></div>
+            <div class="nav">
+              <div><span class="dot">01</span>工作台</div>
+              <div><span class="dot">02</span>1688 采集</div>
+              <div><span class="dot">03</span>商品仓库</div>
+              <div><span class="dot">04</span>配置</div>
+            </div>
+          </aside>
+          <section class="content">
+            <div class="head"><div><div class="kicker">Overview</div><h2>工作台</h2></div><div class="button">刷新数据</div></div>
+            <div class="metrics"><div class="metric"><span>仓库</span><strong>2</strong></div><div class="metric"><span>商品目录</span><strong>31</strong></div><div class="metric"><span>图片数量</span><strong>568</strong></div></div>
+            <div class="work"><div class="panel"><div class="panel-title">采集来源</div><div class="field"></div><div class="field"></div><div class="grid2"><div class="field"></div><div class="field"></div></div></div><div class="panel"><div class="panel-title">商品仓库</div><div class="repo"><strong>义乌铭雯箱包有限公司</strong><span>11 个商品<br />11 个可上传 · 0 个需检查</span></div><div class="actions"><div class="button">上传</div><div class="button">生成</div></div><div class="log">ready: products indexed<br />export: global update files<br />upload: waiting</div></div></div>
+          </section>
+        </div>
+      </section>
+
+      <section class="option noon">
+        <div class="label">B noon 品牌感</div>
+        <div class="mock">
+          <aside class="rail">
+            <div class="brand">Noon Tools<span>catalog operation desk</span></div>
+            <div class="nav">
+              <div><span class="dot">01</span>工作台</div>
+              <div><span class="dot">02</span>1688 采集</div>
+              <div><span class="dot">03</span>商品仓库</div>
+              <div><span class="dot">04</span>配置</div>
+            </div>
+          </aside>
+          <section class="content">
+            <div class="head"><div><div class="kicker">noon catalog</div><h2>商品作业台</h2></div><div class="button">刷新数据</div></div>
+            <div class="metrics"><div class="metric"><span>仓库</span><strong>2</strong></div><div class="metric"><span>可上传 SKU</span><strong>31</strong></div><div class="metric"><span>本地图片</span><strong>568</strong></div></div>
+            <div class="work"><div class="panel"><div class="panel-title">采集任务</div><div class="field"></div><div class="field"></div><div class="grid2"><div class="field"></div><div class="field"></div></div></div><div class="panel"><div class="panel-title">noon 上传</div><div class="repo"><strong>白沟新城扎例箱包厂</strong><span>20 个商品<br />20 个可上传 · 395 张图片</span></div><div class="actions"><div class="button">上传全部</div></div><div class="log">noon session: reachable<br />bulk: stock import ready<br />ai: model ready</div></div></div>
+          </section>
+        </div>
+      </section>
+
+      <section class="option cn">
+        <div class="label">C 国内 SaaS 工具风</div>
+        <div class="mock">
+          <aside class="rail">
+            <div class="brand">Noon Tools<span>商品采集上传系统</span></div>
+            <div class="nav">
+              <div><span class="dot">01</span>工作台</div>
+              <div><span class="dot">02</span>采集任务</div>
+              <div><span class="dot">03</span>商品仓库</div>
+              <div><span class="dot">04</span>系统配置</div>
+            </div>
+          </aside>
+          <section class="content">
+            <div class="head"><div><div class="kicker">运营概览</div><h2>商品流程</h2></div><div class="button">刷新数据</div></div>
+            <div class="metrics"><div class="metric"><span>采集仓库</span><strong>2</strong></div><div class="metric"><span>待处理商品</span><strong>31</strong></div><div class="metric"><span>素材图片</span><strong>568</strong></div></div>
+            <div class="work"><div class="panel"><div class="panel-title">1688 采集</div><div class="field"></div><div class="field"></div><div class="grid2"><div class="field"></div><div class="field"></div></div></div><div class="panel"><div class="panel-title">作业日志</div><div class="repo"><strong>当前任务状态</strong><span>采集 / AI 生成 / 上传<br />按流程顺序处理</span></div><div class="actions"><div class="button">开始</div><div class="button">停止</div></div><div class="log">[10:32] 商品目录读取完成<br />[10:33] noon 属性检查完成<br />[10:34] 等待上传</div></div></div>
+          </section>
+        </div>
+      </section>
+
+      <section class="option minimal">
+        <div class="label">D 极简命令中心</div>
+        <div class="mock">
+          <aside class="rail">
+            <div class="brand">Noon Tools<span>local product workspace</span></div>
+            <div class="nav">
+              <div><span class="dot">01</span>工作台</div>
+              <div><span class="dot">02</span>采集</div>
+              <div><span class="dot">03</span>仓库</div>
+              <div><span class="dot">04</span>配置</div>
+            </div>
+          </aside>
+          <section class="content">
+            <div class="head"><div><div class="kicker">Workspace</div><h2>操作中心</h2></div><div class="button">刷新</div></div>
+            <div class="metrics"><div class="metric"><span>Repositories</span><strong>2</strong></div><div class="metric"><span>Products</span><strong>31</strong></div><div class="metric"><span>Images</span><strong>568</strong></div></div>
+            <div class="work"><div class="panel"><div class="panel-title">Source</div><div class="field"></div><div class="field"></div><div class="grid2"><div class="field"></div><div class="field"></div></div></div><div class="panel"><div class="panel-title">Queue</div><div class="repo"><strong>义乌铭雯箱包有限公司</strong><span>11 products<br />ready for upload</span></div><div class="actions"><div class="button">Run</div></div><div class="log">products loaded<br />attributes checked<br />idle</div></div></div>
+          </section>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>

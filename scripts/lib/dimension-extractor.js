@@ -9,7 +9,7 @@ export const defaultDimensions = {
 export function resolveProductDimensions({ attributes = [], packageInfo = {}, imageCandidates = [] } = {}) {
   const packageCandidates = parseDimensionCandidates(packageDimensionText(packageInfo), "package_info");
   const attributeCandidates = parseDimensionCandidates(
-    attributes.map((item) => `${item.name || ""}: ${item.value || ""}`).join("\n"),
+    (Array.isArray(attributes) ? attributes : []).map((item) => `${item.name || ""}: ${item.value || ""}`).join("\n"),
     "page_attribute",
   );
 
@@ -24,6 +24,9 @@ export function parseDimensionCandidates(text, source = "image_ocr", image = "")
   const value = normalizeText(text);
   const candidates = [];
 
+  const ocrMeasurements = parseOcrCentimeterMeasurements(value, source, image);
+  if (ocrMeasurements) candidates.push(ocrMeasurements);
+
   const labelled = parseLabelledDimensions(value, source, image);
   if (labelled) candidates.push(labelled);
 
@@ -35,11 +38,26 @@ export function parseDimensionCandidates(text, source = "image_ocr", image = "")
 }
 
 export function isLikelyDimensionImage(image) {
-  const text = normalizeText([image?.sourceUrl, image?.path, image?.alt, image?.nearText].filter(Boolean).join(" "));
-  return /尺寸|尺码|大小|size|cm|厘米|length|width|height|\d+\s*(?:x|\*|×)\s*\d+/i.test(text);
+  const descriptiveText = normalizeText([image?.path, image?.alt, image?.nearText].filter(Boolean).join(" "));
+  const sourceUrl = normalizeText(image?.sourceUrl);
+
+  return (
+    /尺寸|尺码|大小|size|cm|厘米|length|width|height|\d+\s*(?:x|\*|×)\s*\d+/i.test(descriptiveText) ||
+    /尺寸|尺码|大小|size|dimension/i.test(sourceUrl)
+  );
+}
+
+export function selectDimensionVisionImages(images = []) {
+  const reversed = (Array.isArray(images) ? images : []).filter((image) => image?.path).reverse();
+  const likely = reversed.find(isLikelyDimensionImage);
+
+  return likely ? [likely] : reversed.slice(0, 1);
 }
 
 function parseLabelledDimensions(text, source, image) {
+  const colourTable = parseColourDimensionTable(text, source, image);
+  if (colourTable) return colourTable;
+
   const table = parseWidthHeightThicknessTable(text, source, image);
   if (table) return table;
 
@@ -55,6 +73,54 @@ function parseLabelledDimensions(text, source, image) {
 
   if (![length, width, height].every((item) => Number.isFinite(item))) return null;
   return candidate(length, width, height, source, image, text);
+}
+
+function parseOcrCentimeterMeasurements(text, source, image) {
+  if (source !== "image_ocr") return null;
+
+  const centimeterNumbers = [...text.matchAll(/(\d+(?:[.,]\d+)?)\s*(?:¢\s*)?[cC][mM]?\b/g)].map((match) => Number(match[1].replace(",", ".")));
+  const inchNumbers = [...text.matchAll(/(\d+[.,]\d+)\s*(?:i\s*)?[iI][nN]\b/g)].map((match) => Number(match[1].replace(",", ".")) * 2.54);
+  let unique = [...new Set([...centimeterNumbers, ...inchNumbers].map((number) => roundCm(number)).filter((number) => Number.isFinite(number) && number > 0 && number <= 80))];
+
+  if (unique.length >= 4) {
+    const max = Math.max(...unique);
+    if (max >= 40) unique = unique.filter((number) => number < 40);
+  }
+
+  if (unique.length < 3) return null;
+
+  const [lengthCm, heightCm, widthCm] = unique.sort((left, right) => right - left);
+  return candidate(lengthCm, widthCm, heightCm, source, image, text);
+}
+
+function roundCm(value) {
+  return Math.round(value * 10) / 10;
+}
+
+function parseColourDimensionTable(text, source, image) {
+  if (!/长\s*\(\s*cm\s*\)/i.test(text) || !/宽\s*\(\s*cm\s*\)/i.test(text) || !/高\s*\(\s*cm\s*\)/i.test(text)) {
+    return null;
+  }
+
+  const headerEnd = Math.max(
+    text.search(/高\s*\(\s*cm\s*\)/i),
+    text.search(/体积\s*\(\s*cm[³3]?\s*\)/i),
+    text.search(/重量\s*\(\s*g\s*\)/i),
+  );
+  const valueText = text.slice(headerEnd);
+  const numbers = [...valueText.matchAll(/\d+(?:\.\d+)?/g)].map((match) => Number(match[0]));
+
+  for (let index = 0; index + 2 < numbers.length; index += 1) {
+    const length = numbers[index];
+    const width = numbers[index + 1];
+    const height = numbers[index + 2];
+    const volume = numbers[index + 3];
+
+    if (Number.isFinite(volume) && Math.abs(length * width * height - volume) > Math.max(2, volume * 0.05)) continue;
+    return candidate(length, width, height, source, image, text);
+  }
+
+  return null;
 }
 
 function parseWidthHeightThicknessTable(text, source, image) {

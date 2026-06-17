@@ -27,7 +27,7 @@ test("seller lab page adapter runs the upload page steps in order", async () => 
       englishTitle: "Crystal Clutch",
       arabicTitle: "Arabic title",
       partnerSku: "1688-1001",
-      brand: "Generic",
+      brand: "No Brand",
     },
     imagePaths: ["/tmp/001.jpg"],
     category: {
@@ -51,7 +51,7 @@ test("seller lab page adapter runs the upload page steps in order", async () => 
     ["fillRequiredField", "English Title", "Crystal Clutch"],
     ["fillOptionalField", "Arabic Title", "Arabic title"],
     ["fillRequiredField", "Partner SKU", "1688-1001"],
-    ["selectBrand", "Generic"],
+    ["selectBrand", "No Brand"],
     ["uploadImages", ["/tmp/001.jpg"]],
     ["prepareProductCategory", ["Bags & Luggage", "Handbag", "Clutch"]],
     ["clickButton", ["Create & Continue", "Continue"], { required: true }],

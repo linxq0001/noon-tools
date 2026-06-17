@@ -7,7 +7,7 @@ import path from "node:path";
 import { promisify } from "node:util";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { detect1688AccessState } from "./lib/1688-access-state.js";
-import { isLikelyDimensionImage, resolveProductDimensions } from "./lib/dimension-extractor.js";
+import { isLikelyDimensionImage, parseDimensionCandidates, resolveProductDimensions, selectDimensionVisionImages } from "./lib/dimension-extractor.js";
 import { constrainNoonSelectValue } from "./lib/noon-field-constraints.js";
 import { normalizeNoonProductVariantImages } from "./lib/noon-product-normalizer.js";
 import { ensureRepository, productStoragePath, rebuildProductIndexes, resolveRepositoryId } from "./lib/product-storage.js";
@@ -58,15 +58,16 @@ const delaySeconds = Number.parseInt(args["delay-seconds"] ?? "30", 10);
 const linksOnly = args["links-only"] === "true";
 const fromQueue = args["from-queue"] === "true";
 const listLimit = linksOnly ? Number.MAX_SAFE_INTEGER : effectiveLimit;
+const listLinksOnly = linksOnly || !fromQueue;
 const listPageDelayMinSeconds = 10;
 const listPageDelayMaxSeconds = 30;
 let outDir = path.join(baseOutDir, "1688", resolveRepositoryId(args.repository || ""));
 let queuePath = path.join(outDir, "collection-queue.json");
 let currentRepository = resolveRepositoryId(args.repository || "");
 
-if (!args.url && !fromQueue) {
+if (!args.url && linksOnly) {
   console.error(
-    "Usage: npm run collect:1688 -- <1688-url> [--out products] [--limit 0] [--links-only true] [--delay-seconds 30] [--headless false] [--profile .cloak-profile] [--proxy http://user:pass@host:port] [--browser cloak|fetch]\n       npm run collect:1688 -- --from-queue true [--out products] [--limit 0] [--delay-seconds 30]\n       npm run collect:1688 -- --from-meta products/<product>/meta.json [--deepseek true]",
+    "Usage: npm run collect:1688 -- <1688-url> [--out products] [--limit 0] [--links-only true] [--delay-seconds 30] [--headless false] [--profile .cloak-profile] [--proxy http://user:pass@host:port] [--browser cloak|fetch] [--deepseek true]\n       npm run collect:1688 -- --from-queue true [--out products] [--limit 0] [--delay-seconds 30]\n       npm run collect:1688 -- --from-meta products/<product>/meta.json [--deepseek true]",
   );
   process.exit(1);
 }
@@ -77,14 +78,24 @@ try {
   await mkdir(baseOutDir, { recursive: true });
   await setRepositoryOutputDir(args.repository || "");
 
-  const productUrls = fromQueue ? await readPendingQueue(effectiveLimit) : await resolveProductUrls(args.url, listLimit);
+  let productUrls = await readPendingQueue(effectiveLimit);
 
-  if (productUrls.length === 0) {
-    throw new Error("No 1688 product detail links were found.");
+  if (!fromQueue && args.url && productUrls.length === 0) {
+    const resolvedProductUrls = await resolveProductUrls(args.url, listLimit);
+    await saveQueue(resolvedProductUrls, args.url);
+    productUrls = linksOnly ? resolvedProductUrls : await readPendingQueue(effectiveLimit);
   }
 
-  if (!fromQueue) {
-    await saveQueue(productUrls, args.url);
+  if (productUrls.length === 0) {
+    const summary = await summarizeQueue();
+
+    if (summary.completed > 0 || summary.skipped > 0) {
+      logStep("queue", `没有待采集商品：已完成 ${summary.completed} 个，已跳过 ${summary.skipped} 个。`);
+      logStep("queue", "如果要重新采集这些商品，请先清理对应仓库队列或删除本地商品目录。");
+      process.exit(0);
+    }
+
+    throw new Error("No 1688 product detail links were found.");
   }
 
   if (linksOnly) {
@@ -213,6 +224,7 @@ async function saveQueue(productUrls, sourceUrl) {
 
   await writeJson(queuePath, nextQueue);
   logStep("queue", `队列商品数: ${nextQueue.items.length}`);
+  logStep("queue", queueSummaryText(summarizeQueueItems(nextQueue.items)));
 }
 
 async function readPendingQueue(maxItems) {
@@ -282,19 +294,27 @@ async function logQueueSummary({ completedThisRun, skippedThisRun, requestedLimi
   );
 
   if (summary.pending > 0 || summary.failed > 0) {
-    logStep("queue", "还有未完成商品；保持“继续未完成队列”勾选后再次点击“开始采集”即可继续。");
+    logStep("queue", "还有未完成商品；下次直接点击“开始采集”即可继续。");
   }
 }
 
 async function summarizeQueue() {
   const queue = await readQueue();
+  return summarizeQueueItems(queue.items || []);
+}
+
+function summarizeQueueItems(items) {
   const summary = { pending: 0, failed: 0, completed: 0, skipped: 0, running: 0 };
 
-  for (const item of queue.items || []) {
+  for (const item of items) {
     if (summary[item.status] !== undefined) summary[item.status] += 1;
   }
 
   return summary;
+}
+
+function queueSummaryText(summary) {
+  return `队列状态: pending=${summary.pending}, failed=${summary.failed}, completed=${summary.completed}, skipped=${summary.skipped}, running=${summary.running}`;
 }
 
 async function hasCollectedProduct(productId) {
@@ -373,7 +393,7 @@ async function collectProduct(url) {
   }
 
   meta.productDir = productDir;
-  const noonProduct = normalizeNoonProductVariantImages(await buildNoonProduct(template.product, meta));
+  const noonProduct = normalizeNoonProductVariantImages(await buildNoonProduct(template.product, meta, { beautify: args.deepseek === "true" }));
   const outputMeta = buildOutputMeta(meta, downloads.failed);
 
   await writeJson(path.join(productDir, "meta.json"), outputMeta);
@@ -542,6 +562,7 @@ function buildOutputMeta(meta, failedDownloads) {
     titleParts: meta.titleParts || [],
     productTypeText: meta.productTypeText || "",
     dimensions: meta.dimensions,
+    dimensionOcr: meta.dimensionOcr,
     dimensionVision: meta.dimensionVision,
     colourVision: meta.colourVision,
     imageAssignmentWarnings: meta.imageAssignmentWarnings || [],
@@ -553,7 +574,7 @@ function buildOutputMeta(meta, failedDownloads) {
 }
 
 async function buildNoonProduct(productTemplate, meta, options = {}) {
-  const partnerSku = `1688-${meta.source.productId}`;
+  const partnerSku = `G-1001-${meta.source.productId}`;
   const englishTitle = buildEnglishDraftTitle(meta.title);
   const attributeMap = Object.fromEntries(meta.attributes.map((item) => [item.name, item.value]));
   const sourceColours = splitValues(attributeMap["颜色"]);
@@ -636,7 +657,7 @@ async function buildNoonProduct(productTemplate, meta, options = {}) {
       product_group_name_en: groupName,
       product_group_name_ar: groupNameAr,
       category: "Bags & Luggage > Handbag > Clutch",
-      brand: "Generic",
+      brand: "No Brand",
       gender: constrainNoonSelectValue("Gender", "Women", "Women"),
       hs_code: "420222",
       country_of_origin: "China",
@@ -773,6 +794,7 @@ async function classifyColourImagesWithDeepSeek(meta, sourceColours, options = {
   const colours = sourceColours.filter(Boolean);
 
   if (!options.beautify || !apiKey || colours.length < 2 || colourVisionDisabled) return [];
+  if (!isDeepSeekImageVisionEnabled()) return [];
 
   const candidates = meta.images
     .filter((image) => image.path && !isLikelyDimensionImage(image))
@@ -880,10 +902,125 @@ async function resolveDimensionsForNoon(meta, options = {}) {
 
   if (fromAttributes.source !== "default") return fromAttributes;
 
+  const ocrDimensions = await classifyDimensionsWithOcr(meta);
+  if (ocrDimensions) return ocrDimensions;
+
   const imageDimensions = await classifyDimensionsWithDeepSeek(meta, options);
   if (imageDimensions) return imageDimensions;
 
   return fromAttributes;
+}
+
+async function classifyDimensionsWithOcr(meta) {
+  const candidates = (Array.isArray(meta.images) ? meta.images : []).filter((image) => image?.path).reverse();
+
+  if (candidates.length === 0) return null;
+
+  const attemptedImages = [];
+  let ocrResults = [];
+
+  try {
+    ocrResults = await readDimensionOcrResults(candidates.map((image) => path.join(meta.productDir, image.path)));
+  } catch (error) {
+    meta.dimensionOcr = {
+      provider: "paddleocr",
+      status: "failed",
+      attemptedImages: candidates.map((image) => image.path),
+      error: error.message,
+    };
+    logStep("dimension-ocr", `本地 OCR 失败: ${error.message}`);
+    return null;
+  }
+
+  for (const [index, image] of candidates.entries()) {
+    const text = ocrResults[index]?.text || "";
+    attemptedImages.push(image.path);
+    const imageCandidates = parseDimensionCandidates(text, "image_ocr", image.path);
+
+    meta.dimensionOcr = {
+      provider: "paddleocr",
+      status: imageCandidates.length > 0 ? "completed" : "no_dimensions",
+      image: image.path,
+      attemptedImages,
+      text: cleanText(text).slice(0, 500),
+    };
+
+    if (imageCandidates.length === 0) {
+      logStep("dimension-ocr", `未从 ${image.path} 直接 OCR 到完整尺寸，继续检查上一张。`);
+      continue;
+    }
+
+    const result = resolveProductDimensions({ imageCandidates });
+    meta.dimensionVision = {
+      provider: "paddleocr",
+      status: "completed",
+      image: image.path,
+      evidence: imageCandidates[0].evidence,
+    };
+    logStep("dimension-ocr", `从 ${image.path} OCR识别尺寸: ${result.lengthCm} x ${result.widthCm} x ${result.heightCm} cm`);
+    return result;
+  }
+
+  meta.dimensionOcr = {
+    provider: "paddleocr",
+    status: "no_dimensions",
+    attemptedImages,
+  };
+  logStep("dimension-ocr", `已倒序检查 ${attemptedImages.length} 张图片，未 OCR 到完整尺寸。`);
+  return null;
+}
+
+async function readDimensionOcrText(imagePath) {
+  const [result] = await readDimensionOcrResults([imagePath]);
+  return result?.text || "";
+}
+
+async function readDimensionOcrResults(imagePaths) {
+  const python = await resolvePaddleOcrPython();
+  const scriptPath = path.join(rootDir, "scripts", "paddle-ocr-image.py");
+  const { stdout } = await execFileAsync(python, [scriptPath, ...imagePaths], {
+    cwd: rootDir,
+    env: {
+      ...process.env,
+      PADDLEOCR_HOME: process.env.PADDLEOCR_HOME || path.join(rootDir, ".cache", "paddleocr"),
+    },
+    timeout: 240000,
+    maxBuffer: 1024 * 1024 * 8,
+  });
+  const data = JSON.parse(stdout);
+
+  if (!data.ok) throw new Error(data.error || "PaddleOCR failed.");
+  if (Array.isArray(data.results)) {
+    return data.results.map((result) => ({
+      imagePath: result.imagePath || "",
+      text: Array.isArray(result.texts) ? result.texts.join("\n") : "",
+    }));
+  }
+
+  return [{ imagePath: imagePaths[0] || "", text: Array.isArray(data.texts) ? data.texts.join("\n") : "" }];
+}
+
+async function resolvePaddleOcrPython() {
+  if (process.env.PADDLEOCR_PYTHON) return process.env.PADDLEOCR_PYTHON;
+
+  const venvPython = path.join(rootDir, ".venv-paddleocr", "bin", "python");
+  try {
+    await execFileAsync(venvPython, ["--version"], { timeout: 5000 });
+    return venvPython;
+  } catch {
+    // Fall back to PATH interpreters.
+  }
+
+  for (const python of ["python3.11", "python3.10", "python3"]) {
+    try {
+      await execFileAsync(python, ["--version"], { timeout: 5000 });
+      return python;
+    } catch {
+      // Try the next interpreter.
+    }
+  }
+
+  return "python3";
 }
 
 async function classifyDimensionsWithDeepSeek(meta, options = {}) {
@@ -892,9 +1029,9 @@ async function classifyDimensionsWithDeepSeek(meta, options = {}) {
   const baseUrl = (process.env.DEEPSEEK_BASE_URL || "https://api.deepseek.com").replace(/\/+$/, "");
 
   if (!options.beautify || !apiKey) return null;
+  if (!isDeepSeekImageVisionEnabled()) return null;
 
-  const likely = meta.images.filter(isLikelyDimensionImage);
-  const candidates = (likely.length > 0 ? likely.slice(0, 3) : meta.images.slice(0, 2)).filter((image) => image.path);
+  const candidates = selectDimensionVisionImages(meta.images);
 
   if (candidates.length === 0) return null;
 
@@ -1010,6 +1147,10 @@ async function classifyDimensionsWithDeepSeek(meta, options = {}) {
     logStep("dimension-vision", `DeepSeek dimension vision failed: ${error.message}; using default dimensions fallback.`);
     return null;
   }
+}
+
+function isDeepSeekImageVisionEnabled() {
+  return process.env.DEEPSEEK_ENABLE_IMAGE_VISION === "true";
 }
 
 function sanitizeColourAssignments(items, candidates, colours) {
@@ -1351,6 +1492,7 @@ async function createBrowser() {
       logStep("list", `页面标题: ${await page.title()}`);
       await waitForLoginIfNeeded(page, url, "list");
       await sleep(2500);
+      await waitForLoginIfNeeded(page, url, "list");
 
       const productLinks = [];
       const seenProductIds = new Set();
@@ -1374,8 +1516,8 @@ async function createBrowser() {
         await collectReactCardLinks(page, productLinks, seenProductIds, maxItems, currentPage);
         logStep("list", `第 ${currentPage} 页读取卡片数据后累计: ${productLinks.length}`);
 
-        if (linksOnly) {
-          logStep("list", "只收集链接模式：不点击商品卡片，避免打开详情页");
+        if (listLinksOnly) {
+          logStep("list", "采集链接阶段：不点击商品卡片，避免打开详情页");
         } else if (productLinks.length < maxItems) {
           await collectCardPopupLinks(page, productLinks, seenProductIds, maxItems, currentPage);
           logStep("list", `第 ${currentPage} 页点击兜底后累计: ${productLinks.length}`);
@@ -1394,6 +1536,10 @@ async function createBrowser() {
         }
 
         logStep("list", `进入第 ${moved.current || pageIndex + 1} 页`);
+      }
+
+      if (productLinks.length === 0) {
+        await waitForLoginIfNeeded(page, url, "list");
       }
 
       return { links: productLinks, title: await page.title() };
@@ -1455,23 +1601,27 @@ async function waitForLoginIfNeeded(page, originalUrl, scope) {
 
   logStep(scope, `${loginState.message}: ${loginState.url}`);
 
-  if (args.headless !== "false") {
-    throw new Error(`${loginState.message} 后台运行无法完成验证。请把浏览器切换为“显示窗口”后采集，并在打开的页面完成登录/验证。`);
+  if (loginState.reason === "navigation_error") {
+    throw new Error(`${loginState.message} 当前页面是 ${loginState.url}，不是登录页。请重试该商品链接，或确认网络/代理/CloakBrowser 可打开 1688 详情页。`);
   }
 
-  logStep(scope, "等待手动登录/验证，完成后会继续采集。");
+  if (args.headless !== "false") {
+    throw new Error(`${loginState.message} 后台运行无法完成验证。请把 1688 浏览器切换为“显示窗口”后采集，并在打开的页面完成验证。`);
+  }
+
+  logStep(scope, loginState.reason === "slider_challenge" ? "请在 CloakBrowser 窗口手动拖动滑块；完成后会继续采集。" : "等待手动登录/验证，完成后会继续采集。");
 
   for (let attempt = 0; attempt < 120; attempt += 1) {
     await sleep(1000);
     const state = await detectLoginPage(page);
 
     if (!state.isLoginPage) {
-      logStep(scope, `登录完成，当前URL: ${state.url}`);
+      logStep(scope, `${loginState.reason === "slider_challenge" ? "滑块验证" : "登录/验证"}完成，当前URL: ${state.url}`);
       return;
     }
 
     if (attempt % 10 === 9) {
-      logStep(scope, `仍在等待登录: ${Math.floor((attempt + 1) / 10) * 10}s`);
+      logStep(scope, `仍在等待手动验证: ${Math.floor((attempt + 1) / 10) * 10}s`);
     }
   }
 
@@ -1489,7 +1639,7 @@ async function detectLoginPage(page) {
   });
   const state = detect1688AccessState(snapshot);
 
-  return { isLoginPage: state.blocked, url: snapshot.url, title: snapshot.title, message: state.message };
+  return { isLoginPage: state.blocked, reason: state.reason, url: snapshot.url, title: snapshot.title, message: state.message };
 }
 
 async function collectVisibleListLinks(page, productLinks, seenProductIds, maxItems) {

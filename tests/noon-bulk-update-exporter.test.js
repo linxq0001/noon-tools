@@ -65,13 +65,13 @@ test("exportNoonBulkUpdates writes product, price, and stock workbooks per SKU",
       "height_cm",
       "country_of_origin",
     ],
-    ["1688-1001-GOLD", "420222", 0.255, 0.6, 6, 15, "CN"],
-    ["1688-1001-SILVER", "420222", 0.336, 0.7, 7, 16, "CN"],
+    ["G-1001-1001-GOLD", "420222", 0.255, 0.6, 6, 15, "CN"],
+    ["G-1001-1001-SILVER", "420222", 0.336, 0.7, 7, 16, "CN"],
   ]);
   assert.deepEqual(readRows(path.join(outputDir, bulkUpdateFileNames.price)), [
     ["partner_sku", "country_code", "price_usd", "is_active"],
-    ["1688-1001-GOLD", "sa", 12.5, "TRUE"],
-    ["1688-1001-SILVER", "sa", 13, "TRUE"],
+    ["G-1001-1001-GOLD", "sa", 12.5, "TRUE"],
+    ["G-1001-1001-SILVER", "sa", 13, "TRUE"],
   ]);
   assert.deepEqual(readRows(path.join(outputDir, bulkUpdateFileNames.stock)), [
     [
@@ -84,8 +84,8 @@ test("exportNoonBulkUpdates writes product, price, and stock workbooks per SKU",
       "stock_gross",
       "processing_time",
     ],
-    ["sa", "517205", "1688-1001-GOLD", "W00183886CN", 8, "2_days", 8, "2_days"],
-    ["sa", "517205", "1688-1001-SILVER", "W00183886CN", 5, "2_days", 5, "2_days"],
+    ["sa", "517205", "G-1001-1001-GOLD", "W00183886CN", 8, "2_days", 8, "2_days"],
+    ["sa", "517205", "G-1001-1001-SILVER", "W00183886CN", 5, "2_days", 5, "2_days"],
   ]);
 });
 
@@ -102,8 +102,56 @@ test("exportNoonBulkUpdates reads products from a platform repository", async ()
   assert.equal(result.productCount, 1);
   assert.equal(result.skuCount, 1);
   assert.deepEqual(readRows(path.join(outputDir, bulkUpdateFileNames.stock)).slice(1), [
-    ["sa", "517205", "1688-1001-GOLD", "W00183886CN", 3, "2_days", 3, "2_days"],
+    ["sa", "517205", "G-1001-1001-GOLD", "W00183886CN", 3, "2_days", 3, "2_days"],
   ]);
+});
+
+test("exportNoonBulkUpdates rewrites source platform names to internal platform ids", async () => {
+  const tempDir = await mkdtemp(path.join(os.tmpdir(), "noon-bulk-platform-id-"));
+  const productsDir = path.join(tempDir, "products");
+  const productDir = path.join(productsDir, "1688", "default", "1001");
+  const outputDir = path.join(tempDir, "exports");
+  await mkdir(productDir, { recursive: true });
+  await writeNoonProduct(productDir, { sku: "G-1688-1001-GOLD", barcode: "10010001", title: "Gold Bag" });
+
+  await exportNoonBulkUpdates({ productsDir, outputDir, platform: "1688", repository: "default" });
+
+  assert.deepEqual(readRows(path.join(outputDir, bulkUpdateFileNames.price)).slice(1), [["G-1001-1001-GOLD", "sa", 10, "TRUE"]]);
+});
+
+test("exportNoonBulkUpdates keeps existing internal platform ids", async () => {
+  const tempDir = await mkdtemp(path.join(os.tmpdir(), "noon-bulk-internal-platform-id-"));
+  const productsDir = path.join(tempDir, "products");
+  const productDir = path.join(productsDir, "1688", "default", "1001");
+  const outputDir = path.join(tempDir, "exports");
+  await mkdir(productDir, { recursive: true });
+  await writeNoonProduct(productDir, { sku: "G-1001-1001-GOLD", barcode: "10010001", title: "Gold Bag" });
+
+  await exportNoonBulkUpdates({ productsDir, outputDir, platform: "1688", repository: "default" });
+
+  assert.deepEqual(readRows(path.join(outputDir, bulkUpdateFileNames.price)).slice(1), [["G-1001-1001-GOLD", "sa", 10, "TRUE"]]);
+});
+
+test("exportNoonBulkUpdates uses selected catalog prefixes", async () => {
+  const tempDir = await mkdtemp(path.join(os.tmpdir(), "noon-bulk-catalog-"));
+  const productsDir = path.join(tempDir, "products");
+  const productDir = path.join(productsDir, "1688", "default", "1001");
+  const noonOutputDir = path.join(tempDir, "exports-noon");
+  const supermallOutputDir = path.join(tempDir, "exports-supermall");
+  await mkdir(productDir, { recursive: true });
+  await writeNoonProduct(productDir, { sku: "1688-1001-GOLD", barcode: "10010001", title: "Gold Bag" });
+
+  await exportNoonBulkUpdates({ productsDir, outputDir: noonOutputDir, platform: "1688", repository: "default", catalogType: "noon" });
+  await exportNoonBulkUpdates({
+    productsDir,
+    outputDir: supermallOutputDir,
+    platform: "1688",
+    repository: "default",
+    catalogType: "supermall",
+  });
+
+  assert.deepEqual(readRows(path.join(noonOutputDir, bulkUpdateFileNames.price)).slice(1), [["N-1001-1001-GOLD", "sa", 10, "TRUE"]]);
+  assert.deepEqual(readRows(path.join(supermallOutputDir, bulkUpdateFileNames.price)).slice(1), [["S-1001-1001-GOLD", "sa", 10, "TRUE"]]);
 });
 
 test("exportNoonBulkUpdates deduplicates product directories with the same product ID", async () => {
@@ -128,11 +176,11 @@ test("exportNoonBulkUpdates deduplicates product directories with the same produ
     },
   ]);
   assert.deepEqual(readRows(path.join(outputDir, bulkUpdateFileNames.product)).slice(1), [
-    ["1688-1001-GOLD", "420222", 0.255, 0.5, 6, 15, "CN"],
+    ["G-1001-1001-GOLD", "420222", 0.255, 0.5, 6, 15, "CN"],
   ]);
-  assert.deepEqual(readRows(path.join(outputDir, bulkUpdateFileNames.price)).slice(1), [["1688-1001-GOLD", "sa", 10, "TRUE"]]);
+  assert.deepEqual(readRows(path.join(outputDir, bulkUpdateFileNames.price)).slice(1), [["G-1001-1001-GOLD", "sa", 10, "TRUE"]]);
   assert.deepEqual(readRows(path.join(outputDir, bulkUpdateFileNames.stock)).slice(1), [
-    ["sa", "517205", "1688-1001-GOLD", "W00183886CN", 3, "2_days", 3, "2_days"],
+    ["sa", "517205", "G-1001-1001-GOLD", "W00183886CN", 3, "2_days", 3, "2_days"],
   ]);
 });
 
@@ -153,11 +201,11 @@ test("exportNoonBulkUpdates deduplicates repeated SKU rows inside one product", 
   assert.equal(result.skuCount, 1);
   assert.deepEqual(result.duplicateSkus, [
     {
-      partnerSku: "1688-1001-RED",
+      partnerSku: "G-1001-1001-RED",
       sources: ["default/1001"],
     },
   ]);
-  assert.deepEqual(readRows(path.join(outputDir, bulkUpdateFileNames.price)).slice(1), [["1688-1001-RED", "sa", 10, "TRUE"]]);
+  assert.deepEqual(readRows(path.join(outputDir, bulkUpdateFileNames.price)).slice(1), [["G-1001-1001-RED", "sa", 10, "TRUE"]]);
 });
 
 test("exportNoonBulkUpdates deduplicates matching SKU rows across platform repositories", async () => {
@@ -176,11 +224,11 @@ test("exportNoonBulkUpdates deduplicates matching SKU rows across platform repos
   assert.equal(result.skuCount, 1);
   assert.deepEqual(result.duplicateSkus, [
     {
-      partnerSku: "1688-1001-GOLD",
+      partnerSku: "G-1001-1001-GOLD",
       sources: ["default/1001", "evening-bags/1002"],
     },
   ]);
-  assert.deepEqual(readRows(path.join(outputDir, bulkUpdateFileNames.price)).slice(1), [["1688-1001-GOLD", "sa", 10, "TRUE"]]);
+  assert.deepEqual(readRows(path.join(outputDir, bulkUpdateFileNames.price)).slice(1), [["G-1001-1001-GOLD", "sa", 10, "TRUE"]]);
 });
 
 test("exportNoonBulkUpdates rejects conflicting duplicate SKU rows across platform repositories", async () => {
@@ -196,7 +244,7 @@ test("exportNoonBulkUpdates rejects conflicting duplicate SKU rows across platfo
 
   await assert.rejects(
     () => exportNoonBulkUpdates({ productsDir, outputDir, platform: "1688" }),
-    /Conflicting duplicate SKU 1688-1001-GOLD: default\/1001, evening-bags\/1002/,
+    /Conflicting duplicate SKU G-1001-1001-GOLD: default\/1001, evening-bags\/1002/,
   );
 });
 

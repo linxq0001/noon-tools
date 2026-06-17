@@ -9,7 +9,9 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { createSellerLabFieldIssues } from "./lib/seller-lab-field-issues.js";
 import { createSellerLabPageAdapter } from "./lib/seller-lab-page-adapter.js";
 import { createSellerLabPageOperations } from "./lib/seller-lab-page-operations.js";
+import { brandCandidates, isNoBrandValue, normalizeBrandValue } from "./lib/noon-brand.js";
 import { noonSelectConstraints, normalizeNoonSelectValue } from "./lib/noon-field-constraints.js";
+import { writeNoonUploadStatus } from "./lib/noon-upload-status.js";
 
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const productsDir = path.join(rootDir, "products");
@@ -21,11 +23,15 @@ if (!args.noonUrl) {
   fail("Usage: npm run upload:noon -- --product-dir products/example --noon-url <Add Product URL> [--profile .noon-profile] [--headless false]\n       npm run upload:noon -- --all --noon-url <Add Product URL> [--profile .noon-profile] [--headless false]");
 }
 
-if (!args.all && !args.productDir) {
-  fail("Missing --product-dir <dir> or --all.");
+if (!args.all && !args.productDir && !args.productDirs) {
+  fail("Missing --product-dir <dir>, --product-dirs <json-array>, or --all.");
 }
 
-const productDirs = args.all ? await listProductDirs() : [resolveProductDir(args.productDir)];
+const productDirs = args.all
+  ? await listProductDirs()
+  : args.productDirs
+    ? parseProductDirs(args.productDirs).map(resolveProductDir)
+    : [resolveProductDir(args.productDir)];
 if (productDirs.length === 0) fail("No product directories found.");
 
 const products = [];
@@ -100,6 +106,15 @@ function resolveProductDir(value) {
   fail(`Product directory must be inside this project: ${value}`);
 }
 
+function parseProductDirs(value) {
+  try {
+    const parsed = JSON.parse(value);
+    if (Array.isArray(parsed) && parsed.length > 0) return parsed.map(String);
+  } catch {}
+
+  return String(value).split(",").map((item) => item.trim()).filter(Boolean);
+}
+
 async function uploadProduct(product) {
   const page = await browser.newPage();
   const name = path.basename(product.productDir);
@@ -145,6 +160,14 @@ async function uploadProduct(product) {
     await sellerLabPage.submitOfferDetails(product);
     fieldIssues.assertClear("Offer Details");
 
+    await writeNoonUploadStatus(product.productDir, {
+      productDir: path.relative(productsDir, product.productDir),
+      status: "uploaded",
+      uploaded: true,
+      uploadedAt: new Date().toISOString(),
+      partnerSku: product.productIdentity.partnerSku,
+      message: "Add Product 上传成功，已提交 Offer Details。",
+    });
     logStep("product", `${name}: submitted`);
   } catch (error) {
     failed = true;
@@ -225,8 +248,8 @@ async function normalizeProduct(product, productDir) {
       englishTitle: translateUploadText(variant.title_en || group.product_group_name_en || ""),
       arabicTitle: variant.title_ar || group.product_group_name_ar || "",
       partnerSku: variant.partner_sku || "",
-      brand: "Generic",
-      hasNoBrandName: false,
+      brand: normalizeBrandValue(group.brand),
+      hasNoBrandName: normalizeBrandValue(group.brand) === "No Brand",
       productImages: variantImages.length > 0 ? variantImages : localImages,
     },
     category: {
@@ -312,12 +335,6 @@ function splitDetailValues(value) {
     .split(/[,，/]/)
     .map((item) => item.trim())
     .filter(Boolean);
-}
-
-function normalizeBrandValue(value) {
-  const brand = String(value || "").trim();
-  if (!brand) return "Generic";
-  return brand;
 }
 
 function translateUploadText(value) {
@@ -1424,42 +1441,111 @@ async function fillLocator(page, locator, value, options) {
 }
 
 async function selectBrand(page, value) {
-  const brand = normalizeBrandValue(value);
+  if (isNoBrandValue(value)) {
+    if (!(await selectNoBrandCheckbox(page))) throw new Error("No-brand checkbox not found for Brand");
+    logStep("field", "Brand: no brand");
+    return;
+  }
+
+  const candidates = brandCandidates(value);
   const brandInput = page.locator("#selectBrand").first();
   let opened = false;
+  let optionsText = [];
 
   try {
     await brandInput.waitFor({ state: "visible", timeout: 2500 });
     await brandInput.click({ timeout: 2500 });
-    await page.keyboard.press("Meta+A").catch(() => {});
-    await page.keyboard.press("Control+A").catch(() => {});
-    await page.keyboard.press("Backspace").catch(() => {});
-    await typeSelectSearchText(page, brand);
     opened = true;
   } catch {
     opened = await clickFieldControl(page, "Brand");
-    if (opened) {
-      await page.waitForTimeout(500);
-      await typeSelectSearchText(page, brand);
-    }
+    if (opened) await page.waitForTimeout(500);
   }
 
   if (!opened) throw new Error("Required field not found: Brand");
 
-  try {
-    await waitForBrandOption(page, brand);
-  } catch {
-    const optionsText = await readVisibleSelectOptions(page).catch(() => []);
-    throw new Error(`Brand option not found for "${brand}"${optionsText.length ? `; visible options: ${optionsText.join(" | ")}` : ""}`);
-  }
-  await clickBrandOption(page, brand);
+  for (const brand of candidates) {
+    await clearSelectSearch(page);
+    await typeSelectSearchText(page, brand);
 
-  await page.waitForTimeout(500);
-  if (!(await isBrandSelected(page, brand))) {
-    throw new Error(`Brand was not selected: ${brand}`);
+    try {
+      await waitForBrandOption(page, brand);
+    } catch {
+      optionsText = await readVisibleSelectOptions(page).catch(() => []);
+      continue;
+    }
+
+    await clickBrandOption(page, brand);
+
+    await page.waitForTimeout(500);
+    if (await isBrandSelected(page, brand)) {
+      logStep("field", `Brand: ${brand}`);
+      return;
+    }
   }
 
-  logStep("field", `Brand: ${brand}`);
+  throw new Error(
+    `Brand option not found for "${candidates.join('" or "')}"${optionsText.length ? `; visible options: ${optionsText.join(" | ")}` : ""}`,
+  );
+}
+
+async function clearSelectSearch(page) {
+  await page.keyboard.press("Meta+A").catch(() => {});
+  await page.keyboard.press("Control+A").catch(() => {});
+  await page.keyboard.press("Backspace").catch(() => {});
+}
+
+async function selectNoBrandCheckbox(page) {
+  const clicked = await page.evaluate(() => {
+    const clean = (value) => String(value || "").replace(/\s+/g, " ").trim().toLowerCase();
+    const visible = (element) => {
+      const rect = element.getBoundingClientRect();
+      return rect.width > 0 && rect.height > 0;
+    };
+    const checked = (element) => {
+      if (!element) return false;
+      if (element.matches?.('input[type="checkbox"]')) return element.checked;
+      if (element.matches?.('[role="checkbox"]')) return element.getAttribute("aria-checked") === "true";
+      const input = element.querySelector?.('input[type="checkbox"]');
+      if (input) return input.checked;
+      const roleCheckbox = element.querySelector?.('[role="checkbox"]');
+      return roleCheckbox?.getAttribute("aria-checked") === "true";
+    };
+    const labels = [...document.querySelectorAll("label, div, span, p")].filter((element) =>
+      clean(element.textContent).includes("this product does not have a brand name"),
+    );
+
+    for (const label of labels) {
+      const container = label.closest("label, .ant-checkbox-wrapper, div") || label;
+      const checkbox = container.querySelector('input[type="checkbox"], [role="checkbox"]') || label.previousElementSibling?.querySelector?.('input[type="checkbox"], [role="checkbox"]');
+      if (checked(checkbox || container)) return true;
+      const target = checkbox && visible(checkbox) ? checkbox : container;
+      if (!target || !visible(target)) continue;
+      target.click();
+      return true;
+    }
+
+    return false;
+  });
+
+  if (!clicked) return false;
+  await page.waitForTimeout(300);
+
+  return page.evaluate(() => {
+    const clean = (value) => String(value || "").replace(/\s+/g, " ").trim().toLowerCase();
+    const labels = [...document.querySelectorAll("label, div, span, p")].filter((element) =>
+      clean(element.textContent).includes("this product does not have a brand name"),
+    );
+
+    for (const label of labels) {
+      const container = label.closest("label, .ant-checkbox-wrapper, div") || label;
+      const checkbox = container.querySelector('input[type="checkbox"]');
+      if (checkbox) return checkbox.checked;
+      const roleCheckbox = container.querySelector('[role="checkbox"]');
+      if (roleCheckbox) return roleCheckbox.getAttribute("aria-checked") === "true";
+    }
+
+    return false;
+  });
 }
 
 async function waitForBrandOption(page, brand) {
@@ -1586,6 +1672,7 @@ async function uploadImages(page, imagePaths) {
   if ((await fileInputs.count()) > 0) {
     await fileInputs.first().setInputFiles(imagePaths);
     logStep("images", "图片已写入 file input");
+    await waitForUploadedProductImages(page, imagePaths.length);
     return;
   }
 
@@ -1594,13 +1681,18 @@ async function uploadImages(page, imagePaths) {
   const chooser = await chooserPromise;
   await chooser.setFiles(imagePaths);
   logStep("images", "图片已通过选择器上传");
+  await waitForUploadedProductImages(page, imagePaths.length);
 }
 
 async function prepareProductCategory(page, categoryPath) {
   const generated = await clickButton(page, ["Generate Product Category", "Regenerate"], { required: false });
   if (generated) {
     logStep("category", "已请求生成 Product Category。");
-    await page.waitForTimeout(5000);
+    const hasGeneratedOption = await waitForGeneratedCategoryOption(page, 6000);
+    if (!hasGeneratedOption) {
+      const state = await readProductCategoryState(page).catch(() => ({}));
+      logStep("warning", `Product Category 未生成候选: ${JSON.stringify(state)}`);
+    }
   }
 
   const selected = await selectFirstGeneratedCategory(page);
@@ -1619,6 +1711,108 @@ async function prepareProductCategory(page, categoryPath) {
 
   logStep("manual_wait", "如果 Product Category 仍为空，请在打开的 noon 窗口选择类目；脚本会等待继续按钮可用。");
   await waitForManualCategoryStep(page);
+}
+
+async function waitForUploadedProductImages(page, expectedCount) {
+  const expected = Math.max(1, Math.min(Number(expectedCount) || 1, 9));
+  const deadline = Date.now() + 4000;
+
+  while (Date.now() < deadline) {
+    const count = await countUploadedProductImages(page).catch(() => 0);
+    if (count >= expected || count >= 1) {
+      logStep("images", `页面已检测到 ${count} 张商品图片。`);
+      return true;
+    }
+    await page.waitForTimeout(1000);
+  }
+
+  logStep("warning", "页面未检测到商品图片预览，继续生成 Product Category。");
+  return false;
+}
+
+async function countUploadedProductImages(page) {
+  return page.evaluate(() => {
+    const clean = (value) => String(value || "").replace(/\s+/g, " ").trim();
+    const visible = (element) => {
+      const rect = element.getBoundingClientRect();
+      return rect.width > 0 && rect.height > 0;
+    };
+    const heading = [...document.querySelectorAll("h1,h2,h3,h4,div,span,p")]
+      .find((element) => clean(element.textContent) === "Product Images");
+    if (!heading) return 0;
+
+    const headingTop = heading.getBoundingClientRect().top;
+    const nextHeadingTop =
+      [...document.querySelectorAll("h1,h2,h3,h4,div,span,p")]
+        .filter((element) => clean(element.textContent) === "Product Category")
+        .map((element) => element.getBoundingClientRect().top)
+        .filter((top) => top > headingTop)
+        .sort((left, right) => left - right)[0] ?? Number.POSITIVE_INFINITY;
+    const inBand = (element) => {
+      const rect = element.getBoundingClientRect();
+      return rect.top >= headingTop - 8 && rect.top < nextHeadingTop;
+    };
+
+    const uploadItems = [...document.querySelectorAll(".ant-upload-list-item, [class*=upload-list] [class*=item]")]
+      .filter((element) => visible(element) && inBand(element)).length;
+    const imagePreviews = [...document.querySelectorAll("img, canvas, [style*=background-image]")]
+      .filter((element) => {
+        if (!visible(element) || !inBand(element)) return false;
+        const rect = element.getBoundingClientRect();
+        if (rect.width < 40 || rect.height < 40) return false;
+        const text = clean(element.getAttribute?.("alt") || element.getAttribute?.("aria-label") || "");
+        return !/info|plus|upload|icon/i.test(text);
+      }).length;
+
+    return Math.max(uploadItems, imagePreviews);
+  });
+}
+
+async function waitForGeneratedCategoryOption(page, timeoutMs = 6000) {
+  const deadline = Date.now() + timeoutMs;
+
+  while (Date.now() < deadline) {
+    if (await hasGeneratedCategoryOption(page)) return true;
+    await page.waitForTimeout(1000);
+  }
+
+  return false;
+}
+
+async function hasGeneratedCategoryOption(page) {
+  return page.evaluate(() => {
+    const clean = (value) => String(value || "").replace(/\s+/g, " ").trim();
+    const visible = (element) => {
+      const rect = element.getBoundingClientRect();
+      return rect.width > 0 && rect.height > 0;
+    };
+    const heading = [...document.querySelectorAll("h1,h2,h3,h4,div,span,p")]
+      .find((element) => clean(element.textContent) === "Product Category");
+    const section = heading?.closest("section, form, div") ?? document;
+
+    return [...section.querySelectorAll("input[type=radio], [role=radio], [role=option], li, [data-testid*=category]")]
+      .some((element) => visible(element) && !/generate product category/i.test(clean(element.textContent)));
+  });
+}
+
+async function readProductCategoryState(page) {
+  return page.evaluate(() => {
+    const clean = (value) => String(value || "").replace(/\s+/g, " ").trim();
+    const visible = (element) => {
+      const rect = element.getBoundingClientRect();
+      return rect.width > 0 && rect.height > 0;
+    };
+    const text = document.body?.innerText ?? "";
+    const buttons = [...document.querySelectorAll("button, [role=button]")]
+      .filter(visible)
+      .map((element) => clean(element.textContent))
+      .filter((value) => /category|generate|manual|select|regenerate/i.test(value));
+
+    return {
+      categoryRequired: /Category is required/i.test(text),
+      visibleCategoryButtons: [...new Set(buttons)].slice(0, 8),
+    };
+  });
 }
 
 async function isCategorySelected(page) {
@@ -2027,6 +2221,7 @@ function parseArgs(argv) {
   return {
     ...parsed,
     productDir: parsed["product-dir"] ?? parsed.productDir,
+    productDirs: parsed["product-dirs"] ?? parsed.productDirs,
     noonUrl: parsed["noon-url"] ?? parsed.noonUrl,
     manualWaitMs: parsed["manual-wait-ms"] ?? parsed.manualWaitMs,
     keepOpen: parsed["keep-open"] ?? parsed.keepOpen,
