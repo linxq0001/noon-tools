@@ -11,8 +11,8 @@ test("calculateNoonProfit returns suggested price for target margin", () => {
     targetMargin: 0.28,
   });
 
-  assert.equal(result.suggestedPriceAed, 35.45);
-  assert.equal(result.estimatedProfitAed, 9.93);
+  assert.equal(result.suggestedPriceAed, 42.52);
+  assert.equal(result.estimatedProfitAed, 11.91);
   assert.equal(result.margin, 0.28);
   assert.equal(result.belowTarget, false);
   assert.deepEqual(result.warnings, []);
@@ -28,14 +28,14 @@ test("calculateNoonProfit evaluates an existing sale price", () => {
     salePriceAed: 29,
   });
 
-  assert.equal(result.suggestedPriceAed, 35.45);
-  assert.equal(result.estimatedProfitAed, 3.55);
-  assert.equal(result.margin, 0.12);
+  assert.equal(result.suggestedPriceAed, 42.52);
+  assert.equal(result.estimatedProfitAed, 0.01);
+  assert.equal(result.margin, 0);
   assert.equal(result.belowTarget, true);
   assert.deepEqual(result.warnings, [
     {
       code: "low_margin",
-      message: "毛利率 12% 低于目标利润率 28%。",
+      message: "毛利率 0% 低于目标利润率 28%。",
     },
   ]);
 });
@@ -56,6 +56,15 @@ test("normalizeProfitConfig accepts numeric strings and defaults", () => {
       platformFeeRate: 0.12,
       targetMargin: 0.28,
     },
+  );
+});
+
+test("normalizeProfitConfig preserves explicit zero target margin", () => {
+  assert.equal(
+    normalizeProfitConfig({
+      targetMargin: 0,
+    }).targetMargin,
+    0,
   );
 });
 

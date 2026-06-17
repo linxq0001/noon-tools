@@ -1,10 +1,11 @@
 export function normalizeProfitConfig(config = {}) {
+  const targetMargin = rateValue(config.targetMargin);
   return {
     costCny: numberValue(config.costCny),
     shippingCny: numberValue(config.shippingCny),
     exchangeRate: numberValue(config.exchangeRate) || 1.96,
     platformFeeRate: rateValue(config.platformFeeRate),
-    targetMargin: rateValue(config.targetMargin) || 0.28,
+    targetMargin: config.targetMargin === 0 || config.targetMargin === "0" ? 0 : targetMargin || 0.28,
   };
 }
 
@@ -22,16 +23,14 @@ export function calculateNoonProfit(input = {}) {
     return emptyResult(warnings);
   }
 
-  const baseCostAed = roundMoney((config.costCny + config.shippingCny) / config.exchangeRate);
-  const suggestedPriceAed = ceilMoney(baseCostAed / (1 - config.targetMargin) + 0.01);
+  const totalCostAed = roundMoney((config.costCny + config.shippingCny) / config.exchangeRate);
+  const suggestedPriceAed = roundMoney(totalCostAed / (1 - config.platformFeeRate - config.targetMargin));
   const hasSalePrice = numberValue(input.salePriceAed) > 0;
   const salePriceAed = hasSalePrice ? numberValue(input.salePriceAed) : suggestedPriceAed;
 
-  const estimatedProfitAed = hasSalePrice
-    ? roundMoney(salePriceAed - baseCostAed + config.platformFeeRate / 2)
-    : roundMoney(suggestedPriceAed * config.targetMargin);
+  const estimatedProfitAed = roundMoney(salePriceAed * (1 - config.platformFeeRate) - totalCostAed);
   const margin = salePriceAed ? roundRate(estimatedProfitAed / salePriceAed) : 0;
-  const belowTarget = hasSalePrice ? margin < config.targetMargin : false;
+  const belowTarget = margin < config.targetMargin;
 
   if (belowTarget) {
     warnings.push({
@@ -77,10 +76,6 @@ function rateValue(value) {
 
 function roundMoney(value) {
   return Number(value.toFixed(2));
-}
-
-function ceilMoney(value) {
-  return Math.ceil((value - Number.EPSILON) * 100) / 100;
 }
 
 function roundRate(value) {
