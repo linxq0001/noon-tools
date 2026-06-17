@@ -5,7 +5,7 @@ export function normalizeProfitConfig(config = {}) {
     shippingCny: numberValue(config.shippingCny),
     exchangeRate: numberValue(config.exchangeRate) || 1.96,
     platformFeeRate: rateValue(config.platformFeeRate),
-    targetMargin: config.targetMargin === 0 || config.targetMargin === "0" ? 0 : targetMargin || 0.28,
+    targetMargin: isExplicitZeroValue(config.targetMargin) ? 0 : targetMargin || 0.28,
   };
 }
 
@@ -23,14 +23,14 @@ export function calculateNoonProfit(input = {}) {
     return emptyResult(warnings);
   }
 
-  const totalCostAed = roundMoney((config.costCny + config.shippingCny) / config.exchangeRate);
+  const totalCostAed = (config.costCny + config.shippingCny) / config.exchangeRate;
   const suggestedPriceAed = roundMoney(totalCostAed / (1 - config.platformFeeRate - config.targetMargin));
   const hasSalePrice = numberValue(input.salePriceAed) > 0;
   const salePriceAed = hasSalePrice ? numberValue(input.salePriceAed) : suggestedPriceAed;
 
   const estimatedProfitAed = roundMoney(salePriceAed * (1 - config.platformFeeRate) - totalCostAed);
   const margin = salePriceAed ? roundRate(estimatedProfitAed / salePriceAed) : 0;
-  const belowTarget = margin < config.targetMargin;
+  const belowTarget = salePriceAed ? estimatedProfitAed / salePriceAed < config.targetMargin : true;
 
   if (belowTarget) {
     warnings.push({
@@ -72,6 +72,13 @@ function rateValue(value) {
   const number = numberValue(normalized);
   if (!number) return 0;
   return text.endsWith("%") || number > 1 ? number / 100 : number;
+}
+
+function isExplicitZeroValue(value) {
+  const text = String(value ?? "").trim();
+  if (!text) return false;
+  const normalized = text.endsWith("%") ? text.slice(0, -1) : text;
+  return numberValue(normalized) === 0;
 }
 
 function roundMoney(value) {

@@ -18,6 +18,21 @@ test("calculateNoonProfit returns suggested price for target margin", () => {
   assert.deepEqual(result.warnings, []);
 });
 
+test("calculateNoonProfit keeps exact total cost before rounding outputs", () => {
+  const result = calculateNoonProfit({
+    costCny: 1,
+    shippingCny: 0,
+    exchangeRate: 1.23,
+    platformFeeRate: 0.05,
+    targetMargin: 0.1,
+  });
+
+  assert.equal(result.suggestedPriceAed, 0.96);
+  assert.equal(result.estimatedProfitAed, 0.1);
+  assert.equal(result.margin, 0.1);
+  assert.equal(result.belowTarget, false);
+});
+
 test("calculateNoonProfit evaluates an existing sale price", () => {
   const result = calculateNoonProfit({
     costCny: 38,
@@ -60,12 +75,9 @@ test("normalizeProfitConfig accepts numeric strings and defaults", () => {
 });
 
 test("normalizeProfitConfig preserves explicit zero target margin", () => {
-  assert.equal(
-    normalizeProfitConfig({
-      targetMargin: 0,
-    }).targetMargin,
-    0,
-  );
+  for (const targetMargin of [0, "0", "0.0", "0%"]) {
+    assert.equal(normalizeProfitConfig({ targetMargin }).targetMargin, 0);
+  }
 });
 
 test("calculateNoonProfit reports invalid cost inputs", () => {
