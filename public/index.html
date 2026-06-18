@@ -99,6 +99,20 @@
         color: var(--ink);
       }
 
+      button.danger {
+        border-color: var(--danger);
+        background: #ffffff;
+        color: var(--danger);
+        box-shadow: none;
+      }
+
+      button.danger:hover:not(:disabled) {
+        background: #fff1f0;
+        border-color: var(--danger);
+        color: var(--danger);
+        box-shadow: none;
+      }
+
       button:disabled {
         cursor: not-allowed;
         opacity: 0.55;
@@ -983,6 +997,18 @@
                   <option value="true">后台运行</option>
                 </select>
 
+                <label for="globalExchangeRate">默认汇率</label>
+                <input id="globalExchangeRate" name="globalExchangeRate" placeholder="1.96" />
+
+                <label for="globalPlatformFeeRate">默认平台费率</label>
+                <input id="globalPlatformFeeRate" name="globalPlatformFeeRate" placeholder="12%" />
+
+                <label for="globalTargetMargin">默认目标利润率</label>
+                <input id="globalTargetMargin" name="globalTargetMargin" placeholder="28%" />
+
+                <label for="defaultStoreId">默认店铺 ID</label>
+                <input id="defaultStoreId" name="defaultStoreId" placeholder="default" />
+
                 <div class="status-strip" id="noonStatus">
                   <strong>noon 状态未检测</strong>
                   <span>填写 noon 链接后点击检测登录。</span>
@@ -1062,6 +1088,10 @@
         "noonBrowser",
         "noonCloakTyping",
         "noonHeadless",
+        "defaultStoreId",
+        "globalExchangeRate",
+        "globalPlatformFeeRate",
+        "globalTargetMargin",
         "deepSeekModel",
         "deepSeekApiKey",
       ];
@@ -1248,7 +1278,10 @@
 
       async function refreshProducts() {
         if (window.location.protocol === "file:") return;
-        const repositories = await fetchJson("/api/products");
+        const data = Object.fromEntries(new FormData(form).entries());
+        const params = new URLSearchParams();
+        if (data.defaultStoreId?.trim()) params.set("storeId", data.defaultStoreId.trim());
+        const repositories = await fetchJson(params.toString() ? `/api/products?${params}` : "/api/products");
         lastRepositories = repositories;
         const productCount = repositories.reduce((sum, repository) => sum + (repository.productCount || 0), 0);
         repositoryCountEl.textContent = repositories.length;
@@ -1313,8 +1346,29 @@
             <div class="repository-control-row">
               <label><input type="checkbox" data-select-page />选择本页</label>
               <div class="actions" style="margin-top: 0">
+                <button class="secondary" type="button" data-check-selected disabled>运行检查</button>
                 <button class="secondary" type="button" data-upload-selected disabled>上传选中</button>
                 <button type="button" data-upload-repository>上传全部</button>
+              </div>
+            </div>
+            <div class="repository-control-row">
+              <label>
+                价格 USD
+                <input name="bulkPriceUsd" data-bulk-price-usd inputmode="decimal" placeholder="18.5" />
+              </label>
+              <label>
+                库存
+                <input name="bulkStock" data-bulk-stock inputmode="numeric" placeholder="9" />
+              </label>
+              <label>
+                时效
+                <input name="bulkProcessingTime" data-bulk-processing-time placeholder="5_days" />
+              </label>
+              <div class="actions" style="margin-top: 0">
+                <button class="secondary" type="button" data-set-price disabled>批量改价</button>
+                <button class="secondary" type="button" data-set-stock disabled>批量改库存</button>
+                <button class="secondary" type="button" data-set-processing-time disabled>批量改时效</button>
+                <button class="danger" type="button" data-deactivate-selected disabled>批量停售</button>
               </div>
             </div>
             <div class="repository-control-row">
@@ -1402,11 +1456,20 @@
               const selectPage = controls.querySelector("[data-select-page]");
               selectPage.checked = pageDirs.length > 0 && selectedOnPage === pageDirs.length;
               selectPage.indeterminate = selectedOnPage > 0 && selectedOnPage < pageDirs.length;
-              controls.querySelector("[data-upload-selected]").disabled = selectedProductDirs.size === 0;
+              const hasSelection = selectedProductDirs.size > 0;
+              controls.querySelector("[data-upload-selected]").disabled = !hasSelection;
+              controls.querySelector("[data-check-selected]").disabled = !hasSelection;
+              controls.querySelector("[data-set-price]").disabled = !hasSelection;
+              controls.querySelector("[data-set-stock]").disabled = !hasSelection;
+              controls.querySelector("[data-set-processing-time]").disabled = !hasSelection;
+              controls.querySelector("[data-deactivate-selected]").disabled = !hasSelection;
               controls.querySelector("[data-selection-summary]").textContent =
                 `共 ${repository.products.length} 个商品 · 已选 ${selectedProductDirs.size} 个 · 本页 ${pageProducts.length} 个`;
             }
           };
+
+          const selectedDirs = () =>
+            repository.products.map((product) => product.dirName).filter((dirName) => selectedProductDirs.has(dirName));
 
           controls.querySelector("[data-select-page]").addEventListener("change", (event) => {
             const start = (currentPage - 1) * pageSize;
@@ -1428,9 +1491,7 @@
             renderPage();
           });
           controls.querySelector("[data-upload-selected]").addEventListener("click", async () => {
-            const productDirs = repository.products
-              .map((product) => product.dirName)
-              .filter((dirName) => selectedProductDirs.has(dirName));
+            const productDirs = selectedDirs();
             if (productDirs.length === 0) return;
             closeDialog();
             await startUploadJob({ productDirs });
@@ -1438,6 +1499,24 @@
           controls.querySelector("[data-upload-repository]").addEventListener("click", async () => {
             closeDialog();
             await startUploadJob({ productDirs: repository.products.map((product) => product.dirName) });
+          });
+          controls.querySelector("[data-check-selected]").addEventListener("click", async () => {
+            await runOperationChecks(selectedDirs());
+          });
+          controls.querySelector("[data-set-price]").addEventListener("click", async () => {
+            const priceUsd = controls.querySelector("[data-bulk-price-usd]").value.trim();
+            await runBulkOperation(repository, selectedDirs(), { type: "set_price", priceUsd });
+          });
+          controls.querySelector("[data-set-stock]").addEventListener("click", async () => {
+            const stock = controls.querySelector("[data-bulk-stock]").value.trim();
+            await runBulkOperation(repository, selectedDirs(), { type: "set_stock", stock });
+          });
+          controls.querySelector("[data-set-processing-time]").addEventListener("click", async () => {
+            const processingTime = controls.querySelector("[data-bulk-processing-time]").value.trim();
+            await runBulkOperation(repository, selectedDirs(), { type: "set_processing_time", processingTime });
+          });
+          controls.querySelector("[data-deactivate-selected]").addEventListener("click", async () => {
+            await runBulkOperation(repository, selectedDirs(), { type: "deactivate" });
           });
 
           renderPage();
@@ -1551,6 +1630,70 @@
         } catch (error) {
           appendLog(error.message);
         }
+      }
+
+      async function runOperationChecks(productDirs) {
+        if (window.location.protocol === "file:" || productDirs.length === 0) return;
+        activeJobArea = "repository";
+        activeLogEl = repositoryLogEl;
+        repositoryLogEl.innerHTML = "";
+        appendLog(`开始检查 ${productDirs.length} 个商品...`);
+
+        try {
+          const result = await postJson("/api/operation-checks", {
+            productDirs,
+            ...profitConfigFromForm(),
+          });
+          appendLog(
+            `检查完成：${result.summary.readyCount} 个可操作，${result.summary.warningCount} 个有警告，${result.summary.blockedCount} 个阻塞。`,
+          );
+          for (const item of result.checked.filter((check) => check.blockingIssues.length > 0).slice(0, 8)) {
+            appendLog(`${item.productDir}: ${item.blockingIssues.map((issue) => issue.message).join(" / ")}`);
+          }
+          await refreshProducts();
+        } catch (error) {
+          appendLog(error.message);
+        }
+      }
+
+      async function runBulkOperation(repository, productDirs, operation) {
+        if (window.location.protocol === "file:" || productDirs.length === 0) return;
+        activeJobArea = "repository";
+        activeLogEl = repositoryLogEl;
+        repositoryLogEl.innerHTML = "";
+        appendLog(`开始执行 ${operation.type}: ${productDirs.length} 个商品...`);
+
+        try {
+          const result = await postJson("/api/bulk-operations", {
+            productDirs,
+            repository: repository.id === "__default__" ? "default" : repository.id,
+            catalogType: "global",
+            operation,
+            ...profitConfigFromForm(),
+          });
+          appendLog(`操作完成：${result.operation.changedCount} 个已更新，${result.operation.skippedCount} 个跳过，${result.operation.failedCount} 个失败。`);
+          appendLog(`已生成 ${result.export.productCount} 个商品、${result.export.skuCount} 个 SKU 的批量更新表。`);
+          if (result.export.skippedProducts?.length) {
+            appendLog(`导出跳过 ${result.export.skippedProducts.length} 个阻塞商品。`);
+          }
+          if (result.files) {
+            appendLog(`下载：${result.files.price} / ${result.files.stock}`);
+            const linksEl = repositoryDialogBody.querySelector("[data-bulk-export-links]");
+            if (linksEl) renderBulkUpdateLinks(linksEl, result.files);
+          }
+          await refreshProducts();
+        } catch (error) {
+          appendLog(error.message);
+        }
+      }
+
+      function profitConfigFromForm() {
+        const data = Object.fromEntries(new FormData(form).entries());
+        return {
+          exchangeRate: data.globalExchangeRate || "1.96",
+          platformFeeRate: data.globalPlatformFeeRate || "12%",
+          targetMargin: data.globalTargetMargin || "28%",
+        };
       }
 
       function renderBulkUpdateLinks(linksEl, files) {
