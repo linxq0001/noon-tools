@@ -1,15 +1,21 @@
 #!/usr/bin/env node
 
+import { importCloakBrowser } from "./lib/cloak-browser.js";
+
+import { parseCliArgs } from "./lib/cli-args.js";
+import { cleanText, escapeRegExp } from "./lib/text-utils.js";
+
 import { execFile } from "node:child_process";
 import { mkdir, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { promisify } from "node:util";
-import { fileURLToPath, pathToFileURL } from "node:url";
+import { fileURLToPath } from "node:url";
 import { detect1688AccessState } from "./lib/1688-access-state.js";
 import { isLikelyDimensionImage, parseDimensionCandidates, resolveProductDimensions, selectDimensionVisionImages } from "./lib/dimension-extractor.js";
 import { constrainNoonSelectValue } from "./lib/noon-field-constraints.js";
-import { normalizeNoonProductVariantImages } from "./lib/noon-product-normalizer.js";
+import { buildBasePartnerSku, buildPartnerBarcode } from "./lib/noon-product-identity.js";
+import { normalizeNoonProductVariantImages } from "./lib/noon-upload-product.js";
 import { ensureRepository, productStoragePath, rebuildProductIndexes, resolveRepositoryId } from "./lib/product-storage.js";
 import { cleanProductTitle } from "./lib/title-cleaner.js";
 import { assignImagesToVariants } from "./lib/variant-image-assignment.js";
@@ -41,7 +47,8 @@ const productAttributeKeys = [
   "产品尺寸",
 ];
 
-const args = parseArgs(process.argv.slice(2));
+const args = parseCliArgs(process.argv.slice(2));
+if (args._.length > 0 && !args.url) args.url = args._.shift();
 const template = JSON.parse(await readFile(templatePath, "utf8"));
 let colourVisionConsecutiveFailures = 0;
 let colourVisionDisabled = false;
@@ -574,7 +581,6 @@ function buildOutputMeta(meta, failedDownloads) {
 }
 
 async function buildNoonProduct(productTemplate, meta, options = {}) {
-  const partnerSku = `G-1001-${meta.source.productId}`;
   const englishTitle = buildEnglishDraftTitle(meta.title);
   const attributeMap = Object.fromEntries(meta.attributes.map((item) => [item.name, item.value]));
   const sourceColours = splitValues(attributeMap["颜色"]);
@@ -615,17 +621,29 @@ async function buildNoonProduct(productTemplate, meta, options = {}) {
     visualAssignments,
   });
   meta.imageAssignmentWarnings = imageAssignment.warnings;
+  const generatedBarcodes = new Set();
   const variants = colours.map((sourceColour, index) => {
     const variantColour = safeEnglishValue(translateChinesePhrase(sourceColour), `Colour ${index + 1}`);
     const variantColourAr = translateEnglishToArabic(variantColour);
-    const variantSku = sourceColour ? `${partnerSku}-${skuColourCode(variantColour || sourceColour, index)}` : partnerSku;
+    const variantSku = buildBasePartnerSku({
+      productId: meta.source.productId,
+      variantIndex: index,
+      colourCode: variantColour || sourceColour,
+    });
     const variantTitle = [groupName, variantColour].filter(Boolean).join(", ");
     const variantTitleAr = [groupNameAr, variantColourAr].filter(Boolean).join("، ");
     const assignedImages = imageAssignment.imagesByColour[sourceColour || "_default"]?.map((image) => image.path).filter(Boolean) || imageItems;
+    const barcode = buildPartnerBarcode({
+      platform: "1688",
+      productId: meta.source.productId,
+      variantIndex: index,
+      occupied: generatedBarcodes,
+    });
+    generatedBarcodes.add(barcode);
 
     return {
       partner_sku: variantSku,
-      barcode: buildBarcode(meta.source.productId, index),
+      barcode,
       colour: variantColour,
       colour_name: variantColour,
       title_en: variantTitle,
@@ -1572,20 +1590,6 @@ async function createBrowser() {
   };
 }
 
-async function importCloakBrowser() {
-  try {
-    return await import("cloakbrowser");
-  } catch (error) {
-    const globalEntry = "/opt/homebrew/lib/node_modules/cloakbrowser/dist/index.js";
-
-    try {
-      return await import(pathToFileURL(globalEntry).href);
-    } catch {
-      throw error;
-    }
-  }
-}
-
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -2425,16 +2429,6 @@ function buildVariantPolicy(sourceColours) {
   };
 }
 
-function skuColourCode(value, index = 0) {
-  const code = cleanText(value)
-    .toUpperCase()
-    .replace(/[^A-Z0-9]+/g, "-")
-    .replace(/^-|-$/g, "")
-    .slice(0, 12);
-
-  return code || `CLR${index + 1}`;
-}
-
 function defaultUploadConfig() {
   return {
     country_code: "sa",
@@ -2479,10 +2473,6 @@ function suggestedNoonPrice(price) {
 
   if (!Number.isFinite(value) || value <= 0) return null;
   return Number((value * multiplier).toFixed(2));
-}
-
-function buildBarcode(productId, index) {
-  return `20260428${String(index + 1).padStart(4, "0")}`;
 }
 
 function buildModelName(groupName, meta) {
@@ -2769,102 +2759,3 @@ function logSample(scope, values, limit = 5, label = "样例") {
   }
 }
 
-function parseArgs(values) {
-  const parsed = {};
-
-  for (let index = 0; index < values.length; index += 1) {
-    const value = values[index];
-    if (!value.startsWith("--") && !parsed.url) {
-      parsed.url = value;
-      continue;
-    }
-
-    if (value.startsWith("--")) {
-      const key = value.slice(2);
-      parsed[key] = values[index + 1] && !values[index + 1].startsWith("--") ? values[++index] : "true";
-    }
-  }
-
-  return parsed;
-}
-
-function isProductDetailUrl(url) {
-  return /detail\.1688\.com\/offer\/\d+\.html/i.test(url);
-}
-
-function extractProductId(url) {
-  return matchFirst(url, /\/offer\/(\d+)\.html/i);
-}
-
-function normalizeUrl(value, baseUrl) {
-  const cleaned = value.replaceAll("\\/", "/").replace(/^https?:\\\/\\\//, "https://");
-  const withProtocol = cleaned.startsWith("//") ? `https:${cleaned}` : cleaned;
-
-  try {
-    return new URL(withProtocol, baseUrl).toString().replace(/[?#].*$/, "");
-  } catch {
-    return withProtocol;
-  }
-}
-
-function normalizeProductDetailUrl(value, baseUrl) {
-  const normalized = normalizeUrl(value, baseUrl);
-  const productId = extractProductId(normalized);
-
-  return productId ? `https://detail.1688.com/offer/${productId}.html` : normalized;
-}
-
-function normalizeTitle(value) {
-  return cleanText(value).replace(/\s*[-_]\s*1688.*$/i, "");
-}
-
-function cleanText(value) {
-  if (!value) return "";
-  return decodeHtml(String(value))
-    .replace(/<[^>]+>/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
-function decodeHtml(value) {
-  return value
-    .replace(/&quot;/g, '"')
-    .replace(/&#34;/g, '"')
-    .replace(/&amp;/g, "&")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/&#39;/g, "'");
-}
-
-function safeFileName(value) {
-  return value
-    .replace(/[\\/:*?"<>|]/g, "-")
-    .replace(/\s+/g, " ")
-    .trim()
-    .slice(0, 120);
-}
-
-function buildWarnings(meta) {
-  const warnings = [];
-  if (!meta.title) warnings.push("Title was not found in the 1688 page.");
-  if (meta.imageUrls.length === 0) warnings.push("No product images were found in the 1688 page.");
-  return warnings;
-}
-
-function matchFirst(value, pattern) {
-  return pattern.exec(value)?.[1] ?? "";
-}
-
-function unique(values) {
-  return [...new Set(values.filter(Boolean).map((value) => normalizeUrl(value)))];
-}
-
-function escapeRegExp(value) {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
-
-function shortHash(value) {
-  let hash = 0;
-  for (const char of value) hash = (hash * 31 + char.charCodeAt(0)) >>> 0;
-  return String(hash);
-}

@@ -1,21 +1,30 @@
 #!/usr/bin/env node
 
+import { importCloakBrowser } from "./lib/cloak-browser.js";
+
+import { parseCliArgs } from "./lib/cli-args.js";
+import { escapeRegExp } from "./lib/text-utils.js";
+
 import { access, appendFile, readdir, readFile } from "node:fs/promises";
 import { accessSync } from "node:fs";
 import path from "node:path";
 import { createInterface } from "node:readline/promises";
 import { stdin as input, stdout as output } from "node:process";
-import { fileURLToPath, pathToFileURL } from "node:url";
+import { fileURLToPath } from "node:url";
 import { createSellerLabFieldIssues } from "./lib/seller-lab-field-issues.js";
-import { createSellerLabPageAdapter } from "./lib/seller-lab-page-adapter.js";
-import { createSellerLabPageOperations } from "./lib/seller-lab-page-operations.js";
-import { brandCandidates, isNoBrandValue, normalizeBrandValue } from "./lib/noon-brand.js";
+import { brandCandidates, isNoBrandValue } from "./lib/noon-brand.js";
 import { noonSelectConstraints, normalizeNoonSelectValue } from "./lib/noon-field-constraints.js";
-import { writeNoonUploadStatus } from "./lib/noon-upload-status.js";
+import { regenerateProductIdentities } from "./lib/noon-product-identity.js";
+import { normalizeNoonStoreId } from "./lib/noon-stores.js";
+import { prepareNoonUploadProduct } from "./lib/noon-upload-product.js";
+import { acquireStoreUploadLock, assertStoreUploadAllowed } from "./lib/noon-upload-preflight.js";
+import { writeStoreNoonUploadStatus } from "./lib/noon-upload-status.js";
 
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const productsDir = path.join(rootDir, "products");
-const args = parseArgs(process.argv.slice(2));
+const args = parseCliArgs(process.argv.slice(2));
+args.productDir = args.productDir ?? args["product-dir"];
+args.productDirs = args.productDirs ?? args["product-dirs"];
 const manualWaitMs = Number.parseInt(args.manualWaitMs ?? "600000", 10);
 const fieldIssues = createSellerLabFieldIssues();
 
@@ -27,12 +36,20 @@ if (!args.all && !args.productDir && !args.productDirs) {
   fail("Missing --product-dir <dir>, --product-dirs <json-array>, or --all.");
 }
 
+if (!args.storeId) {
+  fail("Missing --store-id <id>.");
+}
+
+const storeId = normalizeNoonStoreId(args.storeId);
+
 const productDirs = args.all
   ? await listProductDirs()
   : args.productDirs
     ? parseProductDirs(args.productDirs).map(resolveProductDir)
     : [resolveProductDir(args.productDir)];
 if (productDirs.length === 0) fail("No product directories found.");
+
+await regenerateProductIdentities(productsDir);
 
 const products = [];
 let hadFailure = false;
@@ -116,26 +133,52 @@ function parseProductDirs(value) {
 }
 
 async function uploadProduct(product) {
-  const page = await browser.newPage();
   const name = path.basename(product.productDir);
+  let page = null;
+  let lock = null;
   let failed = false;
   let keepPageOpenOnFailure = false;
   fieldIssues.reset();
 
   try {
     logStep("product", `${name}: running`);
-    warnRawContent(product);
-    const sellerLabPage = createSellerLabPageAdapter(createSellerLabPageOperations(page, sellerLabPageHelpers()));
+    await assertStoreUploadAllowed({
+      productDir: product.productDir,
+      relativeDir: product.relativeDir,
+      storeId,
+      product,
+      productsDir,
+    });
+    lock = await acquireStoreUploadLock(product.productDir, storeId, product.productIdentity.partnerSku);
+    await writeStoreNoonUploadStatus(product.productDir, {
+      productDir: product.relativeDir,
+      status: "uploading",
+      updatedAt: new Date().toISOString(),
+      partnerSku: product.productIdentity.partnerSku,
+      message: "Add Product 正在上传。",
+    }, storeId);
 
-    keepPageOpenOnFailure = await sellerLabPage.openCreatePage(() => {
+    page = await browser.newPage();
+    warnRawContent(product);
+    const h = sellerLabPageHelpers();
+
+    keepPageOpenOnFailure = await h.gotoNoonCreatePage(page);
+    keepPageOpenOnFailure = await h.waitForReady(page);
+    keepPageOpenOnFailure = await h.waitForUploadPage(page, () => {
       keepPageOpenOnFailure = true;
     });
     keepPageOpenOnFailure = true;
 
-    await sellerLabPage.fillProductIdentity(product);
-    await sellerLabPage.continueFromProductIdentity(product);
+    await h.fillRequiredField(page, "English Title", product.productIdentity.englishTitle);
+    await h.fillOptionalField(page, "Arabic Title", product.productIdentity.arabicTitle);
+    await h.fillRequiredField(page, "Partner SKU", product.productIdentity.partnerSku);
+    await h.selectBrand(page, product.productIdentity.brand || "No Brand");
+    await h.uploadImages(page, product.imagePaths);
+    await h.prepareProductCategory(page, product.category?.categoryPath ?? []);
+    await h.clickButton(page, ["Create & Continue", "Continue"], { required: true });
+    await h.waitForStep(page, "Product Content", "Product Identity");
 
-    await sellerLabPage.fillProductContent(product);
+    await h.fillProductContent(page, product);
     fieldIssues.assertClear("Product Content");
 
     if (args.stopAfterDetailedContent === "true") {
@@ -146,7 +189,9 @@ async function uploadProduct(product) {
       return;
     }
 
-    await sellerLabPage.fillDetailedContent(product);
+    await h.fillDetailedContent(page, product);
+    await h.clickButton(page, ["Save & Continue", "Create & Continue", "Continue", "Next"], { required: false });
+    await h.waitForStep(page, "Offer Details", "Detailed Content");
     fieldIssues.assertClear("Detailed Content");
 
     if (args.stopAfterOfferDetails === "true") {
@@ -157,24 +202,32 @@ async function uploadProduct(product) {
       return;
     }
 
-    await sellerLabPage.submitOfferDetails(product);
+    await h.fillOfferDetails(page, product);
+    await h.clickButton(page, ["Submit", "Create Product", "Create & Submit", "Publish", "Create"], { required: true });
     fieldIssues.assertClear("Offer Details");
 
-    await writeNoonUploadStatus(product.productDir, {
-      productDir: path.relative(productsDir, product.productDir),
+    await writeStoreNoonUploadStatus(product.productDir, {
+      productDir: product.relativeDir,
       status: "uploaded",
-      uploaded: true,
       uploadedAt: new Date().toISOString(),
       partnerSku: product.productIdentity.partnerSku,
       message: "Add Product 上传成功，已提交 Offer Details。",
-    });
+    }, storeId);
     logStep("product", `${name}: submitted`);
   } catch (error) {
     failed = true;
     logStep("product", `${name}: failed`);
+    await writeStoreNoonUploadStatus(product.productDir, {
+      productDir: product.relativeDir,
+      status: "failed",
+      failedAt: new Date().toISOString(),
+      partnerSku: product.productIdentity?.partnerSku,
+      message: String(error?.message || error),
+    }, storeId).catch(() => {});
     throw error;
   } finally {
-    if (args.keepOpen !== "true" && !(failed && keepPageOpenOnFailure)) await page.close().catch(() => {});
+    if (lock) await lock.release().catch(() => {});
+    if (page && args.keepOpen !== "true" && !(failed && keepPageOpenOnFailure)) await page.close().catch(() => {});
   }
 }
 
@@ -206,7 +259,8 @@ async function loadProduct(productDir) {
   });
 
   const rawProduct = JSON.parse(await readFile(productPath, "utf8"));
-  const product = await normalizeProduct(rawProduct, productDir);
+  const product = await prepareNoonUploadProduct(rawProduct, productDir, storeId);
+  const relativeDir = path.relative(productsDir, productDir);
   const imageNames = product.productIdentity?.productImages ?? [];
 
   if (!product.productIdentity?.englishTitle) throw new Error(`Missing English Title in ${productPath}.`);
@@ -222,141 +276,7 @@ async function loadProduct(productDir) {
     imagePaths.push(imagePath);
   }
 
-  return { ...product, productDir, imagePaths };
-}
-
-async function normalizeProduct(product, productDir) {
-  if (product.productIdentity) {
-    if ((product.productIdentity.productImages ?? []).length === 0) {
-      product.productIdentity.productImages = await listLocalProductImages(productDir);
-    }
-
-    return product;
-  }
-
-  if (!product.product_group || !Array.isArray(product.variants)) return product;
-
-  const group = product.product_group;
-  const variant = product.variants[0] ?? {};
-  const localImages = await listLocalProductImages(productDir);
-  const variantImages = (variant.images ?? [])
-    .map((image) => (typeof image === "string" ? image : image.path))
-    .filter(Boolean);
-
-  return {
-    productIdentity: {
-      englishTitle: translateUploadText(variant.title_en || group.product_group_name_en || ""),
-      arabicTitle: variant.title_ar || group.product_group_name_ar || "",
-      partnerSku: variant.partner_sku || "",
-      brand: normalizeBrandValue(group.brand),
-      hasNoBrandName: normalizeBrandValue(group.brand) === "No Brand",
-      productImages: variantImages.length > 0 ? variantImages : localImages,
-    },
-    category: {
-      categoryId: null,
-      categoryPath: group.category ? String(group.category).split(">").map((item) => item.trim()) : [],
-      similarNoonProductUrl: null,
-    },
-    productContent: {
-      featureBullets: variant.feature_bullets_en ?? [],
-      longDescription: variant.description_en ?? "",
-      arabicLongDescription: variant.description_ar ?? "",
-      gender: group.gender ?? null,
-      gtin: "",
-    },
-    detailedContent: {
-      features: splitDetailValues(group.features),
-      careInstructions: group.care_instructions ?? "",
-      casing: group.casing ?? "",
-      closure: group.closure ?? "",
-      type: group.type ?? "",
-      colour: translateUploadText(variant.colour ?? ""),
-      colourName: translateUploadText(variant.colour_name ?? ""),
-      compatibility: "",
-      countryOfOrigin: group.country_of_origin ?? "",
-      exteriorMaterial: group.exterior_material ?? "",
-      style: "",
-      hsCode: group.hs_code ?? "",
-      interiorMaterial: group.interior_material ?? "",
-      itemCondition: group.item_condition ?? "New",
-      materialComposition: group.material_composition ?? "",
-      modelName: group.model_name ?? "",
-      modelNumber: variant.model_number ?? variant.partner_sku ?? "",
-      msrpAE: null,
-      msrpEG: null,
-      msrpSA: null,
-      seasonCode: "",
-      occasion: group.occasion ?? "",
-      pattern: "",
-      productHeight: variant.height_cm ?? null,
-      productHeightUnit: "cm",
-      productLength: variant.length_cm ?? null,
-      productLengthUnit: "cm",
-      productWeight: variant.actual_weight_kg ?? null,
-      productWeightUnit: "kg",
-      productWidth: variant.width_cm ?? null,
-      productWidthUnit: "cm",
-      size: group.size ?? "",
-      sizeUnit: group.size_unit ?? "",
-      strapMaterial: group.strap_material ?? "",
-      whatsInTheBox: group.what_is_in_the_box ?? "",
-      year: group.year ?? null,
-    },
-    offerDetails: {
-      offerType: "single_product",
-      offers: [
-        {
-          size: group.size ?? "",
-          partnerSku: variant.partner_sku ?? "",
-          price: variant.price_sar_initial ?? null,
-          currency: "SAR",
-          barcode: variant.barcode ?? "",
-          warehouse: variant.warehouse_name ?? variant.warehouse_code ?? "",
-          stock: variant.stock ?? null,
-        },
-      ],
-    },
-  };
-}
-
-async function listLocalProductImages(productDir) {
-  const entries = await readdir(productDir);
-
-  return entries
-    .filter((entry) => /\.(?:jpe?g|png|webp|gif)$/i.test(entry))
-    .sort((left, right) => left.localeCompare(right, "en", { numeric: true }))
-    .slice(0, 9);
-}
-
-function splitDetailValues(value) {
-  if (Array.isArray(value)) return value;
-  if (!hasValue(value)) return [];
-  return String(value)
-    .split(/[,，/]/)
-    .map((item) => item.trim())
-    .filter(Boolean);
-}
-
-function translateUploadText(value) {
-  const replacements = new Map([
-    ["紫色", "Purple"],
-    ["玫红色", "Rose Red"],
-    ["金色", "Gold"],
-    ["绿色", "Green"],
-    ["黑色", "Black"],
-    ["橘色", "Orange"],
-    ["银色", "Silver"],
-    ["蓝色", "Blue"],
-    ["白色", "White"],
-    ["红色", "Red"],
-    ["粉色", "Pink"],
-  ]);
-
-  let text = String(value || "");
-  for (const [source, target] of replacements) {
-    text = text.replaceAll(source, target);
-  }
-  return text;
+  return { ...product, productDir, relativeDir, imagePaths };
 }
 
 function warnRawContent(product) {
@@ -2187,65 +2107,3 @@ async function createCloakBrowser() {
   };
 }
 
-async function importCloakBrowser() {
-  try {
-    return await import("cloakbrowser");
-  } catch (error) {
-    const globalEntry = "/opt/homebrew/lib/node_modules/cloakbrowser/dist/index.js";
-
-    try {
-      return await import(pathToFileURL(globalEntry).href);
-    } catch {
-      throw error;
-    }
-  }
-}
-
-function parseArgs(argv) {
-  const parsed = {};
-
-  for (let index = 0; index < argv.length; index += 1) {
-    const arg = argv[index];
-    if (!arg.startsWith("--")) continue;
-
-    const key = arg.slice(2);
-    const next = argv[index + 1];
-    if (!next || next.startsWith("--")) {
-      parsed[key] = "true";
-    } else {
-      parsed[key] = next;
-      index += 1;
-    }
-  }
-
-  return {
-    ...parsed,
-    productDir: parsed["product-dir"] ?? parsed.productDir,
-    productDirs: parsed["product-dirs"] ?? parsed.productDirs,
-    noonUrl: parsed["noon-url"] ?? parsed.noonUrl,
-    manualWaitMs: parsed["manual-wait-ms"] ?? parsed.manualWaitMs,
-    keepOpen: parsed["keep-open"] ?? parsed.keepOpen,
-    stopAfterDetailedContent: parsed["stop-after-detailed-content"] ?? parsed.stopAfterDetailedContent,
-    stopAfterOfferDetails: parsed["stop-after-offer-details"] ?? parsed.stopAfterOfferDetails,
-    cloakTyping: parsed["cloak-typing"] ?? parsed.cloakTyping,
-    validateOnly: parsed["validate-only"] ?? parsed.validateOnly,
-    browser: parsed.browser ?? "cloak",
-  };
-}
-
-function hasValue(value) {
-  return value !== null && value !== undefined && String(value).trim() !== "";
-}
-
-function escapeRegExp(value) {
-  return String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
-
-function logStep(scope, message) {
-  console.log(`[${scope}] ${message}`);
-}
-
-function fail(message) {
-  console.error(`[failed] ${message}`);
-  process.exit(1);
-}

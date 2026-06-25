@@ -6,8 +6,16 @@ import { createServer } from "node:http";
 import path from "node:path";
 import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
+import { applyBulkOperation } from "./lib/noon-bulk-operations.js";
 import { bulkUpdateFileNames, exportNoonBulkUpdates } from "./lib/noon-bulk-update-exporter.js";
-import { readNoonUploadStatusFromProductDir } from "./lib/noon-upload-status.js";
+import { checkNoonProducts, writeOperationCheck } from "./lib/noon-operation-checks.js";
+import { handleNoonStoreApi } from "./lib/noon-store-api.js";
+import { buildNoonLoginArgs, buildNoonStatusArgs, buildNoonUploadIdentityArgs } from "./lib/noon-stores.js";
+import { findNoonStore } from "./lib/noon-stores.js";
+import {
+  defaultNoonUploadStatus,
+  readStoreNoonUploadStatusFromProductDir,
+} from "./lib/noon-upload-status.js";
 import { readPlatformRepositories } from "./lib/product-storage.js";
 
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -16,7 +24,6 @@ const productsDir = path.join(rootDir, "products");
 const exportsDir = path.join(rootDir, "exports");
 const uiSettingsPath = path.join(rootDir, ".ui-settings.json");
 const default1688Profile = ".cloakbrowser-profile";
-const defaultNoonProfile = ".noon-profile";
 const port = Number.parseInt(process.env.PORT ?? "4173", 10);
 const jobs = new Map();
 const uploadJobs = new Map();
@@ -27,13 +34,16 @@ const uiSettingKeys = [
   "headless",
   "proxy",
   "repository",
-  "noonUrl",
   "noonBrowser",
   "noonCloakTyping",
   "noonHeadless",
   "catalogType",
   "deepSeekModel",
   "deepSeekApiKey",
+  "defaultStoreId",
+  "globalExchangeRate",
+  "globalPlatformFeeRate",
+  "globalTargetMargin",
 ];
 
 const server = createServer(async (request, response) => {
@@ -77,6 +87,34 @@ const server = createServer(async (request, response) => {
       return;
     }
 
+    const storeLoginMatch = url.pathname.match(/^\/api\/stores\/([^/]+)\/login$/);
+    if (request.method === "POST" && storeLoginMatch) {
+      await createNoonStoreLoginJob(decodeURIComponent(storeLoginMatch[1]), response);
+      return;
+    }
+
+    const storeStatusMatch = url.pathname.match(/^\/api\/stores\/([^/]+)\/status$/);
+    if (request.method === "GET" && storeStatusMatch) {
+      await checkNoonStoreStatus(decodeURIComponent(storeStatusMatch[1]), response);
+      return;
+    }
+
+    if (url.pathname === "/api/stores" || url.pathname.startsWith("/api/stores/")) {
+      const settings = await readUiSettings();
+      const storeResult = await handleNoonStoreApi({
+        method: request.method,
+        pathname: url.pathname,
+        body: request.method === "POST" ? await readJsonBody(request) : {},
+        rootDir,
+        productsDir,
+        getDefaultStoreId: () => settings.defaultStoreId || "",
+        setDefaultStoreId,
+      });
+      if (!storeResult.handled) return notFound(response);
+      sendJson(response, storeResult.body, storeResult.status);
+      return;
+    }
+
     if (request.method === "POST" && url.pathname === "/api/noon-generate-jobs") {
       await createNoonGenerateJob(request, response);
       return;
@@ -104,23 +142,28 @@ const server = createServer(async (request, response) => {
       return;
     }
 
-    if (request.method === "GET" && url.pathname === "/api/noon-status") {
-      await checkNoonStatus(url, response);
-      return;
-    }
-
     if (request.method === "GET" && url.pathname === "/api/noon-upload-status") {
-      sendJson(response, readNoonUploadStatus(url.searchParams.get("productDir")));
+      sendJson(response, readNoonUploadStatus(url.searchParams.get("productDir"), url.searchParams.get("storeId") || ""));
       return;
     }
 
     if (request.method === "GET" && url.pathname === "/api/products") {
-      sendJson(response, await listRepositories());
+      sendJson(response, await listRepositories(url.searchParams.get("storeId") || ""));
       return;
     }
 
     if (request.method === "POST" && url.pathname === "/api/noon-bulk-updates") {
       await createNoonBulkUpdateFiles(request, response);
+      return;
+    }
+
+    if (request.method === "POST" && url.pathname === "/api/operation-checks") {
+      await createOperationChecks(request, response);
+      return;
+    }
+
+    if (request.method === "POST" && url.pathname === "/api/bulk-operations") {
+      await createBulkOperation(request, response);
       return;
     }
 
@@ -256,14 +299,46 @@ async function create1688LoginJob(request, response) {
   sendJson(response, serializeJob(job), 201);
 }
 
-async function createUploadJob(request, response) {
-  const body = await readJsonBody(request);
-
-  if (!body.noonUrl || !/^https?:\/\//i.test(body.noonUrl)) {
-    sendJson(response, { error: "请输入有效的 noon Add Product 链接。" }, 400);
+async function createNoonStoreLoginJob(storeId, response) {
+  const store = await findNoonStore(rootDir, storeId);
+  if (!store) {
+    sendJson(response, { error: "找不到 noon 店铺。" }, 404);
     return;
   }
 
+  const id = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  const args = buildNoonLoginArgs(rootDir, store);
+  const job = {
+    id,
+    kind: "loginNoon",
+    status: "running",
+    url: args[args.indexOf("--noon-url") + 1],
+    storeId: store.id,
+    startedAt: new Date().toISOString(),
+    finishedAt: null,
+    exitCode: null,
+    logs: [],
+    child: null,
+  };
+
+  jobs.set(id, job);
+
+  const child = spawn(process.execPath, args, { cwd: rootDir, env: process.env });
+  job.child = child;
+  child.stdout.on("data", (chunk) => appendLog(job, chunk));
+  child.stderr.on("data", (chunk) => appendLog(job, chunk));
+  child.on("close", (code) => {
+    if (job.status === "cancelled") return;
+    job.status = code === 0 ? "completed" : "failed";
+    job.exitCode = code;
+    job.finishedAt = new Date().toISOString();
+  });
+
+  sendJson(response, serializeJob(job), 201);
+}
+
+async function createUploadJob(request, response) {
+  const body = await readJsonBody(request);
   const productDirs = Array.isArray(body.productDirs) ? body.productDirs.map(String).filter(Boolean) : [];
 
   if (!body.all && !body.productDir && productDirs.length === 0) {
@@ -272,7 +347,20 @@ async function createUploadJob(request, response) {
   }
 
   const id = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
-  const args = ["scripts/upload-noon.js", "--noon-url", body.noonUrl];
+  const storeId = String(body.storeId || "").trim();
+
+  if (!storeId) {
+    sendJson(response, { error: "请选择一个 noon 店铺。" }, 400);
+    return;
+  }
+
+  const store = await findNoonStore(rootDir, storeId);
+  if (!store) {
+    sendJson(response, { error: "找不到 noon 店铺。" }, 404);
+    return;
+  }
+
+  const args = ["scripts/upload-noon.js", ...buildNoonUploadIdentityArgs(rootDir, store)];
 
   if (body.all) {
     args.push("--all");
@@ -282,7 +370,6 @@ async function createUploadJob(request, response) {
     args.push("--product-dir", `products/${body.productDir}`);
   }
 
-  args.push("--profile", defaultNoonProfile);
   args.push("--browser", body.noonBrowser || "cloak");
   if (body.noonCloakTyping === true || body.noonCloakTyping === "true") args.push("--cloak-typing", "true");
   if (body.headless === true) args.push("--headless", "true");
@@ -291,10 +378,11 @@ async function createUploadJob(request, response) {
   const job = {
     id,
     status: "running",
-    url: body.noonUrl,
+    url: args[args.indexOf("--noon-url") + 1],
     productDir: body.productDir ?? "",
     productDirs,
     repository: body.all ? "" : repositoryFromProductDir(productDirs[0] || body.productDir || ""),
+    storeId: store.id,
     startedAt: new Date().toISOString(),
     finishedAt: null,
     exitCode: null,
@@ -407,7 +495,71 @@ async function createNoonBulkUpdateFiles(request, response) {
     catalogType,
     duplicateProducts: result.duplicateProducts,
     duplicateSkus: result.duplicateSkus,
+    skippedProducts: result.skippedProducts,
     files,
+  });
+}
+
+async function createOperationChecks(request, response) {
+  const body = await readJsonBody(request);
+  const productDirs = sanitizeProductDirs(body.productDirs);
+  if (productDirs.length === 0) throw new Error("请选择要检查的商品。");
+
+  const result = await checkNoonProducts({
+    productsDir,
+    productDirs,
+    profitConfig: profitConfigFromBody(body),
+  });
+
+  for (const check of result.checked) {
+    if (check.status !== "blocked" || check.blockingIssues.some((issue) => issue.code !== "missing_noon_attributes")) {
+      try {
+        await writeOperationCheck(productsDir, check);
+      } catch {
+        // Missing or unreadable noon attributes are already represented in the check result.
+      }
+    }
+  }
+
+  sendJson(response, result);
+}
+
+async function createBulkOperation(request, response) {
+  const body = await readJsonBody(request);
+  const productDirs = sanitizeProductDirs(body.productDirs);
+  if (productDirs.length === 0) throw new Error("请选择要操作的商品。");
+
+  const checks = await checkNoonProducts({
+    productsDir,
+    productDirs,
+    profitConfig: profitConfigFromBody(body),
+  });
+  const operationCheckByProductDir = Object.fromEntries(checks.checked.map((check) => [check.productDir, check]));
+  const operationResult = await applyBulkOperation({
+    productsDir,
+    productDirs,
+    operation: sanitizeBulkOperation(body.operation),
+    operationCheckByProductDir,
+  });
+
+  const repository = cleanPathSegment(body.repository || "");
+  const catalogType = cleanPathSegment(body.catalogType || "global");
+  if (!["noon", "supermall", "global"].includes(catalogType)) throw new Error("商品目录类型不合法。");
+  const exportKey = repository === "__default__" ? "default" : repository || "all";
+  const outputDir = globalBulkUpdateOutputDir(exportKey);
+  const exportResult = await exportNoonBulkUpdates({
+    productsDir,
+    outputDir,
+    platform: "1688",
+    repository: exportKey === "all" ? "" : exportKey,
+    catalogType,
+  });
+
+  sendJson(response, {
+    checks,
+    operation: operationResult,
+    export: exportResult,
+    files: globalBulkUpdateFileUrls(exportKey),
   });
 }
 
@@ -457,16 +609,14 @@ function timestampedBulkUpdateFileUrls(exportName) {
   };
 }
 
-async function checkNoonStatus(url, response) {
-  const noonUrl = url.searchParams.get("noonUrl");
-  const profile = defaultNoonProfile;
-
-  if (!noonUrl || !/^https?:\/\//i.test(noonUrl)) {
-    sendJson(response, { error: "请输入有效的 noon Add Product 链接。" }, 400);
+async function checkNoonStoreStatus(storeId, response) {
+  const store = await findNoonStore(rootDir, storeId);
+  if (!store) {
+    sendJson(response, { error: "找不到 noon 店铺。" }, 404);
     return;
   }
 
-  const child = spawn(process.execPath, ["scripts/check-noon-status.js", "--noon-url", noonUrl, "--profile", profile], {
+  const child = spawn(process.execPath, buildNoonStatusArgs(rootDir, store), {
     cwd: rootDir,
     env: process.env,
   });
@@ -564,6 +714,10 @@ async function saveUiSettings(values) {
   return next;
 }
 
+async function setDefaultStoreId(value) {
+  await saveUiSettings({ defaultStoreId: value || "" });
+}
+
 function sanitizeUiSettings(values) {
   const settings = {};
 
@@ -574,25 +728,50 @@ function sanitizeUiSettings(values) {
   return settings;
 }
 
+function sanitizeProductDirs(productDirs) {
+  return (Array.isArray(productDirs) ? productDirs : [])
+    .map((dir) => cleanPathSegment(dir))
+    .filter(Boolean);
+}
+
+function sanitizeBulkOperation(operation = {}) {
+  const type = String(operation.type || "");
+  if (type === "set_price") return { type, priceUsd: operation.priceUsd };
+  if (type === "set_stock") return { type, stock: operation.stock };
+  if (type === "deactivate") return { type };
+  if (type === "set_processing_time") return { type, processingTime: operation.processingTime };
+  throw new Error("不支持的批量操作。");
+}
+
+function profitConfigFromBody(body = {}) {
+  return {
+    costCny: body.costCny,
+    shippingCny: body.shippingCny,
+    exchangeRate: body.exchangeRate,
+    platformFeeRate: body.platformFeeRate,
+    targetMargin: body.targetMargin,
+  };
+}
+
 function appendLog(job, chunk) {
   const lines = chunk.toString("utf8").split(/\r?\n/).filter(Boolean);
   job.logs.push(...lines.map((line) => ({ time: new Date().toISOString(), line })));
   job.logs = job.logs.slice(-300);
 }
 
-async function listProducts() {
-  const repositories = await listRepositories();
+async function listProducts(storeId = "") {
+  const repositories = await listRepositories(storeId);
   return repositories.flatMap((repository) => repository.products);
 }
 
-async function listRepositories() {
+async function listRepositories(storeId = "") {
   const repositories = await readPlatformRepositories(productsDir, "1688");
   const summaries = [];
 
   for (const repository of repositories) {
     const products = [];
     for (const productDir of repository.productDirs) {
-      products.push(await readProductSummary(productDir.relativeDir, repository.id));
+      products.push(await readProductSummary(productDir.relativeDir, repository.id, storeId));
     }
     summaries.push(buildRepositorySummary(repository.id, repository.name, products));
   }
@@ -600,7 +779,7 @@ async function listRepositories() {
   return summaries.sort((left, right) => String(right.updatedAt).localeCompare(String(left.updatedAt)));
 }
 
-async function readProductSummary(relativeDir, repository) {
+async function readProductSummary(relativeDir, repository, storeId = "") {
   const metaPath = path.join(productsDir, relativeDir, "meta.json");
 
   try {
@@ -625,7 +804,7 @@ async function readProductSummary(relativeDir, repository) {
       metaUrl: productFileUrl(relativeDir, "meta.json"),
       noonUrl: productFileUrl(relativeDir, "noon-product-attributes.json"),
       noonSummary,
-      noonUploadStatus: readNoonUploadStatus(relativeDir),
+      noonUploadStatus: readNoonUploadStatus(relativeDir, storeId),
     };
   } catch {
     return {
@@ -634,7 +813,7 @@ async function readProductSummary(relativeDir, repository) {
       title: path.basename(relativeDir),
       imageCount: 0,
       warnings: ["meta.json 不可读取"],
-      noonUploadStatus: readNoonUploadStatus(relativeDir),
+      noonUploadStatus: readNoonUploadStatus(relativeDir, storeId),
     };
   }
 }
@@ -659,6 +838,8 @@ async function readNoonProductSummary(relativeDir) {
         warnings: product.submission_gate?.warnings || [],
         sourcePrice: product.submission_gate?.sourcePrice || null,
         blockingCount: blockingIssues.length,
+        operationStatus: product.operation_status || "active",
+        operationCheck: product.operation_check || null,
       };
     }
 
@@ -668,6 +849,8 @@ async function readNoonProductSummary(relativeDir) {
       imageCount: product.productIdentity?.productImages?.length || 0,
       gateStatus: "",
       blockingCount: 0,
+      operationStatus: product.operation_status || "active",
+      operationCheck: product.operation_check || null,
     };
   } catch {
     return {
@@ -703,17 +886,22 @@ function productFileUrl(relativeDir, filename) {
   return `/products/${[...relativeDir.split("/"), ...String(filename).split("/")].map(encodeURIComponent).join("/")}`;
 }
 
-function readNoonUploadStatus(productDir) {
+function readNoonUploadStatus(productDir, storeId = "") {
   const relativeDir = cleanPathSegment(productDir || "");
   try {
-    return readNoonUploadStatusFromProductDir(path.dirname(safeProductFilePath(relativeDir, "meta.json")), relativeDir);
+    const fullProductDir = path.dirname(safeProductFilePath(relativeDir, "meta.json"));
+    return storeId
+      ? readStoreNoonUploadStatusFromProductDir(fullProductDir, relativeDir, storeId)
+      : defaultNoonUploadStatus(relativeDir);
   } catch {
-    return readNoonUploadStatusFromProductDir(path.join(productsDir, "__missing__"), relativeDir);
+    return storeId
+      ? readStoreNoonUploadStatusFromProductDir(path.join(productsDir, "__missing__"), relativeDir, storeId)
+      : defaultNoonUploadStatus(relativeDir);
   }
 }
 
 function hasSuccessfulUploadedProducts(job) {
-  return uploadJobProductDirs(job).some((productDir) => readNoonUploadStatus(productDir).uploaded);
+  return uploadJobProductDirs(job).some((productDir) => readNoonUploadStatus(productDir, job.storeId || "").uploaded);
 }
 
 function uploadJobProductDirs(job) {
@@ -772,6 +960,7 @@ function serializeJob(job) {
     productDir: job.productDir ?? "",
     productDirs: job.productDirs ?? [],
     repository: job.repository ?? "",
+    storeId: job.storeId ?? "",
     globalBulkUpdate: job.globalBulkUpdate ?? null,
     startedAt: job.startedAt,
     finishedAt: job.finishedAt,

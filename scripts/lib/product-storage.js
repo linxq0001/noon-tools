@@ -1,5 +1,6 @@
 import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { cleanText } from "./text-utils.js";
 
 export const defaultPlatform = "1688";
 export const defaultRepositoryId = "default";
@@ -220,10 +221,6 @@ function safePathSegment(value) {
     .replace(/-+/g, "-")
     .replace(/^-|-$/g, "");
   return cleaned || defaultRepositoryId;
-}
-
-function cleanText(value) {
-  return String(value ?? "").replace(/\s+/g, " ").trim();
 }
 
 function imageCount(meta, variants) {

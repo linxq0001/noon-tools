@@ -1,3 +1,4 @@
+import { escapeRegExp } from "./text-utils.js";
 export const defaultDimensions = {
   lengthCm: 17,
   widthCm: 6,
@@ -225,8 +226,4 @@ function packageDimensionText(packageInfo) {
   ]
     .filter(Boolean)
     .join("\n");
-}
-
-function escapeRegExp(value) {
-  return String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }

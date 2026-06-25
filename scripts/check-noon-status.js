@@ -1,10 +1,14 @@
 #!/usr/bin/env node
 
+import { importCloakBrowser } from "./lib/cloak-browser.js";
+
+import { parseCliArgs } from "./lib/cli-args.js";
+
 import path from "node:path";
-import { fileURLToPath, pathToFileURL } from "node:url";
+import { fileURLToPath } from "node:url";
 
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const args = parseArgs(process.argv.slice(2));
+const args = parseCliArgs(process.argv.slice(2));
 const noonUrl = args.noonUrl ?? args["noon-url"] ?? "https://noon-catalog.noon.partners/en/catalog/create?project=PRJ517205";
 const profile = args.profile ?? ".noon-profile";
 
@@ -17,7 +21,7 @@ try {
       status: "error",
       loggedIn: false,
       uploadPageReachable: false,
-      error: error.message,
+      error: normalizeNoonBrowserError(error, profile),
       checkedAt: new Date().toISOString(),
     }),
   );
@@ -28,7 +32,7 @@ async function checkNoonStatus({ noonUrl, profile }) {
   const { launchPersistentContext } = await importCloakBrowser();
   const context = await launchPersistentContext({
     userDataDir: path.resolve(rootDir, profile),
-    headless: true,
+    headless: false,
     locale: "en-US",
     timezone: "Asia/Dubai",
     viewport: { width: 1440, height: 960 },
@@ -39,10 +43,14 @@ async function checkNoonStatus({ noonUrl, profile }) {
   try {
     const page = context.pages()[0] ?? (await context.newPage());
     await page.goto(noonUrl, { waitUntil: "domcontentloaded", timeout: 90000 });
-    await page.waitForTimeout(6000);
+    await page.waitForTimeout(8000);
+
+    const currentUrl = page.url();
+    const redirectedToLogin = /login\.noon\.partners/i.test(currentUrl);
 
     const result = await page.evaluate(() => {
-      const text = document.body?.innerText?.replace(/\s+/g, " ").slice(0, 2500) ?? "";
+      const bodyText = document.body?.innerText ?? "";
+      const text = bodyText.replace(/\s+/g, " ").slice(0, 3000);
       return {
         text,
         hasAddProduct: /Add Product/i.test(text),
@@ -55,13 +63,21 @@ async function checkNoonStatus({ noonUrl, profile }) {
     });
 
     const uploadPageReachable =
-      result.hasAddProduct && result.hasProductIdentity && result.hasEnglishTitle && result.hasPartnerSku;
+      !redirectedToLogin &&
+      result.hasAddProduct &&
+      result.hasProductIdentity &&
+      result.hasEnglishTitle &&
+      result.hasPartnerSku;
+
+    const isLoginPage =
+      redirectedToLogin || result.hasLoginCopy;
 
     return {
-      status: uploadPageReachable ? "logged_in" : result.hasLoginCopy ? "logged_out" : "unknown",
+      status: uploadPageReachable ? "logged_in" : isLoginPage ? "logged_out" : "unknown",
       loggedIn: uploadPageReachable,
       uploadPageReachable,
-      finalUrl: page.url(),
+      redirectedToLogin,
+      finalUrl: currentUrl,
       title: await page.title(),
       checkedAt: new Date().toISOString(),
       signals: result,
@@ -71,36 +87,12 @@ async function checkNoonStatus({ noonUrl, profile }) {
   }
 }
 
-async function importCloakBrowser() {
-  try {
-    return await import("cloakbrowser");
-  } catch (error) {
-    const globalEntry = "/opt/homebrew/lib/node_modules/cloakbrowser/dist/index.js";
 
-    try {
-      return await import(pathToFileURL(globalEntry).href);
-    } catch {
-      throw error;
-    }
+function normalizeNoonBrowserError(error, profile = "") {
+  const message = error instanceof Error ? error.message : String(error || "检测失败");
+  if (/ProcessSingleton|existing browser session|profile.*in use|launchPersistentContext/i.test(message)) {
+    const profileSuffix = profile ? `Profile: ${profile}` : "";
+    return `Noon 浏览器资料正在被另一个窗口或任务使用。请先关闭该店铺的 noon 登录/检测/上传窗口，再重新检测。${profileSuffix}`.trim();
   }
-}
-
-function parseArgs(argv) {
-  const parsed = {};
-
-  for (let index = 0; index < argv.length; index += 1) {
-    const arg = argv[index];
-    if (!arg.startsWith("--")) continue;
-
-    const key = arg.slice(2);
-    const next = argv[index + 1];
-    if (!next || next.startsWith("--")) {
-      parsed[key] = "true";
-    } else {
-      parsed[key] = next;
-      index += 1;
-    }
-  }
-
-  return parsed;
+  return message;
 }

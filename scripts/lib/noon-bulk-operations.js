@@ -1,5 +1,6 @@
 import { readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { cleanText } from "./text-utils.js";
 
 export async function applyBulkOperation({
   productsDir,
@@ -63,7 +64,7 @@ export function applyOperationToNoon(noon, operation = {}) {
 
   if (operation.type === "set_stock") {
     const stock = integerValue(operation.stock);
-    if (stock < 0) throw new Error("stock must be 0 or greater");
+    if (!Number.isInteger(stock) || stock < 0) throw new Error("stock must be 0 or greater");
     for (const variant of variants) {
       variant.stock = stock;
     }
@@ -99,15 +100,25 @@ function safeProductFilePath(productsDir, productDir) {
 }
 
 function numberValue(value) {
-  const number = Number.parseFloat(String(value ?? "").replace(/,/g, ""));
-  return Number.isFinite(number) ? number : Number.NaN;
+  if (typeof value === "number") {
+    return Number.isFinite(value) && value > 0 ? value : Number.NaN;
+  }
+
+  const text = String(value ?? "").trim().replace(/,/g, "");
+  if (!text || !/^\d+(?:\.\d+)?$/.test(text)) return Number.NaN;
+
+  const number = Number(text);
+  return Number.isFinite(number) && number > 0 ? number : Number.NaN;
 }
 
 function integerValue(value) {
-  const number = Number.parseInt(String(value ?? ""), 10);
-  return Number.isFinite(number) ? number : Number.NaN;
-}
+  if (typeof value === "number") {
+    return Number.isInteger(value) && Number.isFinite(value) ? value : Number.NaN;
+  }
 
-function cleanText(value) {
-  return String(value ?? "").trim();
+  const text = String(value ?? "").trim();
+  if (!text || !/^\d+$/.test(text)) return Number.NaN;
+
+  const number = Number(text);
+  return Number.isInteger(number) && Number.isFinite(number) ? number : Number.NaN;
 }

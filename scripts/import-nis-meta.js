@@ -1,5 +1,8 @@
 #!/usr/bin/env node
 
+import { parseCliArgs } from "./lib/cli-args.js";
+import { escapeRegExp, cleanText } from "./lib/text-utils.js";
+
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -7,7 +10,7 @@ import XLSX from "xlsx";
 import { ensureRepository, productStoragePath, rebuildProductIndexes } from "./lib/product-storage.js";
 
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const args = parseArgs(process.argv.slice(2));
+const args = parseCliArgs(process.argv.slice(2));
 const workbookPath = args._[0] ? path.resolve(args._[0]) : "";
 const outDir = path.resolve(rootDir, args.out ?? "products");
 
@@ -171,10 +174,6 @@ function hasProductData(values) {
   return Object.values(values).some((value) => cleanText(value));
 }
 
-function cleanText(value) {
-  return value == null ? "" : String(value).trim();
-}
-
 function removeEmpty(value) {
   if (Array.isArray(value)) return value.filter(Boolean);
   const output = {};
@@ -196,30 +195,3 @@ function writeJson(filePath, data) {
   return writeFile(filePath, `${JSON.stringify(data, null, 2)}\n`, "utf8");
 }
 
-function escapeRegExp(value) {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
-
-function parseArgs(argv) {
-  const parsed = { _: [] };
-
-  for (let index = 0; index < argv.length; index += 1) {
-    const arg = argv[index];
-    if (!arg.startsWith("--")) {
-      parsed._.push(arg);
-      continue;
-    }
-
-    const key = arg.slice(2);
-    const next = argv[index + 1];
-    if (!next || next.startsWith("--")) {
-      parsed[key] = "true";
-      continue;
-    }
-
-    parsed[key] = next;
-    index += 1;
-  }
-
-  return parsed;
-}

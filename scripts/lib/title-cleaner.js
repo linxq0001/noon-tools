@@ -1,3 +1,4 @@
+import { cleanText, escapeRegExp } from "./text-utils.js";
 const platformWords = [
   "1688",
   "阿里巴巴",
@@ -108,18 +109,4 @@ function stripBagTypes(value) {
 
 function firstAttributeValue(value) {
   return cleanText(value).split(/[,，/、]/).map((item) => item.trim()).filter(Boolean)[0] ?? "";
-}
-
-function cleanText(value) {
-  return String(value ?? "")
-    .replace(/&nbsp;/gi, " ")
-    .replace(/\s+/g, " ")
-    .replace(/[【】\[\]()（）{}]/g, " ")
-    .replace(/[|｜]+/g, " ")
-    .replace(/[，,、;；]+/g, " ")
-    .trim();
-}
-
-function escapeRegExp(value) {
-  return String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }

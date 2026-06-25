@@ -8,6 +8,7 @@ import { promisify } from "node:util";
 import XLSX from "xlsx";
 import { imageUrlsForSku } from "./lib/publishable-images.js";
 import { readProductDirs } from "./lib/product-storage.js";
+import { escapeRegExp, cleanText } from "./lib/text-utils.js";
 
 const run = promisify(execFile);
 
@@ -367,10 +368,6 @@ function firstValue(...values) {
   return values.find((value) => cleanText(value) !== "") ?? "";
 }
 
-function cleanText(value) {
-  return value == null ? "" : String(value).trim();
-}
-
 async function readJsonIfExists(filePath) {
   try {
     return JSON.parse(await readFile(filePath, "utf8"));
@@ -459,8 +456,4 @@ function escapeXmlText(value) {
 
 function escapeXmlAttribute(value) {
   return escapeXmlText(value).replace(/"/g, "&quot;");
-}
-
-function escapeRegExp(value) {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }

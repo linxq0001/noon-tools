@@ -1,6 +1,7 @@
 import { mkdir, readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 import XLSX from "xlsx";
+import { cleanText } from "./text-utils.js";
 
 export const bulkUpdateFileNames = {
   product: "global-product-update.xlsx",
@@ -28,7 +29,11 @@ const catalogPrefixes = {
 
 export async function exportNoonBulkUpdates({ productsDir, outputDir, platform = "", repository = "", catalogType = "global" }) {
   const products = await readNoonProducts(productsDir, { platform, repository });
-  const { products: uniqueProducts, duplicateProducts } = dedupeProducts(products);
+  const skippedProducts = products
+    .filter((product) => hasBlockingOperationCheck(product.noonAttributes))
+    .map((product) => ({ source: product.relativeDir, reason: "blocking_operation_check" }));
+  const exportableProducts = products.filter((product) => !hasBlockingOperationCheck(product.noonAttributes));
+  const { products: uniqueProducts, duplicateProducts } = dedupeProducts(exportableProducts);
   const allRows = uniqueProducts.flatMap((product) => toSkuRows(product, { platform, catalogType })).filter((row) => row.partnerSku);
   const { rows, duplicateSkus } = dedupeSkuRows(allRows);
 
@@ -49,6 +54,7 @@ export async function exportNoonBulkUpdates({ productsDir, outputDir, platform =
     productCount: uniqueProducts.length,
     duplicateProducts,
     duplicateSkus,
+    skippedProducts,
     files,
   };
 }
@@ -107,6 +113,7 @@ function toSkuRows(product, { platform = "", catalogType = "global" } = {}) {
   const group = product.noonAttributes.product_group ?? {};
   const uploadConfig = product.noonAttributes.upload_config ?? {};
   const variants = Array.isArray(product.noonAttributes.variants) ? product.noonAttributes.variants : [];
+  const operationStatus = cleanText(product.noonAttributes.operation_status) || "active";
 
   return variants.map((variant) => ({
     source: product.relativeDir,
@@ -126,10 +133,15 @@ function toSkuRows(product, { platform = "", catalogType = "global" } = {}) {
     widthCm: blankNull(variant.width_cm),
     heightCm: blankNull(variant.height_cm),
     priceUsd: blankNull(variant.price_usd),
-    stock: blankNull(variant.stock),
+    stock: operationStatus === "inactive" ? 0 : blankNull(variant.stock),
     processingTime: cleanText(variant.processing_time) || "2_days",
     warehouseCode: cleanText(variant.warehouse_code || uploadConfig.warehouse_code) || "W00183886CN",
+    operationStatus,
   }));
+}
+
+function hasBlockingOperationCheck(noonAttributes) {
+  return (noonAttributes.operation_check?.blockingIssues || []).length > 0;
 }
 
 function catalogPartnerSku(partnerSku, { platform = "", catalogType = "global" } = {}) {
@@ -259,7 +271,7 @@ function productRows(rows) {
 function priceRows(rows) {
   return [
     ["partner_sku", "country_code", "price_usd", "is_active"],
-    ...rows.map((row) => [row.partnerSku, row.countryCode, row.priceUsd, "TRUE"]),
+    ...rows.map((row) => [row.partnerSku, row.countryCode, row.priceUsd, row.operationStatus === "inactive" ? "FALSE" : "TRUE"]),
   ];
 }
 
@@ -292,10 +304,6 @@ function writeWorkbook(filePath, sheetName, rows) {
   const workbook = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(workbook, XLSX.utils.aoa_to_sheet(rows), sheetName);
   XLSX.writeFile(workbook, filePath);
-}
-
-function cleanText(value) {
-  return String(value ?? "").replace(/\s+/g, " ").trim();
 }
 
 function blankNull(value) {
