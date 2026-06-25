@@ -10,7 +10,7 @@ import { applyBulkOperation } from "./lib/noon-bulk-operations.js";
 import { bulkUpdateFileNames, exportNoonBulkUpdates } from "./lib/noon-bulk-update-exporter.js";
 import { checkNoonProducts, writeOperationCheck } from "./lib/noon-operation-checks.js";
 import { handleNoonStoreApi } from "./lib/noon-store-api.js";
-import { buildNoonLoginArgs, buildNoonStatusArgs, buildNoonUploadIdentityArgs } from "./lib/noon-stores.js";
+import { buildNoonLoginArgs, buildNoonStatusArgs, buildNoonUploadIdentityArgs } from "./lib/noon-store-jobs.js";
 import { findNoonStore } from "./lib/noon-stores.js";
 import {
   defaultNoonUploadStatus,

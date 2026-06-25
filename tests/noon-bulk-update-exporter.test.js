@@ -248,6 +248,45 @@ test("exportNoonBulkUpdates rejects conflicting duplicate SKU rows across platfo
   );
 });
 
+test("exportNoonBulkUpdates skips products with blocking operation checks", async () => {
+  const tempDir = await mkdtemp(path.join(os.tmpdir(), "noon-bulk-blocking-"));
+  const productsDir = path.join(tempDir, "products");
+  const productDir = path.join(productsDir, "1688", "default", "1001");
+  const outputDir = path.join(tempDir, "exports");
+  await mkdir(productDir, { recursive: true });
+  await writeNoonProduct(productDir, { sku: "1688-1001-GOLD", barcode: "10010001", title: "Gold Bag" });
+  const filePath = path.join(productDir, "noon-product-attributes.json");
+  const product = JSON.parse(await readFile(filePath, "utf8"));
+  product.operation_check = { status: "blocked", blockingIssues: [{ code: "missing_barcode", message: "variant 1 缺少 barcode。" }] };
+  await writeFile(filePath, JSON.stringify(product), "utf8");
+
+  const result = await exportNoonBulkUpdates({ productsDir, outputDir, platform: "1688" });
+
+  assert.equal(result.skuCount, 0);
+  assert.deepEqual(result.skippedProducts, [{ source: "default/1001", reason: "blocking_operation_check" }]);
+  assert.deepEqual(readRows(path.join(outputDir, bulkUpdateFileNames.price)), [["partner_sku", "country_code", "price_usd", "is_active"]]);
+});
+
+test("exportNoonBulkUpdates emits inactive price and zero stock rows", async () => {
+  const tempDir = await mkdtemp(path.join(os.tmpdir(), "noon-bulk-inactive-"));
+  const productsDir = path.join(tempDir, "products");
+  const productDir = path.join(productsDir, "1688", "default", "1001");
+  const outputDir = path.join(tempDir, "exports");
+  await mkdir(productDir, { recursive: true });
+  await writeNoonProduct(productDir, { sku: "1688-1001-GOLD", barcode: "10010001", title: "Gold Bag" });
+  const filePath = path.join(productDir, "noon-product-attributes.json");
+  const product = JSON.parse(await readFile(filePath, "utf8"));
+  product.operation_status = "inactive";
+  await writeFile(filePath, JSON.stringify(product), "utf8");
+
+  await exportNoonBulkUpdates({ productsDir, outputDir, platform: "1688" });
+
+  assert.deepEqual(readRows(path.join(outputDir, bulkUpdateFileNames.price)).slice(1), [["G-1001-1001-GOLD", "sa", 10, "FALSE"]]);
+  assert.deepEqual(readRows(path.join(outputDir, bulkUpdateFileNames.stock)).slice(1), [
+    ["sa", "517205", "G-1001-1001-GOLD", "W00183886CN", 0, "2_days", 0, "2_days"],
+  ]);
+});
+
 function readRows(filePath) {
   const workbook = XLSX.readFile(filePath);
   return XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], { header: 1, defval: "" });

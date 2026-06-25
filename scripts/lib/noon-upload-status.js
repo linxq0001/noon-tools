@@ -1,8 +1,10 @@
 import { existsSync, readFileSync } from "node:fs";
 import { writeFile } from "node:fs/promises";
 import path from "node:path";
+import { normalizeNoonStoreId } from "./noon-stores.js";
 
 export const noonUploadStatusFileName = "noon-upload-status.json";
+const validStatuses = new Set(["not_uploaded", "uploading", "uploaded", "failed"]);
 
 export function defaultNoonUploadStatus(productDir = "") {
   return {
@@ -15,36 +17,64 @@ export function defaultNoonUploadStatus(productDir = "") {
   };
 }
 
-export function readNoonUploadStatusFromProductDir(productDir, relativeDir = "") {
+export function normalizeStoreId(storeId = "") {
+  return normalizeNoonStoreId(storeId || "default");
+}
+
+export function readStoreNoonUploadStatusFromProductDir(productDir, relativeDir = "", storeId = "default") {
+  const raw = readRawStatus(productDir);
+  if (!raw) return defaultNoonUploadStatus(relativeDir);
+  if (raw.statusUnreadable) return unreadableStatus(relativeDir);
+  if (raw.version !== 2 || !raw.stores || typeof raw.stores !== "object") return defaultNoonUploadStatus(relativeDir);
+
+  const id = normalizeStoreId(storeId);
+  return normalizeNoonUploadStatus(raw.stores[id], relativeDir);
+}
+
+export async function writeStoreNoonUploadStatus(productDir, status, storeId = "default") {
+  const raw = readRawStatus(productDir);
+  const stores = raw && !raw.statusUnreadable && raw.version === 2 && raw.stores && typeof raw.stores === "object" ? raw.stores : {};
+  const id = normalizeStoreId(storeId);
+  const next = {
+    version: 2,
+    stores: {
+      ...stores,
+      [id]: normalizeNoonUploadStatus(status, status.productDir || ""),
+    },
+  };
+
+  await writeFile(path.join(productDir, noonUploadStatusFileName), `${JSON.stringify(next, null, 2)}\n`, "utf8");
+  return next.stores[id];
+}
+
+function readRawStatus(productDir) {
   const statusPath = path.join(productDir, noonUploadStatusFileName);
-  if (!existsSync(statusPath)) return defaultNoonUploadStatus(relativeDir);
+  if (!existsSync(statusPath)) return null;
 
   try {
-    const raw = JSON.parse(readFileSync(statusPath, "utf8"));
-    return normalizeNoonUploadStatus(raw, relativeDir);
+    return JSON.parse(readFileSync(statusPath, "utf8"));
   } catch {
-    return {
-      ...defaultNoonUploadStatus(relativeDir),
-      status: "status_unreadable",
-      message: "noon 上传状态文件不可读取。",
-    };
+    return { statusUnreadable: true };
   }
 }
 
-export async function writeNoonUploadStatus(productDir, status) {
-  const next = normalizeNoonUploadStatus(status, status.productDir || "");
-  await writeFile(path.join(productDir, noonUploadStatusFileName), `${JSON.stringify(next, null, 2)}\n`, "utf8");
-  return next;
+function unreadableStatus(relativeDir) {
+  return {
+    ...defaultNoonUploadStatus(relativeDir),
+    status: "status_unreadable",
+    message: "noon 上传状态文件不可读取。",
+  };
 }
 
 function normalizeNoonUploadStatus(status, relativeDir) {
-  const uploaded = Boolean(status.uploaded) || status.status === "uploaded";
+  const state = validStatuses.has(status?.status) ? status.status : "not_uploaded";
+  const uploaded = state === "uploaded";
   return {
-    productDir: String(status.productDir || relativeDir || ""),
-    status: uploaded ? "uploaded" : String(status.status || "not_uploaded"),
+    productDir: String(status?.productDir || relativeDir || ""),
+    status: state,
     uploaded,
-    uploadedAt: String(status.uploadedAt || ""),
-    partnerSku: String(status.partnerSku || status.noonSku || ""),
-    message: String(status.message || (uploaded ? "已上传到 noon。" : "尚未上传到 noon。")),
+    uploadedAt: uploaded ? String(status?.uploadedAt || "") : "",
+    partnerSku: String(status?.partnerSku || ""),
+    message: String(status?.message || (uploaded ? "已上传到 noon。" : "尚未上传到 noon。")),
   };
 }

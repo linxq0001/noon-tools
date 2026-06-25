@@ -1,17 +1,14 @@
 #!/usr/bin/env node
 
-import { importCloakBrowser } from "./lib/cloak-browser.js";
-
-import { parseCliArgs } from "./lib/cli-args.js";
-import { escapeRegExp } from "./lib/text-utils.js";
-
 import { access, appendFile, readdir, readFile } from "node:fs/promises";
 import { accessSync } from "node:fs";
 import path from "node:path";
 import { createInterface } from "node:readline/promises";
 import { stdin as input, stdout as output } from "node:process";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { createSellerLabFieldIssues } from "./lib/seller-lab-field-issues.js";
+import { createSellerLabPageAdapter } from "./lib/seller-lab-page-adapter.js";
+import { createSellerLabPageOperations } from "./lib/seller-lab-page-operations.js";
 import { brandCandidates, isNoBrandValue } from "./lib/noon-brand.js";
 import { noonSelectConstraints, normalizeNoonSelectValue } from "./lib/noon-field-constraints.js";
 import { regenerateProductIdentities } from "./lib/noon-product-identity.js";
@@ -22,9 +19,7 @@ import { writeStoreNoonUploadStatus } from "./lib/noon-upload-status.js";
 
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const productsDir = path.join(rootDir, "products");
-const args = parseCliArgs(process.argv.slice(2));
-args.productDir = args.productDir ?? args["product-dir"];
-args.productDirs = args.productDirs ?? args["product-dirs"];
+const args = parseArgs(process.argv.slice(2));
 const manualWaitMs = Number.parseInt(args.manualWaitMs ?? "600000", 10);
 const fieldIssues = createSellerLabFieldIssues();
 
@@ -160,25 +155,17 @@ async function uploadProduct(product) {
 
     page = await browser.newPage();
     warnRawContent(product);
-    const h = sellerLabPageHelpers();
+    const sellerLabPage = createSellerLabPageAdapter(createSellerLabPageOperations(page, sellerLabPageHelpers()));
 
-    keepPageOpenOnFailure = await h.gotoNoonCreatePage(page);
-    keepPageOpenOnFailure = await h.waitForReady(page);
-    keepPageOpenOnFailure = await h.waitForUploadPage(page, () => {
+    keepPageOpenOnFailure = await sellerLabPage.openCreatePage(() => {
       keepPageOpenOnFailure = true;
     });
     keepPageOpenOnFailure = true;
 
-    await h.fillRequiredField(page, "English Title", product.productIdentity.englishTitle);
-    await h.fillOptionalField(page, "Arabic Title", product.productIdentity.arabicTitle);
-    await h.fillRequiredField(page, "Partner SKU", product.productIdentity.partnerSku);
-    await h.selectBrand(page, product.productIdentity.brand || "No Brand");
-    await h.uploadImages(page, product.imagePaths);
-    await h.prepareProductCategory(page, product.category?.categoryPath ?? []);
-    await h.clickButton(page, ["Create & Continue", "Continue"], { required: true });
-    await h.waitForStep(page, "Product Content", "Product Identity");
+    await sellerLabPage.fillProductIdentity(product);
+    await sellerLabPage.continueFromProductIdentity(product);
 
-    await h.fillProductContent(page, product);
+    await sellerLabPage.fillProductContent(product);
     fieldIssues.assertClear("Product Content");
 
     if (args.stopAfterDetailedContent === "true") {
@@ -189,9 +176,7 @@ async function uploadProduct(product) {
       return;
     }
 
-    await h.fillDetailedContent(page, product);
-    await h.clickButton(page, ["Save & Continue", "Create & Continue", "Continue", "Next"], { required: false });
-    await h.waitForStep(page, "Offer Details", "Detailed Content");
+    await sellerLabPage.fillDetailedContent(product);
     fieldIssues.assertClear("Detailed Content");
 
     if (args.stopAfterOfferDetails === "true") {
@@ -202,8 +187,7 @@ async function uploadProduct(product) {
       return;
     }
 
-    await h.fillOfferDetails(page, product);
-    await h.clickButton(page, ["Submit", "Create Product", "Create & Submit", "Publish", "Create"], { required: true });
+    await sellerLabPage.submitOfferDetails(product);
     fieldIssues.assertClear("Offer Details");
 
     await writeStoreNoonUploadStatus(product.productDir, {
@@ -2107,3 +2091,66 @@ async function createCloakBrowser() {
   };
 }
 
+async function importCloakBrowser() {
+  try {
+    return await import("cloakbrowser");
+  } catch (error) {
+    const globalEntry = "/opt/homebrew/lib/node_modules/cloakbrowser/dist/index.js";
+
+    try {
+      return await import(pathToFileURL(globalEntry).href);
+    } catch {
+      throw error;
+    }
+  }
+}
+
+function parseArgs(argv) {
+  const parsed = {};
+
+  for (let index = 0; index < argv.length; index += 1) {
+    const arg = argv[index];
+    if (!arg.startsWith("--")) continue;
+
+    const key = arg.slice(2);
+    const next = argv[index + 1];
+    if (!next || next.startsWith("--")) {
+      parsed[key] = "true";
+    } else {
+      parsed[key] = next;
+      index += 1;
+    }
+  }
+
+  return {
+    ...parsed,
+    productDir: parsed["product-dir"] ?? parsed.productDir,
+    productDirs: parsed["product-dirs"] ?? parsed.productDirs,
+    noonUrl: parsed["noon-url"] ?? parsed.noonUrl,
+    storeId: parsed["store-id"] ?? parsed.storeId,
+    manualWaitMs: parsed["manual-wait-ms"] ?? parsed.manualWaitMs,
+    keepOpen: parsed["keep-open"] ?? parsed.keepOpen,
+    stopAfterDetailedContent: parsed["stop-after-detailed-content"] ?? parsed.stopAfterDetailedContent,
+    stopAfterOfferDetails: parsed["stop-after-offer-details"] ?? parsed.stopAfterOfferDetails,
+    cloakTyping: parsed["cloak-typing"] ?? parsed.cloakTyping,
+    validateOnly: parsed["validate-only"] ?? parsed.validateOnly,
+    browser: parsed.browser ?? "cloak",
+  };
+}
+
+function hasValue(value) {
+  return value !== null && value !== undefined && String(value).trim() !== "";
+}
+
+function escapeRegExp(value) {
+  return String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function logStep(scope, message) {
+  console.log(`[${scope}] ${message}`);
+}
+
+function fail(message) {
+  console.error(`[failed] ${message}`);
+  process.exit(1);
+}

@@ -1,14 +1,10 @@
 #!/usr/bin/env node
 
-import { importCloakBrowser } from "./lib/cloak-browser.js";
-
-import { parseCliArgs } from "./lib/cli-args.js";
-
 import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const args = parseCliArgs(process.argv.slice(2));
+const args = parseArgs(process.argv.slice(2));
 const loginUrl = args.url || "https://www.1688.com/";
 const profile = args.profile || ".cloakbrowser-profile";
 const minOpenSeconds = Number.parseInt(args["min-open-seconds"] || "10", 10);
@@ -104,3 +100,31 @@ async function readLoginState(page) {
   return state;
 }
 
+async function importCloakBrowser() {
+  try {
+    return await import("cloakbrowser");
+  } catch (error) {
+    const globalEntry = "/opt/homebrew/lib/node_modules/cloakbrowser/dist/index.js";
+
+    try {
+      return await import(pathToFileURL(globalEntry).href);
+    } catch {
+      throw error;
+    }
+  }
+}
+
+function parseArgs(values) {
+  const parsed = {};
+
+  for (let index = 0; index < values.length; index += 1) {
+    const value = values[index];
+
+    if (value.startsWith("--")) {
+      const key = value.slice(2);
+      parsed[key] = values[index + 1] && !values[index + 1].startsWith("--") ? values[++index] : "true";
+    }
+  }
+
+  return parsed;
+}

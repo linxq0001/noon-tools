@@ -1,7 +1,6 @@
 import { mkdir, readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 import XLSX from "xlsx";
-import { cleanText } from "./text-utils.js";
 
 export const bulkUpdateFileNames = {
   product: "global-product-update.xlsx",
@@ -304,6 +303,10 @@ function writeWorkbook(filePath, sheetName, rows) {
   const workbook = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(workbook, XLSX.utils.aoa_to_sheet(rows), sheetName);
   XLSX.writeFile(workbook, filePath);
+}
+
+function cleanText(value) {
+  return String(value ?? "").replace(/\s+/g, " ").trim();
 }
 
 function blankNull(value) {

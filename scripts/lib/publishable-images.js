@@ -5,7 +5,6 @@ import os from "node:os";
 import path from "node:path";
 import { promisify } from "node:util";
 import { readProductDirs } from "./product-storage.js";
-import { cleanText } from "./text-utils.js";
 
 const run = promisify(execFile);
 const GOOGLE_TOKEN_SCOPE = "https://www.googleapis.com/auth/drive";
@@ -292,4 +291,8 @@ async function readJsonIfExists(filePath) {
     if (error.code === "ENOENT") return null;
     throw error;
   }
+}
+
+function cleanText(value) {
+  return value == null ? "" : String(value).trim();
 }

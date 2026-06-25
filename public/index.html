@@ -99,6 +99,20 @@
         color: var(--ink);
       }
 
+      button.danger {
+        border-color: var(--danger);
+        background: #ffffff;
+        color: var(--danger);
+        box-shadow: none;
+      }
+
+      button.danger:hover:not(:disabled) {
+        background: #fff1f0;
+        border-color: var(--danger);
+        color: var(--danger);
+        box-shadow: none;
+      }
+
       button:disabled {
         cursor: not-allowed;
         opacity: 0.55;
@@ -370,6 +384,25 @@
         align-items: start;
       }
 
+      .settings-layout {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(360px, 0.86fr);
+        gap: 14px;
+        align-items: start;
+      }
+
+      .settings-stack {
+        display: grid;
+        gap: 14px;
+      }
+
+      .setting-hint {
+        margin: -2px 0 10px;
+        color: var(--muted-strong);
+        font-size: 12px;
+        line-height: 1.6;
+      }
+
       .grid-2 {
         display: grid;
         grid-template-columns: 1fr 1fr;
@@ -437,6 +470,7 @@
 
       .status-strip span {
         color: var(--muted-strong);
+        overflow-wrap: anywhere;
         font-size: 12px;
         line-height: 1.5;
       }
@@ -447,6 +481,45 @@
 
       .status-bad strong {
         color: var(--danger);
+      }
+
+      .store-list {
+        display: grid;
+        gap: 8px;
+        margin-top: 10px;
+      }
+
+      .store-row {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 10px;
+        padding: 10px;
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        background: var(--panel-strong);
+      }
+
+      .store-row strong,
+      .store-row span {
+        display: block;
+      }
+
+      .store-row span {
+        color: var(--muted-strong);
+        font-size: 12px;
+        line-height: 1.5;
+      }
+
+      .store-row.active {
+        border-color: var(--accent);
+        background: var(--accent-soft);
+      }
+
+      .store-row.active strong::after {
+        content: " ✓ 当前默认";
+        color: var(--accent);
+        font-size: 12px;
+        font-weight: 700;
       }
 
       .repository-grid {
@@ -762,7 +835,8 @@
 
         .dashboard-grid,
         .quick-grid,
-        .form-grid {
+        .form-grid,
+        .settings-layout {
           grid-template-columns: 1fr;
         }
 
@@ -821,7 +895,8 @@
             <button type="button" data-route="dashboard"><span>01</span><span>工作台</span></button>
             <button type="button" data-route="collect"><span>02</span><span>1688 采集</span></button>
             <button type="button" data-route="repositories"><span>03</span><span>商品仓库</span></button>
-            <button type="button" data-route="settings"><span>04</span><span>配置</span></button>
+            <button type="button" data-route="stores"><span>04</span><span>店铺</span></button>
+            <button type="button" data-route="settings"><span>05</span><span>配置</span></button>
           </nav>
           <div class="rail-status">
             <span>任务状态</span>
@@ -862,7 +937,11 @@
               </button>
               <button class="quick-card" type="button" data-route="settings">
                 <strong>配置</strong>
-                <span>集中维护浏览器、Proxy、noon 链接和 DeepSeek 配置。</span>
+                <span>集中维护采集环境、上传方式和运营参数。</span>
+              </button>
+              <button class="quick-card" type="button" data-route="stores">
+                <strong>店铺管理</strong>
+                <span>维护 noon 店铺、登录状态和本机后台运行资料。</span>
               </button>
             </div>
           </section>
@@ -930,7 +1009,9 @@
               </section>
 
               <aside class="panel pad">
-                <div class="panel-title"><span>noon 商品作业</span></div>
+                <div class="panel-title"><span>noon 上传作业</span></div>
+                <label for="uploadStoreId">上传目标店铺</label>
+                <select id="uploadStoreId" name="uploadStoreId"></select>
                 <div class="actions">
                   <button id="uploadAllButton" type="button">上传全部仓库商品</button>
                 </div>
@@ -945,6 +1026,38 @@
             </div>
           </section>
 
+          <section class="page" data-page="stores">
+            <div class="page-head">
+              <div>
+                <p class="page-kicker">Noon Stores</p>
+                <h2 class="page-title">Noon 店铺管理</h2>
+              </div>
+              <button class="secondary" id="addStoreButton" type="button">新增店铺</button>
+            </div>
+            <div class="form-grid">
+              <section class="panel pad" data-store-section="registry">
+                <div class="panel-title"><span>店铺列表</span></div>
+                <p class="setting-hint">维护本机保存的 noon 店铺登录信息，用于后台检测登录和上传时选择店铺。</p>
+                <label for="storeSearch">搜索店铺</label>
+                <input id="storeSearch" placeholder="UAE01 / 店铺名称 / PRJ517205" />
+                <div class="store-list" id="storeList"></div>
+              </section>
+
+              <aside class="panel pad" data-store-section="status">
+                <div class="panel-title"><span>登录状态</span></div>
+                <p class="setting-hint">选择店铺后检测 noon 是否已经在对应浏览器资料中保持登录。</p>
+                <div class="status-strip" id="noonStatus">
+                  <strong>noon 状态未检测</strong>
+                  <span>选择店铺后点击检测登录。</span>
+                </div>
+
+                <div class="actions">
+                  <button class="secondary" id="checkNoonButton" type="button">检测登录</button>
+                </div>
+              </aside>
+            </div>
+          </section>
+
           <section class="page" data-page="settings">
             <div class="page-head">
               <div>
@@ -952,55 +1065,62 @@
                 <h2 class="page-title">配置</h2>
               </div>
             </div>
-            <div class="form-grid">
-              <section class="panel pad">
-                <div class="panel-title"><span>采集配置</span></div>
-                <label for="headless">1688 浏览器</label>
-                <select id="headless" name="headless">
-                  <option value="false">显示窗口</option>
-                  <option value="true">后台运行</option>
-                </select>
+            <div class="settings-layout">
+              <div class="settings-stack">
+                <section class="panel pad" data-settings-section="collect-environment">
+                  <div class="panel-title"><span>1688 采集环境</span></div>
+                  <p class="setting-hint">控制 1688 采集浏览器和网络代理，只影响采集、登录 1688 与商品抓取。</p>
+                  <label for="headless">1688 浏览器运行方式</label>
+                  <select id="headless" name="headless">
+                    <option value="false">显示窗口</option>
+                    <option value="true">后台运行</option>
+                  </select>
 
-                <label for="proxy">Proxy</label>
-                <input id="proxy" name="proxy" placeholder="http://user:pass@host:port" />
-              </section>
+                  <label for="proxy">Proxy</label>
+                  <input id="proxy" name="proxy" placeholder="http://user:pass@host:port" />
+                </section>
 
-              <aside class="panel pad">
-                <div class="panel-title"><span>noon / AI 配置</span></div>
-                <label for="noonUrl">noon Add Product 链接</label>
-                <input id="noonUrl" name="noonUrl" placeholder="https://.../add-product..." />
+                <section class="panel pad" data-settings-section="upload-settings">
+                  <div class="panel-title"><span>Noon 上传设置</span></div>
+                  <p class="setting-hint">控制 noon 自动化使用的浏览器内核、输入方式和前后台运行方式。上传目标店铺在商品仓库页选择。</p>
+                  <label for="noonBrowser">noon 浏览器内核</label>
+                  <select id="noonBrowser" name="noonBrowser">
+                    <option value="chrome">系统 Chrome</option>
+                    <option value="cloak" selected>CloakBrowser</option>
+                  </select>
+                  <label><input id="noonCloakTyping" name="noonCloakTyping" type="checkbox" />CloakBrowser 逐字输入</label>
 
-                <label for="noonBrowser">noon 内核</label>
-                <select id="noonBrowser" name="noonBrowser">
-                  <option value="chrome">系统 Chrome</option>
-                  <option value="cloak" selected>CloakBrowser</option>
-                </select>
-                <label><input id="noonCloakTyping" name="noonCloakTyping" type="checkbox" />CloakBrowser 逐字输入</label>
+                  <label for="noonHeadless">noon 运行方式</label>
+                  <select id="noonHeadless" name="noonHeadless">
+                    <option value="false">显示窗口</option>
+                    <option value="true">后台运行</option>
+                  </select>
+                </section>
+              </div>
 
-                <label for="noonHeadless">noon 运行方式</label>
-                <select id="noonHeadless" name="noonHeadless">
-                  <option value="false">显示窗口</option>
-                  <option value="true">后台运行</option>
-                </select>
+              <div class="settings-stack">
+                <section class="panel pad" data-settings-section="operations-settings">
+                  <div class="panel-title"><span>运营参数</span></div>
+                  <p class="setting-hint">用于利润计算和 AI 文案生成，不参与店铺登录状态判断。</p>
+                  <label for="globalExchangeRate">默认汇率</label>
+                  <input id="globalExchangeRate" name="globalExchangeRate" placeholder="1.96" />
 
-                <div class="status-strip" id="noonStatus">
-                  <strong>noon 状态未检测</strong>
-                  <span>填写 noon 链接后点击检测登录。</span>
-                </div>
+                  <label for="globalPlatformFeeRate">默认平台费率</label>
+                  <input id="globalPlatformFeeRate" name="globalPlatformFeeRate" placeholder="12%" />
 
-                <div class="actions">
-                  <button class="secondary" id="checkNoonButton" type="button">检测登录</button>
-                </div>
+                  <label for="globalTargetMargin">默认目标利润率</label>
+                  <input id="globalTargetMargin" name="globalTargetMargin" placeholder="28%" />
 
-                <label for="deepSeekModel">DeepSeek 模型</label>
-                <select id="deepSeekModel" name="deepSeekModel">
-                  <option value="deepseek-v4-flash">deepseek-v4-flash</option>
-                  <option value="deepseek-v4-pro">deepseek-v4-pro</option>
-                </select>
+                  <label for="deepSeekModel">DeepSeek 模型</label>
+                  <select id="deepSeekModel" name="deepSeekModel">
+                    <option value="deepseek-v4-flash">deepseek-v4-flash</option>
+                    <option value="deepseek-v4-pro">deepseek-v4-pro</option>
+                  </select>
 
-                <label for="deepSeekApiKey">DeepSeek API Key</label>
-                <input id="deepSeekApiKey" name="deepSeekApiKey" type="password" placeholder="sk-...，保存到本机配置" autocomplete="off" />
-              </aside>
+                  <label for="deepSeekApiKey">DeepSeek API Key</label>
+                  <input id="deepSeekApiKey" name="deepSeekApiKey" type="password" placeholder="sk-...，保存到本机配置" autocomplete="off" />
+                </section>
+              </div>
             </div>
           </section>
         </section>
@@ -1014,6 +1134,26 @@
             <div class="dialog-body" id="repositoryDialogBody"></div>
           </section>
         </div>
+
+        <div class="dialog-backdrop" id="storeDialog" role="dialog" aria-modal="true" aria-labelledby="storeDialogTitle">
+          <section class="dialog" style="width: min(520px, 100%)">
+            <div class="dialog-head">
+              <h2 class="dialog-title" id="storeDialogTitle">新增 noon 店铺</h2>
+              <button class="secondary" id="closeStoreDialog" type="button">关闭</button>
+            </div>
+            <div class="dialog-body">
+              <label for="storeId">店铺 ID</label>
+              <input id="storeId" placeholder="UAE01" />
+              <label for="storeName">店铺名称</label>
+              <input id="storeName" placeholder="Main UAE" />
+              <label for="storeProjectId">Project ID</label>
+              <input id="storeProjectId" placeholder="PRJ517205" />
+              <div class="actions">
+                <button id="saveStoreButton" type="button">保存店铺</button>
+              </div>
+            </div>
+          </section>
+        </div>
       </main>
     </form>
 
@@ -1023,6 +1163,16 @@
       const login1688Button = document.querySelector("#login1688Button");
       const uploadAllButton = document.querySelector("#uploadAllButton");
       const checkNoonButton = document.querySelector("#checkNoonButton");
+      const uploadStoreId = document.querySelector("#uploadStoreId");
+      const storeSearch = document.querySelector("#storeSearch");
+      const storeList = document.querySelector("#storeList");
+      const addStoreButton = document.querySelector("#addStoreButton");
+      const storeDialog = document.querySelector("#storeDialog");
+      const closeStoreDialog = document.querySelector("#closeStoreDialog");
+      const saveStoreButton = document.querySelector("#saveStoreButton");
+      const storeIdInput = document.querySelector("#storeId");
+      const storeNameInput = document.querySelector("#storeName");
+      const storeProjectIdInput = document.querySelector("#storeProjectId");
       const collectStopButton = document.querySelector("#collectStopButton");
       const repositoryStopButton = document.querySelector("#repositoryStopButton");
       const refreshButton = document.querySelector("#refreshButton");
@@ -1050,6 +1200,7 @@
       let pollTimer = null;
       let saveFormTimer = null;
       let lastRepositories = [];
+      let noonStores = [];
       const savedFormKey = "noon-tools:job-form";
       const savedFormFields = [
         "url",
@@ -1058,10 +1209,13 @@
         "headless",
         "proxy",
         "repository",
-        "noonUrl",
+        "uploadStoreId",
         "noonBrowser",
         "noonCloakTyping",
         "noonHeadless",
+        "globalExchangeRate",
+        "globalPlatformFeeRate",
+        "globalTargetMargin",
         "deepSeekModel",
         "deepSeekApiKey",
       ];
@@ -1082,6 +1236,9 @@
         login1688Button.disabled = true;
         uploadAllButton.disabled = true;
         checkNoonButton.disabled = true;
+        addStoreButton.disabled = true;
+        saveStoreButton.disabled = true;
+        uploadStoreId.disabled = true;
         collectStopButton.disabled = true;
         repositoryStopButton.disabled = true;
         appendLog("请通过本地服务打开界面，不能直接打开 public/index.html。");
@@ -1130,6 +1287,17 @@
       uploadAllButton.addEventListener("click", async () => startUploadJob({ all: true }));
       login1688Button.addEventListener("click", login1688);
       checkNoonButton.addEventListener("click", checkNoonStatus);
+      addStoreButton.addEventListener("click", openStoreDialog);
+      closeStoreDialog.addEventListener("click", closeStoreDialogBox);
+      storeDialog.addEventListener("click", (event) => {
+        if (event.target === storeDialog) closeStoreDialogBox();
+      });
+      saveStoreButton.addEventListener("click", saveStore);
+      storeSearch.addEventListener("input", () => renderStores(uploadStoreId.value));
+      uploadStoreId.addEventListener("change", async () => {
+        await saveServerFormState({ defaultStoreId: uploadStoreId.value });
+        await refreshProducts();
+      });
       collectStopButton.addEventListener("click", stopCurrentJob);
       repositoryStopButton.addEventListener("click", stopCurrentJob);
       refreshButton.addEventListener("click", refreshProducts);
@@ -1248,7 +1416,9 @@
 
       async function refreshProducts() {
         if (window.location.protocol === "file:") return;
-        const repositories = await fetchJson("/api/products");
+        const params = new URLSearchParams();
+        if (uploadStoreId.value) params.set("storeId", uploadStoreId.value);
+        const repositories = await fetchJson(params.toString() ? `/api/products?${params}` : "/api/products");
         lastRepositories = repositories;
         const productCount = repositories.reduce((sum, repository) => sum + (repository.productCount || 0), 0);
         repositoryCountEl.textContent = repositories.length;
@@ -1275,6 +1445,120 @@
           tab.addEventListener("click", () => openRepositoryDialog(repository));
           productsEl.append(tab);
         }
+      }
+
+      async function loadStores(defaultStoreId = "") {
+        if (window.location.protocol === "file:") return;
+        try {
+          const result = await fetchJson("/api/stores");
+          noonStores = result.stores || [];
+          renderStores(defaultStoreId || uploadStoreId.value);
+        } catch (error) {
+          storeList.innerHTML = `<div class="empty">${escapeHtml(error.message)}</div>`;
+        }
+      }
+
+      function renderStores(selectedStoreId = "") {
+        const selected = selectedStoreId || noonStores[0]?.id || "";
+        uploadStoreId.innerHTML = noonStores.length
+          ? noonStores.map((store) => `<option value="${escapeHtml(store.id)}">${escapeHtml(store.id)} · ${escapeHtml(store.name)}</option>`).join("")
+          : '<option value="">暂无店铺</option>';
+        uploadStoreId.value = noonStores.some((store) => store.id === selected) ? selected : noonStores[0]?.id || "";
+
+        const keyword = storeSearch.value.trim().toLowerCase();
+        const stores = noonStores.filter((store) =>
+          [store.id, store.name, store.projectId].some((value) => String(value || "").toLowerCase().includes(keyword)),
+        );
+
+        if (stores.length === 0) {
+          storeList.innerHTML = '<div class="empty">没有匹配的店铺。</div>';
+          return;
+        }
+
+        storeList.innerHTML = "";
+        for (const store of stores) {
+          const row = document.createElement("article");
+          const isActive = store.id === selected;
+          row.className = isActive ? "store-row active" : "store-row";
+          row.innerHTML = `
+            <div>
+              <strong>${escapeHtml(store.name)} · ${escapeHtml(store.id)}</strong>
+              <span>${escapeHtml(store.projectId)} · ${escapeHtml(store.url || "")}</span>
+            </div>
+            <div class="actions" style="margin-top: 0">
+              <button class="${isActive ? "ghost" : "secondary"}" type="button" ${isActive ? "disabled" : ""} data-store-default="${escapeHtml(store.id)}">${isActive ? "✓ 当前默认" : "设为默认"}</button>
+              <button class="secondary" type="button" data-store-login="${escapeHtml(store.id)}">登录</button>
+              <button class="secondary" type="button" data-store-status="${escapeHtml(store.id)}">检测</button>
+              <button class="danger" type="button" data-store-delete="${escapeHtml(store.id)}">删除</button>
+            </div>
+          `;
+          row.querySelector("[data-store-default]").addEventListener("click", async () => setDefaultStore(store.id));
+          row.querySelector("[data-store-login]").addEventListener("click", async () => loginNoonStore(store.id));
+          row.querySelector("[data-store-status]").addEventListener("click", async () => checkNoonStatus(store.id));
+          row.querySelector("[data-store-delete]").addEventListener("click", async () => deleteStore(store.id));
+          storeList.append(row);
+        }
+      }
+
+      function openStoreDialog() {
+        storeIdInput.value = "";
+        storeNameInput.value = "";
+        storeProjectIdInput.value = "";
+        storeDialog.classList.add("open");
+        storeIdInput.focus();
+      }
+
+      function closeStoreDialogBox() {
+        storeDialog.classList.remove("open");
+      }
+
+      async function saveStore() {
+        try {
+          const result = await postJson("/api/stores", {
+            id: storeIdInput.value.trim(),
+            name: storeNameInput.value.trim(),
+            projectId: storeProjectIdInput.value.trim(),
+          });
+          closeStoreDialogBox();
+          await loadStores(result.store.id);
+          await setDefaultStore(result.store.id);
+        } catch (error) {
+          renderNoonStatus({ status: "error", error: error.message });
+        }
+      }
+
+      async function setDefaultStore(storeId) {
+        uploadStoreId.value = storeId;
+        await saveServerFormState({ defaultStoreId: storeId });
+        renderStores(storeId);
+        await refreshProducts();
+      }
+
+      async function deleteStore(storeId) {
+        if (!confirm(`删除店铺 ${storeId}？本地登录资料也会删除。`)) return;
+        try {
+          const response = await fetch(`/api/stores/${encodeURIComponent(storeId)}`, { method: "DELETE" });
+          const result = await readResponseJson(response);
+          if (!response.ok) throw new Error(result.error || "删除店铺失败");
+        } catch (error) {
+          renderNoonStatus({ status: "error", error: error.message });
+          return;
+        }
+        await loadStores(uploadStoreId.value === storeId ? "" : uploadStoreId.value);
+        await refreshProducts();
+      }
+
+      async function loginNoonStore(storeId) {
+        if (window.location.protocol === "file:") return;
+        activeJobArea = "repository";
+        activeLogEl = repositoryLogEl;
+        showRoute("repositories");
+        repositoryLogEl.innerHTML = "";
+        const job = await postJson(`/api/stores/${encodeURIComponent(storeId)}/login`, {});
+        activeJobId = job.id;
+        activeJobBase = "/api/jobs";
+        renderJob(job);
+        startPolling();
       }
 
       function openRepositoryDialog(repository) {
@@ -1313,8 +1597,29 @@
             <div class="repository-control-row">
               <label><input type="checkbox" data-select-page />选择本页</label>
               <div class="actions" style="margin-top: 0">
+                <button class="secondary" type="button" data-check-selected disabled>运行检查</button>
                 <button class="secondary" type="button" data-upload-selected disabled>上传选中</button>
                 <button type="button" data-upload-repository>上传全部</button>
+              </div>
+            </div>
+            <div class="repository-control-row">
+              <label>
+                价格 USD
+                <input name="bulkPriceUsd" data-bulk-price-usd inputmode="decimal" placeholder="18.5" />
+              </label>
+              <label>
+                库存
+                <input name="bulkStock" data-bulk-stock inputmode="numeric" placeholder="9" />
+              </label>
+              <label>
+                时效
+                <input name="bulkProcessingTime" data-bulk-processing-time placeholder="5_days" />
+              </label>
+              <div class="actions" style="margin-top: 0">
+                <button class="secondary" type="button" data-set-price disabled>批量改价</button>
+                <button class="secondary" type="button" data-set-stock disabled>批量改库存</button>
+                <button class="secondary" type="button" data-set-processing-time disabled>批量改时效</button>
+                <button class="danger" type="button" data-deactivate-selected disabled>批量停售</button>
               </div>
             </div>
             <div class="repository-control-row">
@@ -1402,11 +1707,20 @@
               const selectPage = controls.querySelector("[data-select-page]");
               selectPage.checked = pageDirs.length > 0 && selectedOnPage === pageDirs.length;
               selectPage.indeterminate = selectedOnPage > 0 && selectedOnPage < pageDirs.length;
-              controls.querySelector("[data-upload-selected]").disabled = selectedProductDirs.size === 0;
+              const hasSelection = selectedProductDirs.size > 0;
+              controls.querySelector("[data-upload-selected]").disabled = !hasSelection;
+              controls.querySelector("[data-check-selected]").disabled = !hasSelection;
+              controls.querySelector("[data-set-price]").disabled = !hasSelection;
+              controls.querySelector("[data-set-stock]").disabled = !hasSelection;
+              controls.querySelector("[data-set-processing-time]").disabled = !hasSelection;
+              controls.querySelector("[data-deactivate-selected]").disabled = !hasSelection;
               controls.querySelector("[data-selection-summary]").textContent =
                 `共 ${repository.products.length} 个商品 · 已选 ${selectedProductDirs.size} 个 · 本页 ${pageProducts.length} 个`;
             }
           };
+
+          const selectedDirs = () =>
+            repository.products.map((product) => product.dirName).filter((dirName) => selectedProductDirs.has(dirName));
 
           controls.querySelector("[data-select-page]").addEventListener("change", (event) => {
             const start = (currentPage - 1) * pageSize;
@@ -1428,9 +1742,7 @@
             renderPage();
           });
           controls.querySelector("[data-upload-selected]").addEventListener("click", async () => {
-            const productDirs = repository.products
-              .map((product) => product.dirName)
-              .filter((dirName) => selectedProductDirs.has(dirName));
+            const productDirs = selectedDirs();
             if (productDirs.length === 0) return;
             closeDialog();
             await startUploadJob({ productDirs });
@@ -1438,6 +1750,24 @@
           controls.querySelector("[data-upload-repository]").addEventListener("click", async () => {
             closeDialog();
             await startUploadJob({ productDirs: repository.products.map((product) => product.dirName) });
+          });
+          controls.querySelector("[data-check-selected]").addEventListener("click", async () => {
+            await runOperationChecks(selectedDirs());
+          });
+          controls.querySelector("[data-set-price]").addEventListener("click", async () => {
+            const priceUsd = controls.querySelector("[data-bulk-price-usd]").value.trim();
+            await runBulkOperation(repository, selectedDirs(), { type: "set_price", priceUsd });
+          });
+          controls.querySelector("[data-set-stock]").addEventListener("click", async () => {
+            const stock = controls.querySelector("[data-bulk-stock]").value.trim();
+            await runBulkOperation(repository, selectedDirs(), { type: "set_stock", stock });
+          });
+          controls.querySelector("[data-set-processing-time]").addEventListener("click", async () => {
+            const processingTime = controls.querySelector("[data-bulk-processing-time]").value.trim();
+            await runBulkOperation(repository, selectedDirs(), { type: "set_processing_time", processingTime });
+          });
+          controls.querySelector("[data-deactivate-selected]").addEventListener("click", async () => {
+            await runBulkOperation(repository, selectedDirs(), { type: "deactivate" });
           });
 
           renderPage();
@@ -1455,9 +1785,9 @@
 
         await persistFormState();
         const data = Object.fromEntries(new FormData(form).entries());
-        if (!data.noonUrl.trim()) {
-          showRoute("settings");
-          renderNoonStatus({ status: "error", error: "请先填写 noon Add Product 链接。" });
+        if (!uploadStoreId.value) {
+          showRoute("stores");
+          renderNoonStatus({ status: "error", error: "请先选择 noon 店铺。" });
           return;
         }
 
@@ -1473,7 +1803,7 @@
           headers: { "content-type": "application/json" },
           body: JSON.stringify({
             ...payload,
-            noonUrl: data.noonUrl.trim(),
+            storeId: uploadStoreId.value,
             noonBrowser: data.noonBrowser || "cloak",
             noonCloakTyping: form.elements.noonCloakTyping.checked,
             headless: data.noonHeadless === "true",
@@ -1553,6 +1883,70 @@
         }
       }
 
+      async function runOperationChecks(productDirs) {
+        if (window.location.protocol === "file:" || productDirs.length === 0) return;
+        activeJobArea = "repository";
+        activeLogEl = repositoryLogEl;
+        repositoryLogEl.innerHTML = "";
+        appendLog(`开始检查 ${productDirs.length} 个商品...`);
+
+        try {
+          const result = await postJson("/api/operation-checks", {
+            productDirs,
+            ...profitConfigFromForm(),
+          });
+          appendLog(
+            `检查完成：${result.summary.readyCount} 个可操作，${result.summary.warningCount} 个有警告，${result.summary.blockedCount} 个阻塞。`,
+          );
+          for (const item of result.checked.filter((check) => check.blockingIssues.length > 0).slice(0, 8)) {
+            appendLog(`${item.productDir}: ${item.blockingIssues.map((issue) => issue.message).join(" / ")}`);
+          }
+          await refreshProducts();
+        } catch (error) {
+          appendLog(error.message);
+        }
+      }
+
+      async function runBulkOperation(repository, productDirs, operation) {
+        if (window.location.protocol === "file:" || productDirs.length === 0) return;
+        activeJobArea = "repository";
+        activeLogEl = repositoryLogEl;
+        repositoryLogEl.innerHTML = "";
+        appendLog(`开始执行 ${operation.type}: ${productDirs.length} 个商品...`);
+
+        try {
+          const result = await postJson("/api/bulk-operations", {
+            productDirs,
+            repository: repository.id === "__default__" ? "default" : repository.id,
+            catalogType: "global",
+            operation,
+            ...profitConfigFromForm(),
+          });
+          appendLog(`操作完成：${result.operation.changedCount} 个已更新，${result.operation.skippedCount} 个跳过，${result.operation.failedCount} 个失败。`);
+          appendLog(`已生成 ${result.export.productCount} 个商品、${result.export.skuCount} 个 SKU 的批量更新表。`);
+          if (result.export.skippedProducts?.length) {
+            appendLog(`导出跳过 ${result.export.skippedProducts.length} 个阻塞商品。`);
+          }
+          if (result.files) {
+            appendLog(`下载：${result.files.price} / ${result.files.stock}`);
+            const linksEl = repositoryDialogBody.querySelector("[data-bulk-export-links]");
+            if (linksEl) renderBulkUpdateLinks(linksEl, result.files);
+          }
+          await refreshProducts();
+        } catch (error) {
+          appendLog(error.message);
+        }
+      }
+
+      function profitConfigFromForm() {
+        const data = Object.fromEntries(new FormData(form).entries());
+        return {
+          exchangeRate: data.globalExchangeRate || "1.96",
+          platformFeeRate: data.globalPlatformFeeRate || "12%",
+          targetMargin: data.globalTargetMargin || "28%",
+        };
+      }
+
       function renderBulkUpdateLinks(linksEl, files) {
         linksEl.innerHTML = `
           <a href="${files.product}" target="_blank">Global Product Update</a>
@@ -1579,13 +1973,12 @@
         }
       }
 
-      async function checkNoonStatus() {
+      async function checkNoonStatus(storeId = uploadStoreId.value) {
         if (window.location.protocol === "file:") return;
 
         await persistFormState();
-        const data = Object.fromEntries(new FormData(form).entries());
-        if (!data.noonUrl.trim()) {
-          renderNoonStatus({ status: "error", error: "请先填写 noon Add Product 链接。" });
+        if (!storeId) {
+          renderNoonStatus({ status: "error", error: "请先选择 noon 店铺。" });
           return;
         }
 
@@ -1593,8 +1986,7 @@
         renderNoonStatus({ status: "checking" });
 
         try {
-          const params = new URLSearchParams({ noonUrl: data.noonUrl.trim() });
-          const status = await fetchJson(`/api/noon-status?${params}`);
+          const status = await fetchJson(`/api/stores/${encodeURIComponent(storeId)}/status`);
           renderNoonStatus(status);
         } catch (error) {
           renderNoonStatus({ status: "error", error: error.message });
@@ -1640,6 +2032,8 @@
         try {
           const saved = await fetchJson("/api/settings");
           applyFormState(saved);
+          await loadStores(saved.defaultStoreId || "");
+          await refreshProducts();
           saveLocalFormState(readFormState());
         } catch {}
       }

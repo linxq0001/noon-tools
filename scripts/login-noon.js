@@ -1,14 +1,10 @@
 #!/usr/bin/env node
 
-import { importCloakBrowser } from "./lib/cloak-browser.js";
-
-import { parseCliArgs } from "./lib/cli-args.js";
-
 import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const args = parseCliArgs(process.argv.slice(2));
+const args = parseArgs(process.argv.slice(2));
 const noonUrl = args.noonUrl ?? args["noon-url"] ?? "https://noon-catalog.noon.partners/en/catalog/create?project=PRJ517205";
 
 const { launchPersistentContext } = await importCloakBrowser();
@@ -37,3 +33,36 @@ process.on("SIGINT", async () => {
 
 await new Promise(() => {});
 
+async function importCloakBrowser() {
+  try {
+    return await import("cloakbrowser");
+  } catch (error) {
+    const globalEntry = "/opt/homebrew/lib/node_modules/cloakbrowser/dist/index.js";
+
+    try {
+      return await import(pathToFileURL(globalEntry).href);
+    } catch {
+      throw error;
+    }
+  }
+}
+
+function parseArgs(argv) {
+  const parsed = {};
+
+  for (let index = 0; index < argv.length; index += 1) {
+    const arg = argv[index];
+    if (!arg.startsWith("--")) continue;
+
+    const key = arg.slice(2);
+    const next = argv[index + 1];
+    if (!next || next.startsWith("--")) {
+      parsed[key] = "true";
+    } else {
+      parsed[key] = next;
+      index += 1;
+    }
+  }
+
+  return parsed;
+}

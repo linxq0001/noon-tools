@@ -1,14 +1,11 @@
 #!/usr/bin/env node
 
-import { importCloakBrowser } from "./lib/cloak-browser.js";
-
-import { parseCliArgs } from "./lib/cli-args.js";
-
 import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
+import { normalizeNoonBrowserError } from "./lib/noon-browser-errors.js";
 
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const args = parseCliArgs(process.argv.slice(2));
+const args = parseArgs(process.argv.slice(2));
 const noonUrl = args.noonUrl ?? args["noon-url"] ?? "https://noon-catalog.noon.partners/en/catalog/create?project=PRJ517205";
 const profile = args.profile ?? ".noon-profile";
 
@@ -32,7 +29,7 @@ async function checkNoonStatus({ noonUrl, profile }) {
   const { launchPersistentContext } = await importCloakBrowser();
   const context = await launchPersistentContext({
     userDataDir: path.resolve(rootDir, profile),
-    headless: false,
+    headless: args.headless === "false" ? false : true,
     locale: "en-US",
     timezone: "Asia/Dubai",
     viewport: { width: 1440, height: 960 },
@@ -87,12 +84,36 @@ async function checkNoonStatus({ noonUrl, profile }) {
   }
 }
 
+async function importCloakBrowser() {
+  try {
+    return await import("cloakbrowser");
+  } catch (error) {
+    const globalEntry = "/opt/homebrew/lib/node_modules/cloakbrowser/dist/index.js";
 
-function normalizeNoonBrowserError(error, profile = "") {
-  const message = error instanceof Error ? error.message : String(error || "检测失败");
-  if (/ProcessSingleton|existing browser session|profile.*in use|launchPersistentContext/i.test(message)) {
-    const profileSuffix = profile ? `Profile: ${profile}` : "";
-    return `Noon 浏览器资料正在被另一个窗口或任务使用。请先关闭该店铺的 noon 登录/检测/上传窗口，再重新检测。${profileSuffix}`.trim();
+    try {
+      return await import(pathToFileURL(globalEntry).href);
+    } catch {
+      throw error;
+    }
   }
-  return message;
+}
+
+function parseArgs(argv) {
+  const parsed = {};
+
+  for (let index = 0; index < argv.length; index += 1) {
+    const arg = argv[index];
+    if (!arg.startsWith("--")) continue;
+
+    const key = arg.slice(2);
+    const next = argv[index + 1];
+    if (!next || next.startsWith("--")) {
+      parsed[key] = "true";
+    } else {
+      parsed[key] = next;
+      index += 1;
+    }
+  }
+
+  return parsed;
 }

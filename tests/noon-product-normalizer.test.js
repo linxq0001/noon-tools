@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { normalizeNoonProductVariantImages } from "../scripts/lib/noon-upload-product.js";
+import { normalizeNoonProductVariantImages } from "../scripts/lib/noon-product-normalizer.js";
 
 test("noon product normalizer writes variant images as string arrays", () => {
   const product = normalizeNoonProductVariantImages({

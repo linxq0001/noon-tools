@@ -1,6 +1,5 @@
 import { readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { cleanText } from "./text-utils.js";
 
 export async function applyBulkOperation({
   productsDir,
@@ -121,4 +120,8 @@ function integerValue(value) {
 
   const number = Number(text);
   return Number.isInteger(number) && Number.isFinite(number) ? number : Number.NaN;
+}
+
+function cleanText(value) {
+  return String(value ?? "").trim();
 }
