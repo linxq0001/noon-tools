@@ -617,12 +617,13 @@ async function buildNoonProduct(productTemplate, meta, options = {}) {
   meta.imageAssignmentWarnings = imageAssignment.warnings;
   const generatedBarcodes = new Set();
   const variants = colours.map((sourceColour, index) => {
-    const variantColour = safeEnglishValue(translateChinesePhrase(sourceColour), `Colour ${index + 1}`);
+    const variantColour = stableNoonColour(sourceColour, `Colour ${index + 1}`);
+    const variantColourName = stableNoonColourName(sourceColour, variantColour);
     const variantColourAr = translateEnglishToArabic(variantColour);
     const variantSku = buildBasePartnerSku({
       productId: meta.source.productId,
       variantIndex: index,
-      colourCode: variantColour || sourceColour,
+      colourCode: variantColourName || variantColour || sourceColour,
     });
     const variantTitle = [groupName, variantColour].filter(Boolean).join(", ");
     const variantTitleAr = [groupNameAr, variantColourAr].filter(Boolean).join("، ");
@@ -639,7 +640,7 @@ async function buildNoonProduct(productTemplate, meta, options = {}) {
       partner_sku: variantSku,
       barcode,
       colour: variantColour,
-      colour_name: variantColour,
+      colour_name: variantColourName,
       title_en: variantTitle,
       title_ar: variantTitleAr,
       subtitle_en: groupName,
@@ -706,6 +707,8 @@ async function buildNoonProduct(productTemplate, meta, options = {}) {
   if (options.beautify) {
     await applyDeepSeekBeautification(noonProduct, meta);
   }
+
+  hoistCommonVariantFields(noonProduct);
 
   return noonProduct;
 }
@@ -1508,14 +1511,13 @@ async function createBrowser() {
 
       const productLinks = [];
       const seenProductIds = new Set();
-      await scrollOfferListPaginationIntoView(page);
       const initialPagination = await readOfferListPagination(page);
       const effectivePageLimit = initialPagination.total || 1;
 
       if (initialPagination.total) {
         logStep("list", `页面实际总页数: ${initialPagination.total}`);
       } else {
-        logStep("list", "未识别到分页信息，只解析当前页");
+        logStep("list", "未识别到分页信息，改用滚动方式解析列表");
       }
 
       for (let pageIndex = 1; pageIndex <= effectivePageLimit && productLinks.length < maxItems; pageIndex += 1) {
@@ -1523,10 +1525,7 @@ async function createBrowser() {
         const currentPage = currentPagination.current || pageIndex;
 
         logStep("list", `开始解析第 ${currentPage} 页`);
-        await collectVisibleListLinks(page, productLinks, seenProductIds, maxItems);
-        logStep("list", `第 ${currentPage} 页直接链接累计: ${productLinks.length}`);
-        await collectReactCardLinks(page, productLinks, seenProductIds, maxItems, currentPage);
-        logStep("list", `第 ${currentPage} 页读取卡片数据后累计: ${productLinks.length}`);
+        await collectScrollingOfferListLinks(page, productLinks, seenProductIds, maxItems, `第 ${currentPage} 页`);
 
         if (listLinksOnly) {
           logStep("list", "采集链接阶段：不点击商品卡片，避免打开详情页");
@@ -1664,6 +1663,47 @@ async function collectVisibleListLinks(page, productLinks, seenProductIds, maxIt
   appendProductLinks(productLinks, seenProductIds, links, maxItems);
 }
 
+async function collectScrollingOfferListLinks(page, productLinks, seenProductIds, maxItems, label) {
+  let staleRounds = 0;
+  let lastLoggedCount = productLinks.length;
+
+  for (let round = 1; round <= 40 && productLinks.length < maxItems; round += 1) {
+    const beforeCount = productLinks.length;
+
+    await collectVisibleListLinks(page, productLinks, seenProductIds, maxItems);
+    await collectReactCardLinks(page, productLinks, seenProductIds, maxItems, `${label} 滚动 ${round}`);
+
+    const added = productLinks.length - beforeCount;
+    staleRounds = added > 0 ? 0 : staleRounds + 1;
+
+    if (added > 0 || productLinks.length !== lastLoggedCount || round === 1) {
+      logStep("list", `${label} 滚动 ${round}: 新增 ${added}，累计 ${productLinks.length}`);
+      lastLoggedCount = productLinks.length;
+    }
+
+    if (productLinks.length >= maxItems) break;
+
+    const scrollState = await scrollOfferListDown(page);
+    await sleep(900);
+    await waitForLoginIfNeeded(page, page.url(), "list");
+
+    if (scrollState.atBottom && staleRounds >= 3) {
+      logStep("list", `${label} 已滚动到底部，停止解析`);
+      break;
+    }
+
+    if (!scrollState.moved && staleRounds >= 3) {
+      logStep("list", `${label} 页面不再滚动，停止解析`);
+      break;
+    }
+
+    if (staleRounds >= 6) {
+      logStep("list", `${label} 连续多次无新增商品，停止解析`);
+      break;
+    }
+  }
+}
+
 async function collectReactCardLinks(page, productLinks, seenProductIds, maxItems, pageIndex) {
   const links = await page.evaluate(() => {
     const cards = [...document.querySelectorAll('div[style*="cursor: pointer"]')].filter((element) => {
@@ -1724,7 +1764,37 @@ async function collectReactCardLinks(page, productLinks, seenProductIds, maxItem
   const beforeCount = productLinks.length;
 
   appendProductLinks(productLinks, seenProductIds, links, maxItems);
-  logStep("list", `第 ${pageIndex} 页卡片数据链接: ${productLinks.length - beforeCount}/${links.length}`);
+  logStep("list", `${formatListPageLabel(pageIndex)}卡片数据链接: ${productLinks.length - beforeCount}/${links.length}`);
+}
+
+function formatListPageLabel(pageIndex) {
+  const label = String(pageIndex || "").trim();
+  if (!label) return "";
+  return label.startsWith("第 ") ? `${label} ` : `第 ${label} 页 `;
+}
+
+async function scrollOfferListDown(page) {
+  await page.mouse.move(900, 500).catch(() => {});
+  await page.mouse.wheel(0, 1200).catch(() => {});
+
+  return page.evaluate(() => {
+    const beforeY = window.scrollY;
+    const beforeTop = document.scrollingElement?.scrollTop || 0;
+    window.scrollBy(0, Math.max(900, Math.floor(window.innerHeight * 0.85)));
+
+    const scrollElement = document.scrollingElement || document.documentElement;
+    const afterY = window.scrollY;
+    const afterTop = scrollElement.scrollTop || 0;
+    const viewportHeight = window.innerHeight || document.documentElement.clientHeight || 0;
+    const scrollHeight = scrollElement.scrollHeight || document.documentElement.scrollHeight || 0;
+
+    return {
+      moved: afterY !== beforeY || afterTop !== beforeTop,
+      atBottom: afterTop + viewportHeight >= scrollHeight - 80,
+      scrollTop: afterTop,
+      scrollHeight,
+    };
+  });
 }
 
 async function collectCardPopupLinks(page, productLinks, seenProductIds, maxItems, pageIndex) {
@@ -2618,6 +2688,7 @@ function translateChinesePhrase(value) {
     ["浅金", "Light Gold"],
     ["浅紫", "Light Purple"],
     ["深红", "Dark Red"],
+    ["酒红色", "Wine Red"],
     ["花色", "Floral"],
     ["ab彩", "AB Colour"],
     ["AB彩", "AB Colour"],
@@ -2627,9 +2698,10 @@ function translateChinesePhrase(value) {
     ["紫色", "Purple"],
     ["玫红色", "Rose Red"],
     ["粉色", "Pink"],
+    ["橘红色", "Orange Red"],
     ["红色", "Red"],
     ["白色", "White"],
-    ["橘红色", "Orange Red"],
+    ["米色", "Beige"],
     ["橘色", "Orange"],
     ["个性定制", "Custom"],
     ["绿色", "Green"],
@@ -2671,6 +2743,84 @@ function translateChinesePhrase(value) {
     .replace(/([a-z])([A-Z])/g, "$1 $2")
     .replace(/\s+/g, " ")
     .trim();
+}
+
+function stableNoonColour(sourceColour, fallback) {
+  const translated = safeEnglishValue(translateChinesePhrase(sourceColour), "");
+  const constrained = constrainNoonSelectValue("Colour", translated, "");
+  if (constrained === translated && translated) return translated;
+  return inferColourFamily(sourceColour, translated) || fallback;
+}
+
+function stableNoonColourName(sourceColour, fallback) {
+  return safeEnglishValue(translateChinesePhrase(sourceColour), fallback);
+}
+
+function inferColourFamily(sourceColour, translated = "") {
+  const text = `${cleanText(sourceColour)} ${cleanText(translated)}`.toLowerCase();
+  const phraseRules = [
+    ["Orange", ["橘红", "橙红", "orange red"]],
+    ["Red", ["酒红", "枣红", "玫红", "wine red", "rose red", "burgundy"]],
+    ["Grey", ["青灰", "blue grey", "blue gray"]],
+    ["Pink", ["藕粉", "浅粉", "light pink"]],
+    ["Beige", ["卡其", "khaki"]],
+  ];
+  const rules = [
+    ["Multicolour", ["彩", "花色", "multi", "colourful", "colorful"]],
+    ["Black", ["黑", "black"]],
+    ["White", ["白", "ivory", "white"]],
+    ["Grey", ["灰", "grey", "gray"]],
+    ["Brown", ["棕", "咖", "褐", "brown", "coffee"]],
+    ["Beige", ["米", "杏", "卡其", "beige", "khaki"]],
+    ["Red", ["红", "red"]],
+    ["Pink", ["粉", "pink", "rose"]],
+    ["Blue", ["蓝", "青", "blue", "navy"]],
+    ["Green", ["绿", "green"]],
+    ["Purple", ["紫", "purple"]],
+    ["Gold", ["金", "香槟", "gold", "champagne"]],
+    ["Silver", ["银", "silver"]],
+    ["Orange", ["橘", "橙", "orange"]],
+    ["Yellow", ["黄", "yellow"]],
+    ["Clear", ["透明", "clear"]],
+  ];
+
+  return (
+    phraseRules.find(([, keywords]) => keywords.some((keyword) => text.includes(keyword)))?.[0] ||
+    rules.find(([, keywords]) => keywords.some((keyword) => text.includes(keyword)))?.[0] ||
+    ""
+  );
+}
+
+function hoistCommonVariantFields(noonProduct) {
+  const variants = Array.isArray(noonProduct.variants) ? noonProduct.variants : [];
+  const group = noonProduct.product_group || {};
+  const fields = [
+    "description_en",
+    "description_ar",
+    "feature_bullets_en",
+    "feature_bullets_ar",
+    "length_cm",
+    "width_cm",
+    "height_cm",
+    "actual_weight_kg",
+    "vm_weight_cm",
+    "price_sar_initial",
+    "price_usd",
+    "stock",
+    "processing_time",
+    "warehouse_name",
+    "warehouse_code",
+    "images",
+  ];
+
+  if (variants.length === 0) return;
+  for (const field of fields) {
+    if (!variants.every((variant) => Object.hasOwn(variant, field))) continue;
+    const first = variants[0][field];
+    if (!variants.every((variant) => JSON.stringify(variant[field]) === JSON.stringify(first))) continue;
+    group[field] = first;
+    for (const variant of variants) delete variant[field];
+  }
 }
 
 function containsChinese(value) {

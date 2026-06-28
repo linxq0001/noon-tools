@@ -29,7 +29,7 @@ export async function assertStoreUploadAllowed({ productDir, relativeDir, storeI
   const barcode = String(product?.offerDetails?.offers?.[0]?.barcode || "").trim();
   const status = readStoreNoonUploadStatusFromProductDir(productDir, relativeDir, normalizedStoreId);
 
-  if (status.status === "uploaded") {
+  if (status.status === "uploaded" && hasUploadedPartnerSku(status, storeSku)) {
     throw new Error(`商品 ${relativeDir} 在店铺 ${normalizedStoreId} 已经上传。`);
   }
   if (status.status === "uploading") {
@@ -135,12 +135,27 @@ async function scanUploadIdentity(productsDir, storeId) {
     if (storeStatus.status === "status_unreadable") {
       throw new Error(`无法读取 ${noonUploadStatusFileName}: ${entry.relativeDir}。`);
     }
-    if ((storeStatus.status === "uploaded" || storeStatus.status === "uploading") && storeStatus.partnerSku) {
-      appendPath(storeSkuPaths, storeStatus.partnerSku, entry.relativeDir);
+    if (storeStatus.status === "uploaded" || storeStatus.status === "uploading") {
+      for (const partnerSku of storeStatusPartnerSkus(storeStatus)) {
+        appendPath(storeSkuPaths, partnerSku, entry.relativeDir);
+      }
     }
   }
 
   return { baseSkuPaths, storeSkuPaths, barcodePaths };
+}
+
+function hasUploadedPartnerSku(status, partnerSku) {
+  return storeStatusPartnerSkus(status).includes(String(partnerSku || "").trim());
+}
+
+function storeStatusPartnerSkus(status) {
+  return [
+    ...new Set([
+      ...(Array.isArray(status?.partnerSkus) ? status.partnerSkus : []),
+      status?.partnerSku,
+    ].map((sku) => String(sku || "").trim()).filter(Boolean)),
+  ];
 }
 
 function appendPath(map, key, relativeDir) {

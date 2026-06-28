@@ -7,7 +7,11 @@ import path from "node:path";
 import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { applyBulkOperation } from "./lib/noon-bulk-operations.js";
-import { bulkUpdateFileNames, exportNoonBulkUpdates } from "./lib/noon-bulk-update-exporter.js";
+import {
+  bulkUpdateFileNames,
+  exportNoonBulkUpdates,
+  verifyBulkUpdatePartnerSkus,
+} from "./lib/noon-bulk-update-exporter.js";
 import { checkNoonProducts, writeOperationCheck } from "./lib/noon-operation-checks.js";
 import { handleNoonStoreApi } from "./lib/noon-store-api.js";
 import { buildNoonLoginArgs, buildNoonStatusArgs, buildNoonUploadIdentityArgs } from "./lib/noon-store-jobs.js";
@@ -568,7 +572,21 @@ async function recordSuccessfulGlobalBulkUpdates(job) {
     const repository = cleanPathSegment(job.repository || "");
     const exportKey = repository || "all";
     const outputDir = globalBulkUpdateOutputDir(exportKey);
-    const result = await exportNoonBulkUpdates({ productsDir, outputDir, repository, catalogType: "global" });
+    const uploaded = await uploadedPartnerSkusForJob(job);
+    if (uploaded.expectedSkus.length === 0) {
+      appendLog(job, "Global 批量更新表跳过：未找到本次成功上传的 SKU。");
+      return;
+    }
+    const result = await exportNoonBulkUpdates({
+      productsDir,
+      outputDir,
+      repository,
+      catalogType: "global",
+      productDirs: Object.keys(uploaded.partnerSkuByProductDir),
+      partnerSkuByProductDir: uploaded.partnerSkuByProductDir,
+      append: true,
+    });
+    const skuVerification = verifyBulkUpdatePartnerSkus(result.files, uploaded.expectedSkus);
     const files = globalBulkUpdateFileUrls(exportKey);
 
     job.globalBulkUpdate = {
@@ -576,15 +594,47 @@ async function recordSuccessfulGlobalBulkUpdates(job) {
       skuCount: result.skuCount,
       productCount: result.productCount,
       files,
+      skuVerification,
     };
 
     appendLog(
       job,
       `Global 批量更新表已记录 ${result.productCount} 个商品、${result.skuCount} 个 SKU：${files.product} / ${files.price} / ${files.stock}`,
     );
+    if (skuVerification.ok) {
+      appendLog(job, `Global 批量更新表 SKU 校验通过：${skuVerification.expectedSkus.join(", ") || "无已上传 SKU"}`);
+    } else {
+      appendLog(
+        job,
+        `Global 批量更新表 SKU 校验失败：${skuVerification.missing.map((item) => `${item.file}:${item.partnerSku}`).join(", ")}`,
+      );
+    }
   } catch (error) {
     appendLog(job, `Global 批量更新表记录失败：${error.message}`);
   }
+}
+
+async function uploadedPartnerSkusForJob(job) {
+  const productDirs = await uploadedProductDirsForJob(job);
+  const partnerSkuByProductDir = {};
+
+  for (const productDir of productDirs) {
+    const partnerSkus = readUploadedPartnerSkus(productDir, job.storeId || "");
+    if (partnerSkus.length > 0) partnerSkuByProductDir[productDir] = partnerSkus;
+  }
+
+  return {
+    partnerSkuByProductDir,
+    expectedSkus: [...new Set(Object.values(partnerSkuByProductDir).flat())],
+  };
+}
+
+async function uploadedProductDirsForJob(job) {
+  const productDirs = uploadJobProductDirs(job);
+  if (productDirs.length > 0) return productDirs;
+
+  const repositories = await readPlatformRepositories(productsDir, "1688");
+  return repositories.flatMap((repository) => repository.productDirs.map((productDir) => productDir.relativeDir));
 }
 
 function globalBulkUpdateFileUrls(exportKey) {
@@ -901,7 +951,17 @@ function readNoonUploadStatus(productDir, storeId = "") {
 }
 
 function hasSuccessfulUploadedProducts(job) {
-  return uploadJobProductDirs(job).some((productDir) => readNoonUploadStatus(productDir, job.storeId || "").uploaded);
+  return uploadJobProductDirs(job).some((productDir) => readUploadedPartnerSkus(productDir, job.storeId || "").length > 0);
+}
+
+function readUploadedPartnerSkus(productDir, storeId = "") {
+  const status = readNoonUploadStatus(productDir, storeId);
+  return [
+    ...new Set([
+      ...(Array.isArray(status.partnerSkus) ? status.partnerSkus : []),
+      status.uploaded ? status.partnerSku : "",
+    ].map((sku) => String(sku || "").trim()).filter(Boolean)),
+  ];
 }
 
 function uploadJobProductDirs(job) {

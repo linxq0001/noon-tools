@@ -26,14 +26,25 @@ const catalogPrefixes = {
   global: "G",
 };
 
-export async function exportNoonBulkUpdates({ productsDir, outputDir, platform = "", repository = "", catalogType = "global" }) {
-  const products = await readNoonProducts(productsDir, { platform, repository });
+export async function exportNoonBulkUpdates({
+  productsDir,
+  outputDir,
+  platform = "",
+  repository = "",
+  catalogType = "global",
+  productDirs = [],
+  partnerSkuByProductDir = {},
+  append = false,
+}) {
+  const products = filterProductsByDir(await readNoonProducts(productsDir, { platform, repository }), productDirs);
   const skippedProducts = products
     .filter((product) => hasBlockingOperationCheck(product.noonAttributes))
     .map((product) => ({ source: product.relativeDir, reason: "blocking_operation_check" }));
   const exportableProducts = products.filter((product) => !hasBlockingOperationCheck(product.noonAttributes));
   const { products: uniqueProducts, duplicateProducts } = dedupeProducts(exportableProducts);
-  const allRows = uniqueProducts.flatMap((product) => toSkuRows(product, { platform, catalogType })).filter((row) => row.partnerSku);
+  const allRows = uniqueProducts
+    .flatMap((product) => toSkuRows(product, { platform, catalogType, partnerSkuByProductDir }))
+    .filter((row) => row.partnerSku);
   const { rows, duplicateSkus } = dedupeSkuRows(allRows);
 
   await mkdir(outputDir, { recursive: true });
@@ -44,9 +55,9 @@ export async function exportNoonBulkUpdates({ productsDir, outputDir, platform =
     stock: path.join(outputDir, bulkUpdateFileNames.stock),
   };
 
-  writeWorkbook(files.product, "Global Product Update", productRows(rows));
-  writeWorkbook(files.price, "Global Price Update", priceRows(rows));
-  writeWorkbook(files.stock, "Stock Import", stockRows(rows));
+  writeWorkbook(files.product, "Global Product Update", productRows(rows), { append });
+  writeWorkbook(files.price, "Global Price Update", priceRows(rows), { append });
+  writeWorkbook(files.stock, "Stock Import", stockRows(rows), { append });
 
   return {
     skuCount: rows.length,
@@ -56,6 +67,20 @@ export async function exportNoonBulkUpdates({ productsDir, outputDir, platform =
     skippedProducts,
     files,
   };
+}
+
+export function verifyBulkUpdatePartnerSkus(files, expectedSkus) {
+  const skus = [...new Set((Array.isArray(expectedSkus) ? expectedSkus : []).map(cleanText).filter(Boolean))];
+  const missing = [];
+
+  for (const file of ["product", "price", "stock"]) {
+    const writtenSkus = readPartnerSkus(files[file]);
+    for (const partnerSku of skus) {
+      if (!writtenSkus.has(partnerSku)) missing.push({ file, partnerSku });
+    }
+  }
+
+  return { ok: missing.length === 0, expectedSkus: skus, missing };
 }
 
 async function readNoonProducts(productsDir, { platform = "", repository = "" } = {}) {
@@ -108,39 +133,64 @@ async function readJsonIfExists(filePath) {
   }
 }
 
-function toSkuRows(product, { platform = "", catalogType = "global" } = {}) {
+function toSkuRows(product, { platform = "", catalogType = "global", partnerSkuByProductDir = {} } = {}) {
   const group = product.noonAttributes.product_group ?? {};
   const uploadConfig = product.noonAttributes.upload_config ?? {};
   const variants = Array.isArray(product.noonAttributes.variants) ? product.noonAttributes.variants : [];
   const operationStatus = cleanText(product.noonAttributes.operation_status) || "active";
+  const uploadedPartnerSkus = partnerSkuOverridesForProduct(product.relativeDir, partnerSkuByProductDir);
+  const exportVariants = uploadedPartnerSkus.length > 0
+    ? variants.filter((variant) => uploadedPartnerSkus.some((sku) => isUploadedVariantSku(variant.partner_sku, sku, { platform, catalogType })))
+    : variants;
 
-  return variants.map((variant) => ({
+  return exportVariants.map((variant, index) => ({
     source: product.relativeDir,
-    partnerSku: catalogPartnerSku(variant.partner_sku, { platform, catalogType }),
+    partnerSku: uploadedPartnerSkus.length > 0
+      ? uploadedPartnerSkus.find((sku) => isUploadedVariantSku(variant.partner_sku, sku, { platform, catalogType }))
+      : catalogPartnerSku(variant.partner_sku, { platform, catalogType }),
     barcode: cleanText(variant.barcode),
     colour: cleanText(variant.colour || variant.colour_name),
     titleEn: cleanText(variant.title_en),
     titleAr: cleanText(variant.title_ar),
-    images: normalizeImages(variant.images),
+    images: normalizeImages(valueFor(variant, group, "images", [])),
     countryCode: cleanText(uploadConfig.country_code) || "sa",
     idPartner: cleanText(uploadConfig.id_partner) || "517205",
     hsCode: cleanText(group.hs_code),
     countryOfOrigin: countryCode(group.country_of_origin),
-    vmWeightCm: blankNull(variant.vm_weight_cm ?? volumetricWeight(variant)),
-    weightKg: blankNull(variant.actual_weight_kg),
-    lengthCm: blankNull(variant.length_cm),
-    widthCm: blankNull(variant.width_cm),
-    heightCm: blankNull(variant.height_cm),
-    priceUsd: blankNull(variant.price_usd),
-    stock: operationStatus === "inactive" ? 0 : blankNull(variant.stock),
-    processingTime: cleanText(variant.processing_time) || "2_days",
-    warehouseCode: cleanText(variant.warehouse_code || uploadConfig.warehouse_code) || "W00183886CN",
+    vmWeightCm: blankNull(valueFor(variant, group, "vm_weight_cm", volumetricWeight({ ...group, ...variant }))),
+    weightKg: blankNull(valueFor(variant, group, "actual_weight_kg")),
+    lengthCm: blankNull(valueFor(variant, group, "length_cm")),
+    widthCm: blankNull(valueFor(variant, group, "width_cm")),
+    heightCm: blankNull(valueFor(variant, group, "height_cm")),
+    priceUsd: blankNull(valueFor(variant, group, "price_usd")),
+    stock: operationStatus === "inactive" ? 0 : blankNull(valueFor(variant, group, "stock")),
+    processingTime: cleanText(valueFor(variant, group, "processing_time")) || "2_days",
+    warehouseCode: cleanText(valueFor(variant, group, "warehouse_code", uploadConfig.warehouse_code)) || "W00183886CN",
     operationStatus,
   }));
 }
 
 function hasBlockingOperationCheck(noonAttributes) {
   return (noonAttributes.operation_check?.blockingIssues || []).length > 0;
+}
+
+function filterProductsByDir(products, productDirs) {
+  const filters = (Array.isArray(productDirs) ? productDirs : []).map(cleanRelativeDir).filter(Boolean);
+  if (filters.length === 0) return products;
+  return products.filter((product) => filters.some((filter) => relativeDirMatches(product.relativeDir, filter)));
+}
+
+function relativeDirMatches(relativeDir, filter) {
+  const source = cleanRelativeDir(relativeDir);
+  return source === filter || filter.endsWith(`/${source}`) || source.endsWith(`/${filter}`);
+}
+
+function cleanRelativeDir(value) {
+  return cleanText(value).replace(/^products\//, "").replace(/^1688\//, "");
+}
+
+function valueFor(variant, group, field, fallback = undefined) {
+  return variant[field] ?? group[field] ?? fallback;
 }
 
 function catalogPartnerSku(partnerSku, { platform = "", catalogType = "global" } = {}) {
@@ -299,10 +349,57 @@ function stockRows(rows) {
   ];
 }
 
-function writeWorkbook(filePath, sheetName, rows) {
+function writeWorkbook(filePath, sheetName, rows, { append = false } = {}) {
+  const outputRows = append ? appendWorkbookRows(filePath, rows) : rows;
   const workbook = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(workbook, XLSX.utils.aoa_to_sheet(rows), sheetName);
+  XLSX.utils.book_append_sheet(workbook, XLSX.utils.aoa_to_sheet(outputRows), sheetName);
   XLSX.writeFile(workbook, filePath);
+}
+
+function appendWorkbookRows(filePath, rows) {
+  const newRows = rows.slice(1);
+  if (newRows.length === 0) return existingWorkbookRows(filePath) ?? rows;
+  const existingRows = existingWorkbookRows(filePath);
+  if (!existingRows) return rows;
+  return [...existingRows, ...newRows];
+}
+
+function existingWorkbookRows(filePath) {
+  try {
+    const workbook = XLSX.readFile(filePath);
+    return XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], { header: 1, defval: "" });
+  } catch {
+    return null;
+  }
+}
+
+function partnerSkuOverridesForProduct(relativeDir, partnerSkuByProductDir) {
+  const key = cleanText(relativeDir);
+  const exact = cleanSkuList(partnerSkuByProductDir[key]);
+  if (exact.length > 0) return exact;
+
+  const suffix = `/${key}`;
+  const match = Object.entries(partnerSkuByProductDir).find(([productDir]) => cleanText(productDir).endsWith(suffix));
+  return cleanSkuList(match?.[1]);
+}
+
+function cleanSkuList(value) {
+  return (Array.isArray(value) ? value : [value]).map(cleanText).filter(Boolean);
+}
+
+function isUploadedVariantSku(baseSku, uploadedSku, options) {
+  const base = catalogPartnerSku(baseSku, options);
+  const uploaded = cleanText(uploadedSku);
+  return uploaded === base || uploaded.startsWith(`${base}-`);
+}
+
+function readPartnerSkus(filePath) {
+  const workbook = XLSX.readFile(filePath);
+  const rows = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], { header: 1, defval: "" });
+  const header = rows[0] ?? [];
+  const index = header.indexOf("partner_sku");
+  if (index < 0) return new Set();
+  return new Set(rows.slice(1).map((row) => cleanText(row[index])).filter(Boolean));
 }
 
 function cleanText(value) {

@@ -4,7 +4,11 @@ import { mkdir, mkdtemp, readFile, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import XLSX from "xlsx";
-import { bulkUpdateFileNames, exportNoonBulkUpdates } from "../scripts/lib/noon-bulk-update-exporter.js";
+import {
+  bulkUpdateFileNames,
+  exportNoonBulkUpdates,
+  verifyBulkUpdatePartnerSkus,
+} from "../scripts/lib/noon-bulk-update-exporter.js";
 
 test("exportNoonBulkUpdates writes product, price, and stock workbooks per SKU", async () => {
   const tempDir = await mkdtemp(path.join(os.tmpdir(), "noon-bulk-"));
@@ -104,6 +108,186 @@ test("exportNoonBulkUpdates reads products from a platform repository", async ()
   assert.deepEqual(readRows(path.join(outputDir, bulkUpdateFileNames.stock)).slice(1), [
     ["sa", "517205", "G-1001-1001-GOLD", "W00183886CN", 3, "2_days", 3, "2_days"],
   ]);
+});
+
+test("exportNoonBulkUpdates can write the uploaded store partner sku", async () => {
+  const tempDir = await mkdtemp(path.join(os.tmpdir(), "noon-bulk-uploaded-sku-"));
+  const productsDir = path.join(tempDir, "products");
+  const productDir = path.join(productsDir, "1688", "default", "1001");
+  const outputDir = path.join(tempDir, "exports");
+  await mkdir(productDir, { recursive: true });
+  await writeNoonProduct(productDir, { sku: "G-1001-1001-GOLD", barcode: "10010001", title: "Gold Bag" });
+
+  await exportNoonBulkUpdates({
+    productsDir,
+    outputDir,
+    platform: "1688",
+    repository: "default",
+    partnerSkuByProductDir: {
+      "default/1001": "G-1001-1001-GOLD-UAE01",
+    },
+  });
+
+  assert.deepEqual(readRows(path.join(outputDir, bulkUpdateFileNames.price)).slice(1), [["G-1001-1001-GOLD-UAE01", "sa", 10, "TRUE"]]);
+});
+
+test("exportNoonBulkUpdates writes only the uploaded sku when upload status scopes a product", async () => {
+  const tempDir = await mkdtemp(path.join(os.tmpdir(), "noon-bulk-uploaded-only-"));
+  const productsDir = path.join(tempDir, "products");
+  const productDir = path.join(productsDir, "1688", "default", "1001");
+  const outputDir = path.join(tempDir, "exports");
+  await mkdir(productDir, { recursive: true });
+  await writeNoonProduct(productDir, { sku: "G-1001-1001-GOLD", barcode: "10010001", title: "Gold Bag" });
+  const filePath = path.join(productDir, "noon-product-attributes.json");
+  const product = JSON.parse(await readFile(filePath, "utf8"));
+  product.variants.push({ ...product.variants[0], partner_sku: "G-1001-1001-SILVER", barcode: "10010002" });
+  await writeFile(filePath, JSON.stringify(product), "utf8");
+
+  await exportNoonBulkUpdates({
+    productsDir,
+    outputDir,
+    platform: "1688",
+    repository: "default",
+    partnerSkuByProductDir: {
+      "default/1001": "G-1001-1001-GOLD-UAE01",
+    },
+  });
+
+  assert.deepEqual(readRows(path.join(outputDir, bulkUpdateFileNames.product)).slice(1).map((row) => row[0]), [
+    "G-1001-1001-GOLD-UAE01",
+  ]);
+  assert.deepEqual(readRows(path.join(outputDir, bulkUpdateFileNames.price)).slice(1).map((row) => row[0]), [
+    "G-1001-1001-GOLD-UAE01",
+  ]);
+  assert.deepEqual(readRows(path.join(outputDir, bulkUpdateFileNames.stock)).slice(1).map((row) => row[2]), [
+    "G-1001-1001-GOLD-UAE01",
+  ]);
+});
+
+test("exportNoonBulkUpdates writes multiple uploaded skus for one product", async () => {
+  const tempDir = await mkdtemp(path.join(os.tmpdir(), "noon-bulk-uploaded-many-"));
+  const productsDir = path.join(tempDir, "products");
+  const productDir = path.join(productsDir, "1688", "default", "1001");
+  const outputDir = path.join(tempDir, "exports");
+  await mkdir(productDir, { recursive: true });
+  await writeNoonProduct(productDir, { sku: "G-1001-1001-GOLD", barcode: "10010001", title: "Gold Bag" });
+  const filePath = path.join(productDir, "noon-product-attributes.json");
+  const product = JSON.parse(await readFile(filePath, "utf8"));
+  product.variants.push({ ...product.variants[0], partner_sku: "G-1001-1001-SILVER", barcode: "10010002" });
+  product.variants.push({ ...product.variants[0], partner_sku: "G-1001-1001-BLUE", barcode: "10010003" });
+  await writeFile(filePath, JSON.stringify(product), "utf8");
+
+  await exportNoonBulkUpdates({
+    productsDir,
+    outputDir,
+    platform: "1688",
+    repository: "default",
+    partnerSkuByProductDir: {
+      "default/1001": ["G-1001-1001-GOLD-UAE01", "G-1001-1001-SILVER-UAE01"],
+    },
+  });
+
+  assert.deepEqual(readRows(path.join(outputDir, bulkUpdateFileNames.price)).slice(1).map((row) => row[0]), [
+    "G-1001-1001-GOLD-UAE01",
+    "G-1001-1001-SILVER-UAE01",
+  ]);
+});
+
+test("exportNoonBulkUpdates can scope output to selected uploaded products", async () => {
+  const tempDir = await mkdtemp(path.join(os.tmpdir(), "noon-bulk-selected-products-"));
+  const productsDir = path.join(tempDir, "products");
+  const firstProductDir = path.join(productsDir, "1688", "default", "1001");
+  const secondProductDir = path.join(productsDir, "1688", "default", "2002");
+  const outputDir = path.join(tempDir, "exports");
+  await mkdir(firstProductDir, { recursive: true });
+  await mkdir(secondProductDir, { recursive: true });
+  await writeNoonProduct(firstProductDir, { sku: "G-1001-1001-GOLD", barcode: "10010001", title: "Gold Bag" });
+  await writeNoonProduct(secondProductDir, { sku: "G-1001-2002-SILVER", barcode: "20020001", title: "Silver Bag" });
+
+  const result = await exportNoonBulkUpdates({
+    productsDir,
+    outputDir,
+    platform: "1688",
+    repository: "default",
+    productDirs: ["1688/default/1001"],
+    partnerSkuByProductDir: {
+      "1688/default/1001": "G-1001-1001-GOLD-UAE01",
+    },
+  });
+
+  assert.equal(result.productCount, 1);
+  assert.equal(result.skuCount, 1);
+  assert.deepEqual(readRows(path.join(outputDir, bulkUpdateFileNames.price)).slice(1), [
+    ["G-1001-1001-GOLD-UAE01", "sa", 10, "TRUE"],
+  ]);
+});
+
+test("exportNoonBulkUpdates appends generated rows to existing workbooks", async () => {
+  const tempDir = await mkdtemp(path.join(os.tmpdir(), "noon-bulk-append-"));
+  const productsDir = path.join(tempDir, "products");
+  const firstProductDir = path.join(productsDir, "1688", "default", "1001");
+  const secondProductDir = path.join(productsDir, "1688", "default", "2002");
+  const outputDir = path.join(tempDir, "exports");
+  await mkdir(firstProductDir, { recursive: true });
+  await mkdir(secondProductDir, { recursive: true });
+  await writeNoonProduct(firstProductDir, { sku: "G-1001-1001-GOLD", barcode: "10010001", title: "Gold Bag" });
+  await writeNoonProduct(secondProductDir, { sku: "G-1001-2002-SILVER", barcode: "20020001", title: "Silver Bag" });
+
+  await exportNoonBulkUpdates({
+    productsDir,
+    outputDir,
+    platform: "1688",
+    repository: "default",
+    productDirs: ["default/1001"],
+    partnerSkuByProductDir: {
+      "default/1001": "G-1001-1001-GOLD-UAE01",
+    },
+  });
+  await exportNoonBulkUpdates({
+    productsDir,
+    outputDir,
+    platform: "1688",
+    repository: "default",
+    productDirs: ["default/2002"],
+    partnerSkuByProductDir: {
+      "default/2002": "G-1001-2002-SILVER-UAE01",
+    },
+    append: true,
+  });
+
+  assert.deepEqual(readRows(path.join(outputDir, bulkUpdateFileNames.price)).slice(1).map((row) => row[0]), [
+    "G-1001-1001-GOLD-UAE01",
+    "G-1001-2002-SILVER-UAE01",
+  ]);
+  assert.deepEqual(readRows(path.join(outputDir, bulkUpdateFileNames.stock)).slice(1).map((row) => row[2]), [
+    "G-1001-1001-GOLD-UAE01",
+    "G-1001-2002-SILVER-UAE01",
+  ]);
+});
+
+test("verifyBulkUpdatePartnerSkus checks all three generated workbooks", async () => {
+  const tempDir = await mkdtemp(path.join(os.tmpdir(), "noon-bulk-verify-sku-"));
+  const productsDir = path.join(tempDir, "products");
+  const productDir = path.join(productsDir, "1688", "default", "1001");
+  const outputDir = path.join(tempDir, "exports");
+  await mkdir(productDir, { recursive: true });
+  await writeNoonProduct(productDir, { sku: "G-1001-1001-GOLD", barcode: "10010001", title: "Gold Bag" });
+  const result = await exportNoonBulkUpdates({ productsDir, outputDir, platform: "1688", repository: "default" });
+
+  assert.deepEqual(verifyBulkUpdatePartnerSkus(result.files, ["G-1001-1001-GOLD"]), {
+    ok: true,
+    expectedSkus: ["G-1001-1001-GOLD"],
+    missing: [],
+  });
+  assert.deepEqual(verifyBulkUpdatePartnerSkus(result.files, ["G-1001-1001-MISSING"]), {
+    ok: false,
+    expectedSkus: ["G-1001-1001-MISSING"],
+    missing: [
+      { file: "product", partnerSku: "G-1001-1001-MISSING" },
+      { file: "price", partnerSku: "G-1001-1001-MISSING" },
+      { file: "stock", partnerSku: "G-1001-1001-MISSING" },
+    ],
+  });
 });
 
 test("exportNoonBulkUpdates rewrites source platform names to internal platform ids", async () => {

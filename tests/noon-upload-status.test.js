@@ -73,6 +73,35 @@ test("store scoped upload status records separate stores", async () => {
   assert.equal(readStoreNoonUploadStatusFromProductDir(productDir, "1688/repo/1001", "SA01").uploaded, false);
 });
 
+test("store scoped upload status keeps every uploaded partner sku", async () => {
+  const productDir = await makeProductDir();
+
+  await writeStoreNoonUploadStatus(
+    productDir,
+    {
+      productDir: "1688/repo/1001",
+      status: "uploaded",
+      partnerSku: "G-1001-1001-V01-BLACK-UAE01",
+    },
+    "UAE01",
+  );
+  await writeStoreNoonUploadStatus(
+    productDir,
+    {
+      productDir: "1688/repo/1001",
+      status: "uploaded",
+      partnerSku: "G-1001-1001-V02-BLUE-UAE01",
+    },
+    "UAE01",
+  );
+
+  assert.deepEqual(readStoreNoonUploadStatusFromProductDir(productDir, "1688/repo/1001", "UAE01").partnerSkus, [
+    "G-1001-1001-V01-BLACK-UAE01",
+    "G-1001-1001-V02-BLUE-UAE01",
+  ]);
+});
+
+
 test("writes only version 2 store state", async () => {
   const productDir = await makeProductDir();
 

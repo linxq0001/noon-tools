@@ -3,19 +3,31 @@ import { normalizeBrandValue } from "./noon-brand.js";
 import { scopeProductToStore } from "./noon-upload-preflight.js";
 
 export async function prepareNoonUploadProduct(rawProduct, productDir, storeId) {
-  const normalized = await normalizeNoonUploadProduct(rawProduct, productDir);
-  return scopeProductToStore(normalized, storeId);
+  const products = await prepareNoonUploadProducts(rawProduct, productDir, storeId);
+  return products[0];
 }
 
-export async function normalizeNoonUploadProduct(product, productDir) {
+export async function prepareNoonUploadProducts(rawProduct, productDir, storeId) {
+  if (!rawProduct?.product_group || !Array.isArray(rawProduct.variants)) {
+    throw new Error("Noon upload product must use current product_group + variants format.");
+  }
+
+  const products = [];
+  for (const [variantIndex] of rawProduct.variants.entries()) {
+    products.push(scopeProductToStore(await normalizeNoonUploadProduct(rawProduct, productDir, variantIndex), storeId));
+  }
+  return products;
+}
+
+export async function normalizeNoonUploadProduct(product, productDir, variantIndex = 0) {
   if (!product?.product_group || !Array.isArray(product.variants)) {
     throw new Error("Noon upload product must use current product_group + variants format.");
   }
 
   const group = product.product_group;
-  const variant = product.variants[0] ?? {};
+  const variant = product.variants[variantIndex] ?? {};
   const localImages = await listLocalProductImages(productDir);
-  const variantImages = (variant.images ?? [])
+  const variantImages = valueFor(variant, group, "images", [])
     .map((image) => (typeof image === "string" ? image : image.path))
     .filter(Boolean);
 
@@ -34,9 +46,9 @@ export async function normalizeNoonUploadProduct(product, productDir) {
       similarNoonProductUrl: null,
     },
     productContent: {
-      featureBullets: variant.feature_bullets_en ?? [],
-      longDescription: variant.description_en ?? "",
-      arabicLongDescription: variant.description_ar ?? "",
+      featureBullets: valueFor(variant, group, "feature_bullets_en", []),
+      longDescription: valueFor(variant, group, "description_en", ""),
+      arabicLongDescription: valueFor(variant, group, "description_ar", ""),
       gender: group.gender ?? null,
       gtin: "",
     },
@@ -64,13 +76,13 @@ export async function normalizeNoonUploadProduct(product, productDir) {
       seasonCode: "",
       occasion: group.occasion ?? "",
       pattern: "",
-      productHeight: variant.height_cm ?? null,
+      productHeight: valueFor(variant, group, "height_cm", null),
       productHeightUnit: "cm",
-      productLength: variant.length_cm ?? null,
+      productLength: valueFor(variant, group, "length_cm", null),
       productLengthUnit: "cm",
-      productWeight: variant.actual_weight_kg ?? null,
+      productWeight: valueFor(variant, group, "actual_weight_kg", null),
       productWeightUnit: "kg",
-      productWidth: variant.width_cm ?? null,
+      productWidth: valueFor(variant, group, "width_cm", null),
       productWidthUnit: "cm",
       size: group.size ?? "",
       sizeUnit: group.size_unit ?? "",
@@ -84,11 +96,11 @@ export async function normalizeNoonUploadProduct(product, productDir) {
         {
           size: group.size ?? "",
           partnerSku: variant.partner_sku ?? "",
-          price: variant.price_sar_initial ?? null,
+          price: valueFor(variant, group, "price_sar_initial", null),
           currency: "SAR",
           barcode: variant.barcode ?? "",
-          warehouse: variant.warehouse_name ?? variant.warehouse_code ?? "",
-          stock: variant.stock ?? null,
+          warehouse: valueFor(variant, group, "warehouse_name", valueFor(variant, group, "warehouse_code", "")),
+          stock: valueFor(variant, group, "stock", null),
         },
       ],
     },
@@ -135,7 +147,10 @@ function translateUploadText(value) {
   return text;
 }
 
+function valueFor(variant, group, field, fallback = "") {
+  return variant[field] ?? group[field] ?? fallback;
+}
+
 function hasValue(value) {
   return value !== null && value !== undefined && String(value).trim() !== "";
 }
-

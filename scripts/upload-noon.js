@@ -13,7 +13,7 @@ import { brandCandidates, isNoBrandValue } from "./lib/noon-brand.js";
 import { noonSelectConstraints, normalizeNoonSelectValue } from "./lib/noon-field-constraints.js";
 import { regenerateProductIdentities } from "./lib/noon-product-identity.js";
 import { normalizeNoonStoreId } from "./lib/noon-stores.js";
-import { prepareNoonUploadProduct } from "./lib/noon-upload-product.js";
+import { prepareNoonUploadProducts } from "./lib/noon-upload-product.js";
 import { acquireStoreUploadLock, assertStoreUploadAllowed } from "./lib/noon-upload-preflight.js";
 import { writeStoreNoonUploadStatus } from "./lib/noon-upload-status.js";
 
@@ -51,7 +51,7 @@ let hadFailure = false;
 let skippedProducts = 0;
 for (const productDir of productDirs) {
   try {
-    products.push(await loadProduct(productDir));
+    products.push(...(await loadProducts(productDir)));
   } catch (error) {
     if (!args.all) hadFailure = true;
     skippedProducts += 1;
@@ -233,7 +233,7 @@ function sellerLabPageHelpers() {
   };
 }
 
-async function loadProduct(productDir) {
+async function loadProducts(productDir) {
   const productPath = path.join(productDir, "noon-product-attributes.json");
   await access(productDir).catch(() => {
     throw new Error(`Product directory does not exist: ${productDir}`);
@@ -243,24 +243,27 @@ async function loadProduct(productDir) {
   });
 
   const rawProduct = JSON.parse(await readFile(productPath, "utf8"));
-  const product = await prepareNoonUploadProduct(rawProduct, productDir, storeId);
+  const uploadProducts = await prepareNoonUploadProducts(rawProduct, productDir, storeId);
   const relativeDir = path.relative(productsDir, productDir);
-  const imageNames = product.productIdentity?.productImages ?? [];
 
-  if (!product.productIdentity?.englishTitle) throw new Error(`Missing English Title in ${productPath}.`);
-  if (!product.productIdentity?.partnerSku) throw new Error(`Missing Partner SKU in ${productPath}.`);
-  if (imageNames.length === 0) throw new Error(`Missing product images in ${productPath}.`);
+  return Promise.all(uploadProducts.map(async (product) => {
+    const imageNames = product.productIdentity?.productImages ?? [];
 
-  const imagePaths = [];
-  for (const imageName of imageNames.slice(0, 9)) {
-    const imagePath = path.resolve(productDir, imageName);
-    await access(imagePath).catch(() => {
-      throw new Error(`Image does not exist: ${imagePath}`);
-    });
-    imagePaths.push(imagePath);
-  }
+    if (!product.productIdentity?.englishTitle) throw new Error(`Missing English Title in ${productPath}.`);
+    if (!product.productIdentity?.partnerSku) throw new Error(`Missing Partner SKU in ${productPath}.`);
+    if (imageNames.length === 0) throw new Error(`Missing product images in ${productPath}.`);
 
-  return { ...product, productDir, relativeDir, imagePaths };
+    const imagePaths = [];
+    for (const imageName of imageNames.slice(0, 9)) {
+      const imagePath = path.resolve(productDir, imageName);
+      await access(imagePath).catch(() => {
+        throw new Error(`Image does not exist: ${imagePath}`);
+      });
+      imagePaths.push(imagePath);
+    }
+
+    return { ...product, productDir, relativeDir, imagePaths };
+  }));
 }
 
 function warnRawContent(product) {
@@ -418,7 +421,6 @@ async function fillOfferDetails(page, product) {
   await fillOptionalField(page, "Barcode", offer.barcode);
   await fillOptionalField(page, "Warehouse", offer.warehouse);
   await fillOptionalField(page, "Stock", offer.stock);
-  await fillOptionalField(page, "Size", offer.size);
 }
 
 async function fillRequiredField(page, label, value) {

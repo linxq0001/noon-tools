@@ -140,8 +140,8 @@ function toNisRows(product, imageManifest) {
   const group = product.noonAttributes.product_group ?? {};
   const variants = product.noonAttributes.variants?.length ? product.noonAttributes.variants : fallbackVariants(product.meta, group);
   const [family, productType, productSubtype] = productCategory(group);
-  const images = collectImageUrls(product.meta, variants[0]);
-  const weightKg = firstValue(variants[0]?.actual_weight_kg, gramsToKg(product.meta.packageInfo?.weightG));
+  const images = collectImageUrls(product.meta, variants[0], group);
+  const weightKg = firstValue(valueFor(variants[0] ?? {}, group, "actual_weight_kg"), gramsToKg(product.meta.packageInfo?.weightG));
 
   return variants.map((variant) => {
     const partnerSku = firstValue(variant.partner_sku, product.meta.productId);
@@ -159,7 +159,7 @@ function toNisRows(product, imageManifest) {
       "Model Number": firstValue(variant.model_number, variant.partner_sku, product.meta.productId),
       "Colour Name": firstValue(variant.colour_name, variant.colour),
       "Colour Name EN": firstValue(variant.colour_name, variant.colour),
-      "Colour Family": firstValue(variant.colour_name, variant.colour),
+      "Colour Family": variant.colour,
       "Item Condition": group.item_condition,
       Size: group.size,
       "Size Unit": group.size_unit,
@@ -177,34 +177,34 @@ function toNisRows(product, imageManifest) {
       "Handbag Style": "Clutch",
       "Care Instructions": group.care_instructions,
       "Material Composition EN": group.material_composition,
-      "Long Description EN": variant.description_en,
-      "Long Description AR": variant.description_ar,
+      "Long Description EN": valueFor(variant, group, "description_en"),
+      "Long Description AR": valueFor(variant, group, "description_ar"),
       "What's In The Box": group.what_is_in_the_box,
       "What's In The Box EN": group.what_is_in_the_box,
       Year: group.year,
       GTIN: validGtin(variant.barcode),
       "HS Code": group.hs_code,
       "Country of Origin": group.country_of_origin,
-      "Product Height": variant.height_cm,
-      "Product Height Unit": variant.height_cm === undefined || variant.height_cm === null ? "" : "Centimeter",
-      "Product Length": variant.length_cm,
-      "Product Length Unit": variant.length_cm === undefined || variant.length_cm === null ? "" : "Centimeter",
-      "Product Width": variant.width_cm,
-      "Product Width Unit": variant.width_cm === undefined || variant.width_cm === null ? "" : "Centimeter",
-      "Product Width/Depth": variant.width_cm,
-      "Product Width_Depth Unit": variant.width_cm === undefined || variant.width_cm === null ? "" : "Centimeter",
+      "Product Height": valueFor(variant, group, "height_cm"),
+      "Product Height Unit": hasValue(valueFor(variant, group, "height_cm")) ? "Centimeter" : "",
+      "Product Length": valueFor(variant, group, "length_cm"),
+      "Product Length Unit": hasValue(valueFor(variant, group, "length_cm")) ? "Centimeter" : "",
+      "Product Width": valueFor(variant, group, "width_cm"),
+      "Product Width Unit": hasValue(valueFor(variant, group, "width_cm")) ? "Centimeter" : "",
+      "Product Width/Depth": valueFor(variant, group, "width_cm"),
+      "Product Width_Depth Unit": hasValue(valueFor(variant, group, "width_cm")) ? "Centimeter" : "",
       "Shipping Weight": weightKg,
       "Shipping Weight Unit": weightKg === "" ? "" : "Kilogram",
       "Product Weight": weightKg,
       "Product Weight Unit": weightKg === "" ? "" : "Kilogram",
-      "Recommended Retail Price SA": firstValue(variant.price_sar_initial, product.meta.price),
+      "Recommended Retail Price SA": firstValue(valueFor(variant, group, "price_sar_initial"), product.meta.price),
     };
 
     fillNumbered(row, "Feature", productFeatures(product.meta, group, variant), 5);
-    fillNumbered(row, "Feature Bullet", variant.feature_bullets_en, 12, "EN");
-    fillNumbered(row, "Feature Bullet", variant.feature_bullets_ar, 12, "AR");
+    fillNumbered(row, "Feature Bullet", valueFor(variant, group, "feature_bullets_en", []), 12, "EN");
+    fillNumbered(row, "Feature Bullet", valueFor(variant, group, "feature_bullets_ar", []), 12, "AR");
     const publishedImageUrls = imageUrlsForSku(imageManifest, partnerSku);
-    fillNumbered(row, "Image URL", publishedImageUrls.length ? publishedImageUrls : collectImageUrls(product.meta, variant, images), 7);
+    fillNumbered(row, "Image URL", publishedImageUrls.length ? publishedImageUrls : collectImageUrls(product.meta, variant, group, images), 7);
 
     return compactRow(row);
   });
@@ -237,8 +237,8 @@ function inferProductFeatures(meta, group, variant) {
     group.product_group_name_en,
     group.features,
     variant.title_en,
-    variant.description_en,
-    (variant.feature_bullets_en ?? []).join(" "),
+    valueFor(variant, group, "description_en"),
+    (valueFor(variant, group, "feature_bullets_en", []) ?? []).join(" "),
   ].join(" "));
   const features = [];
 
@@ -293,8 +293,8 @@ function fillNumbered(row, prefix, values = [], limit, suffix = "") {
   });
 }
 
-function collectImageUrls(meta, variant, fallback = []) {
-  const variantImages = (variant?.images ?? []).map((image) => (typeof image === "string" ? image : image?.url ?? image?.path));
+function collectImageUrls(meta, variant, group = {}, fallback = []) {
+  const variantImages = (valueFor(variant ?? {}, group, "images", []) ?? []).map((image) => (typeof image === "string" ? image : image?.url ?? image?.path));
   const urls = [...variantImages, ...(meta.images ?? []), ...fallback].map(cleanText).filter(isUsableNisImageUrl);
   return [...new Set(urls)];
 }
@@ -365,6 +365,14 @@ function compactRow(row) {
 
 function firstValue(...values) {
   return values.find((value) => cleanText(value) !== "") ?? "";
+}
+
+function valueFor(variant, group, field, fallback = "") {
+  return variant[field] ?? group[field] ?? fallback;
+}
+
+function hasValue(value) {
+  return cleanText(value) !== "";
 }
 
 function cleanText(value) {

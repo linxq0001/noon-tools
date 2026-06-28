@@ -121,7 +121,11 @@ test("scopes first-variant upload identity without changing barcode", () => {
 
 test("blocks uploaded and concurrent store uploads", async () => {
   const fixture = await makeUploadFixture();
-  await writeStoreNoonUploadStatus(fixture.productDir, { status: "uploaded", partnerSku: fixture.partnerSku }, "UAE01");
+  await writeStoreNoonUploadStatus(
+    fixture.productDir,
+    { status: "uploaded", partnerSku: deriveStorePartnerSku(fixture.partnerSku, "UAE01") },
+    "UAE01",
+  );
 
   await assert.rejects(() => assertStoreUploadAllowed({ ...fixture, storeId: "UAE01" }), /已经上传/);
   await assert.doesNotReject(() => assertStoreUploadAllowed({ ...fixture, storeId: "SA01" }));

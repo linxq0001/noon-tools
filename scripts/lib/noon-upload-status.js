@@ -13,6 +13,7 @@ export function defaultNoonUploadStatus(productDir = "") {
     uploaded: false,
     uploadedAt: "",
     partnerSku: "",
+    partnerSkus: [],
     message: "尚未上传到 noon。",
   };
 }
@@ -35,11 +36,13 @@ export async function writeStoreNoonUploadStatus(productDir, status, storeId = "
   const raw = readRawStatus(productDir);
   const stores = raw && !raw.statusUnreadable && raw.version === 2 && raw.stores && typeof raw.stores === "object" ? raw.stores : {};
   const id = normalizeStoreId(storeId);
+  const previous = normalizeNoonUploadStatus(stores[id], status.productDir || "");
+  const nextStatus = normalizeNoonUploadStatus(status, status.productDir || "", previous);
   const next = {
     version: 2,
     stores: {
       ...stores,
-      [id]: normalizeNoonUploadStatus(status, status.productDir || ""),
+      [id]: nextStatus,
     },
   };
 
@@ -66,15 +69,24 @@ function unreadableStatus(relativeDir) {
   };
 }
 
-function normalizeNoonUploadStatus(status, relativeDir) {
+function normalizeNoonUploadStatus(status, relativeDir, previous = defaultNoonUploadStatus(relativeDir)) {
   const state = validStatuses.has(status?.status) ? status.status : "not_uploaded";
   const uploaded = state === "uploaded";
+  const partnerSku = String(status?.partnerSku || "").trim();
+  const partnerSkus = [
+    ...new Set([
+      ...(Array.isArray(previous?.partnerSkus) ? previous.partnerSkus : []),
+      ...(Array.isArray(status?.partnerSkus) ? status.partnerSkus : []),
+      ...(uploaded && partnerSku ? [partnerSku] : []),
+    ].map((sku) => String(sku || "").trim()).filter(Boolean)),
+  ];
   return {
     productDir: String(status?.productDir || relativeDir || ""),
     status: state,
     uploaded,
     uploadedAt: uploaded ? String(status?.uploadedAt || "") : "",
-    partnerSku: String(status?.partnerSku || ""),
+    partnerSku,
+    partnerSkus,
     message: String(status?.message || (uploaded ? "已上传到 noon。" : "尚未上传到 noon。")),
   };
 }

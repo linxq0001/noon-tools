@@ -77,7 +77,7 @@ export function checkNoonProduct({
     const label = `variant ${index + 1}`;
 
     for (const field of requiredVariantFields) {
-      if (!hasValue(variant[field])) {
+      if (!hasValue(variant[field]) && !hasValue(group[field])) {
         blockingIssues.push(issue(`missing_${field}`, `${label} 缺少 ${field}。`));
       }
     }
