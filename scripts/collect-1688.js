@@ -2559,7 +2559,34 @@ function buildModelName(groupName, meta) {
 }
 
 function buildDetailedFeatures(meta) {
-  return ["Lightweight"];
+  const attributeMap = Object.fromEntries((meta.attributes || []).map((item) => [item.name, item.value]));
+  const text = normalizeFeatureText([
+    meta.title,
+    meta.sourceTitle,
+    Object.values(attributeMap).join(" "),
+    meta.description,
+  ].join(" "));
+  const features = [];
+
+  addDetailedFeature(features, "Lightweight", /轻便|小巧|小众|晚宴|手拿|手抓|clutch|evening|compact|lightweight/.test(text));
+  addDetailedFeature(features, "Wristlet", /手拿|手抓|腕带|wristlet|clutch/.test(text));
+  addDetailedFeature(features, "Detachable Straps", /链条|肩带|单肩|斜挎|strap|chain|shoulder|crossbody/.test(text));
+  addDetailedFeature(features, "Multi Compartment", /夹层|隔层|内袋|口袋|手机袋|证件袋|卡位|compartment|pocket|card/.test(text));
+  addDetailedFeature(features, "Waterproof", /防水|waterproof/.test(text));
+  addDetailedFeature(features, "Foldable", /折叠|可折叠|foldable/.test(text));
+  addDetailedFeature(features, "Expandable", /扩容|可扩展|expandable/.test(text));
+  addDetailedFeature(features, "Hidden Pockets", /暗袋|隐藏口袋|hidden pocket/.test(text));
+  addDetailedFeature(features, "Adjustable Straps", /可调节|调节肩带|adjustable strap/.test(text));
+
+  return features.length > 0 ? features.slice(0, 5) : ["Lightweight"];
+}
+
+function addDetailedFeature(features, feature, condition) {
+  if (condition && !features.includes(feature)) features.push(feature);
+}
+
+function normalizeFeatureText(value) {
+  return cleanText(value).toLowerCase();
 }
 
 function extractProductYear(sourceTitle, season) {

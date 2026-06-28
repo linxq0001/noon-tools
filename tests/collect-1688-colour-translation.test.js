@@ -35,6 +35,9 @@ test("collect-1688 falls back unknown source colours to stable noon colour famil
         箱包形状: "椭圆形",
         适用场景: "日常搭配",
         硬度: "硬",
+        流行元素: "链条",
+        有无夹层: "有",
+        包内部结构: "证件袋",
       },
       images: [],
       packageInfo: { weightG: "1000", dimensionsText: "19 x 6 x 14 cm" },
@@ -65,4 +68,5 @@ test("collect-1688 falls back unknown source colours to stable noon colour famil
   assert.ok(noonProduct.variants.every((variant) => !("description_ar" in variant)));
   assert.ok(noonProduct.variants.every((variant) => !("feature_bullets_en" in variant)));
   assert.ok(noonProduct.variants.every((variant) => !("feature_bullets_ar" in variant)));
+  assert.deepEqual(noonProduct.product_group.features, ["Lightweight", "Wristlet", "Detachable Straps", "Multi Compartment"]);
 });
