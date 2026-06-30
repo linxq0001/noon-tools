@@ -41,3 +41,27 @@ test("variant image assignment accepts visual assignments but does not create ne
   );
   assert.match(result.warnings.join(" "), /Only 2 image/);
 });
+
+test("variant image assignment maps visual colour names to existing source colours", () => {
+  const result = assignImagesToVariants({
+    colours: ["酒红色", "橘红色"],
+    images: [
+      { path: "wine.jpg" },
+      { path: "orange.jpg" },
+      { path: "shared.jpg" },
+    ],
+    visualAssignments: [
+      { path: "wine.jpg", assignedColour: "Wine Red" },
+      { path: "orange.jpg", assignedColour: "Orange Red" },
+    ],
+  });
+
+  assert.deepEqual(
+    result.imagesByColour["酒红色"].map((image) => image.path),
+    ["wine.jpg", "shared.jpg"],
+  );
+  assert.deepEqual(
+    result.imagesByColour["橘红色"].map((image) => image.path),
+    ["orange.jpg", "shared.jpg"],
+  );
+});

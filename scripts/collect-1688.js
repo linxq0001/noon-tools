@@ -13,7 +13,7 @@ import { buildBasePartnerSku, buildPartnerBarcode } from "./lib/noon-product-ide
 import { normalizeNoonProductVariantImages } from "./lib/noon-product-normalizer.js";
 import { ensureRepository, productStoragePath, rebuildProductIndexes, resolveRepositoryId } from "./lib/product-storage.js";
 import { cleanProductTitle } from "./lib/title-cleaner.js";
-import { assignImagesToVariants } from "./lib/variant-image-assignment.js";
+import { assignImagesToVariants, matchExistingColour } from "./lib/variant-image-assignment.js";
 
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const execFileAsync = promisify(execFile);
@@ -856,6 +856,7 @@ async function classifyColourImagesWithDeepSeek(meta, sourceColours, options = {
                 text: JSON.stringify({
                   task: "Assign each image to one of the allowed colours or _shared. Do not create new colours.",
                   allowedColours: colours,
+                  colourNameHints: Object.fromEntries(colours.map((colour) => [colour, stableNoonColourName(colour, colour)])),
                   outputSchema: {
                     imageAssignments: [{ image: "001.jpg", assignedColour: "金色|_shared", confidence: "high|medium|low", reason: "short" }],
                   },
@@ -1176,11 +1177,12 @@ function sanitizeColourAssignments(items, candidates, colours) {
   for (const item of Array.isArray(items) ? items : []) {
     const image = cleanText(item.image || item.path);
     const assignedColour = cleanText(item.assignedColour);
+    const matchedColour = assignedColour === "_shared" ? "_shared" : matchExistingColour(assignedColour, colours);
 
-    if (!allowedImages.has(image) || !allowedColours.has(assignedColour)) continue;
+    if (!allowedImages.has(image) || !allowedColours.has(matchedColour)) continue;
     output.push({
       path: image,
-      assignedColour,
+      assignedColour: matchedColour,
       confidence: cleanText(item.confidence),
       reason: cleanText(item.reason).slice(0, 160),
     });

@@ -4,6 +4,8 @@ const colourAliases = {
   黑色: ["黑色", "黑", "black"],
   粉色: ["粉色", "粉", "pink", "rose"],
   红色: ["红色", "红", "red"],
+  酒红色: ["酒红色", "酒红", "wine red", "burgundy", "dark red"],
+  橘红色: ["橘红色", "橘红", "橙红", "orange red", "coral red"],
   白色: ["白色", "白", "white", "ivory"],
   紫色: ["紫色", "紫", "purple"],
   蓝色: ["蓝色", "蓝", "blue"],
