@@ -168,6 +168,7 @@ export function applyAiCopyPatch(noonProduct, patch) {
   }
 
   for (const item of Array.isArray(patch?.variants) ? patch.variants : []) {
+    if (!item || typeof item !== "object") continue;
     const index = parseVariantIndex(item.index);
     if (index === null) continue;
     const variant = noonProduct.variants?.[index];
@@ -236,7 +237,7 @@ function isSafeEnglishCopy(value) {
   const text = cleanText(value);
   if (!text) return false;
   if (/[\u3400-\u9fff]/.test(text)) return false;
-  if (/\b(1688|alibaba|wholesale|factory|supplier|shipping|delivery|refund|moq)\b/i.test(text)) return false;
+  if (hasBlockedMarketplaceText(text)) return false;
   return /[A-Za-z]/.test(text);
 }
 
@@ -244,10 +245,14 @@ function isSafeArabicCopy(value) {
   const text = cleanText(value);
   if (!text) return false;
   if (/[\u3400-\u9fff]/.test(text)) return false;
-  if (/\b(1688|alibaba|wholesale|factory|supplier|shipping|delivery|refund|moq)\b/i.test(text)) return false;
+  if (hasBlockedMarketplaceText(text)) return false;
   return /[\u0600-\u06ff]/.test(text);
 }
 
 function cleanText(value) {
   return String(value ?? "").replace(/\s+/g, " ").trim();
+}
+
+function hasBlockedMarketplaceText(text) {
+  return /\b(?:1688|alibaba|wholesal(?:e|er|ers)?|fact(?:ory|ories)|sourc\w*|suppli\w*|ship\w*|deliver\w*|refund\w*|moq)\b/i.test(text);
 }

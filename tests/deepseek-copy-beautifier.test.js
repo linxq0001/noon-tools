@@ -114,6 +114,29 @@ test("applyAiCopyPatch patches only safe copy fields", () => {
   assert.deepEqual(product.variants[0].feature_bullets_en, ["Structured clutch shape for evening styling."]);
 });
 
+test("applyAiCopyPatch keeps rule copy when DeepSeek text mentions sourcing terms", () => {
+  const product = productFixture();
+
+  applyAiCopyPatch(product, {
+    product_group_name_en: "Supplier Evening Clutch Bag",
+    model_name: "Wholesale Evening Clutch",
+    variants: [
+      {
+        index: 0,
+        title_en: "Elegant Sourcing Evening Clutch",
+        description_en: "A refined clutch for sourcing teams and supplier visits.",
+        feature_bullets_en: ["Great for wholesale and shipping needs."],
+      },
+    ],
+  });
+
+  assert.equal(product.product_group.product_group_name_en, "Rule Evening Bag");
+  assert.equal(product.product_group.model_name, "Rule Evening Bag");
+  assert.equal(product.variants[0].title_en, "Rule Gold Evening Bag");
+  assert.equal(product.variants[0].description_en, "Rule description stays available.");
+  assert.deepEqual(product.variants[0].feature_bullets_en, ["Rule bullet"]);
+});
+
 test("applyAiCopyPatch ignores malformed variant indexes", () => {
   const product = productFixtureWithTwoVariants();
 
@@ -130,6 +153,21 @@ test("applyAiCopyPatch ignores malformed variant indexes", () => {
     ],
   });
 
+  assert.equal(product.variants[0].title_en, "Rule Gold Evening Bag");
+  assert.equal(product.variants[1].title_en, "Rule Silver Evening Bag");
+});
+
+test("applyAiCopyPatch ignores null variant entries without throwing", () => {
+  const product = productFixtureWithTwoVariants();
+
+  assert.doesNotThrow(() =>
+    applyAiCopyPatch(product, {
+      product_group_name_en: "Crystal Evening Clutch Bag",
+      variants: [null],
+    }),
+  );
+
+  assert.equal(product.product_group.product_group_name_en, "Crystal Evening Clutch Bag");
   assert.equal(product.variants[0].title_en, "Rule Gold Evening Bag");
   assert.equal(product.variants[1].title_en, "Rule Silver Evening Bag");
 });
