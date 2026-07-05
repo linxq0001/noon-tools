@@ -7,6 +7,7 @@ import path from "node:path";
 import { promisify } from "node:util";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { detect1688AccessState } from "./lib/1688-access-state.js";
+import { applyDeepSeekBeautification } from "./lib/deepseek-copy-beautifier.js";
 import { isLikelyDimensionImage, parseDimensionCandidates, resolveProductDimensions, selectDimensionVisionImages } from "./lib/dimension-extractor.js";
 import { constrainNoonSelectValue } from "./lib/noon-field-constraints.js";
 import { buildBasePartnerSku, buildPartnerBarcode } from "./lib/noon-product-identity.js";
@@ -705,101 +706,12 @@ async function buildNoonProduct(productTemplate, meta, options = {}) {
   };
 
   if (options.beautify) {
-    await applyDeepSeekBeautification(noonProduct, meta);
+    await applyDeepSeekBeautification(noonProduct, meta, { logStep });
   }
 
   hoistCommonVariantFields(noonProduct);
 
   return noonProduct;
-}
-
-async function applyDeepSeekBeautification(noonProduct, meta) {
-  const apiKey = process.env.DEEPSEEK_API_KEY;
-  const model = process.env.DEEPSEEK_MODEL || "deepseek-v4-flash";
-  const baseUrl = (process.env.DEEPSEEK_BASE_URL || "https://api.deepseek.com").replace(/\/+$/, "");
-
-  if (!apiKey) {
-    logStep("deepseek", "未设置 DEEPSEEK_API_KEY，跳过 AI 美化，保留规则生成结果。");
-    noonProduct.ai_generation = {
-      provider: "deepseek",
-      model,
-      generated_at: new Date().toISOString(),
-      status: "skipped",
-      error: "DEEPSEEK_API_KEY is not set.",
-      fallback: "rule_based_noon_product_kept",
-    };
-    return;
-  }
-
-  logStep("deepseek", `调用模型: ${model}`);
-
-  const response = await fetch(`${baseUrl}/chat/completions`, {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
-      authorization: `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({
-      model,
-      temperature: 0.35,
-      response_format: { type: "json_object" },
-      messages: [
-        {
-          role: "system",
-          content:
-            "You write marketplace-safe noon product content for women's evening clutch bags. Return only valid JSON. Do not include wholesale, supplier, shipping, 1688, factory, MOQ, refund, delivery, or sourcing text.",
-        },
-        {
-          role: "user",
-          content: JSON.stringify(buildDeepSeekBeautifyInput(noonProduct, meta)),
-        },
-      ],
-    }),
-  });
-
-  const data = await response.json().catch(() => null);
-
-  if (!response.ok) {
-    const errorMessage = `DeepSeek API failed: HTTP ${response.status} ${JSON.stringify(data)}`;
-    logStep("deepseek", errorMessage);
-    noonProduct.ai_generation = {
-      provider: "deepseek",
-      model,
-      generated_at: new Date().toISOString(),
-      status: "failed",
-      error: errorMessage,
-      fallback: "rule_based_noon_product_kept",
-    };
-    return;
-  }
-
-  const content = data?.choices?.[0]?.message?.content;
-  let patch;
-
-  try {
-    patch = parseAiJson(content);
-  } catch (error) {
-    logStep("deepseek", `DeepSeek JSON 解析失败: ${error.message}`);
-    noonProduct.ai_generation = {
-      provider: "deepseek",
-      model,
-      generated_at: new Date().toISOString(),
-      status: "failed",
-      error: error.message,
-      fallback: "rule_based_noon_product_kept",
-    };
-    return;
-  }
-
-  applyAiCopyPatch(noonProduct, patch);
-  noonProduct.ai_generation = {
-    provider: "deepseek",
-    model,
-    generated_at: new Date().toISOString(),
-    status: "completed",
-    scope: "title_description_bullets_only",
-  };
-  logStep("deepseek", "已完成标题、描述、卖点美化。");
 }
 
 async function classifyColourImagesWithDeepSeek(meta, sourceColours, options = {}) {
@@ -1218,116 +1130,12 @@ function mimeTypeFromImagePath(imagePath) {
   return "image/jpeg";
 }
 
-function buildDeepSeekBeautifyInput(noonProduct, meta) {
-  return {
-    task:
-      "Improve only the marketplace copy for a women's evening clutch product. Use the cleaned bag type and style signals to make polished English and Arabic content. Keep one variant per source colour. Do not change SKU, barcode, price, stock, colour fields, images, dimensions, weight, category, materials, warehouse, or upload_config.",
-    output_schema: {
-      product_group_name_en: "string",
-      product_group_name_ar: "Arabic string",
-      model_name: "string",
-      variants: [
-        {
-          index: "number",
-          title_en: "string",
-          title_ar: "Arabic string",
-          subtitle_en: "string",
-          subtitle_ar: "Arabic string",
-          description_en: "80-130 words",
-          description_ar: "Arabic description",
-          feature_bullets_en: "array of 5 strings",
-          feature_bullets_ar: "array of 5 Arabic strings",
-        },
-      ],
-    },
-    rules: [
-      "English title format: core material or decoration + occasion/style + main bag type + key carry structure. Keep it around 70 characters and avoid stacking more than two bag types.",
-      "Arabic title must be natural Arabic marketplace copy and match the English title meaning without word-for-word translation.",
-      "Use enhanced but truthful selling copy for dinners, parties, weddings, and formal occasions.",
-      "Do not invent waterproofing, scratch resistance, genuine leather, pure silver, real diamonds, luxury branding, adjustable chain, large capacity, or phone compatibility.",
-      "Description must describe product features and occasions only.",
-      "Do not mention 1688, Alibaba, wholesale, factory, stock, delivery, refund, shipping, MOQ, cross-border sourcing, or supplier service text.",
-      "Do not promise branded goods. Use Generic positioning.",
-      "Feature bullets should be concrete and based on source attributes.",
-    ],
-    source_meta: {
-      productId: meta.source.productId,
-      sourceTitle: meta.sourceTitle,
-      extractedTitle: meta.title,
-      titleParts: meta.titleParts || [],
-      productTypeText: meta.productTypeText || "",
-      attributes: Object.fromEntries(meta.attributes.map((item) => [item.name, item.value])),
-      packageInfo: meta.packageInfo,
-      dimensions: meta.dimensions,
-    },
-    current_noon_product: {
-      product_group: noonProduct.product_group,
-      variants: noonProduct.variants.map((variant, index) => ({
-        index,
-        colour: variant.colour,
-        colour_name: variant.colour_name,
-        title_en: variant.title_en,
-        title_ar: variant.title_ar,
-        subtitle_en: variant.subtitle_en,
-        subtitle_ar: variant.subtitle_ar,
-        description_en: variant.description_en,
-        description_ar: variant.description_ar,
-        feature_bullets_en: variant.feature_bullets_en,
-        feature_bullets_ar: variant.feature_bullets_ar,
-      })),
-    },
-  };
-}
-
 function parseAiJson(content) {
   const text = cleanText(content);
   const jsonText = text.startsWith("{") ? text : text.match(/\{[\s\S]*\}/)?.[0];
 
   if (!jsonText) throw new Error("DeepSeek response did not contain JSON.");
   return JSON.parse(jsonText);
-}
-
-function applyAiCopyPatch(noonProduct, patch) {
-  if (isSafeEnglishCopy(patch.product_group_name_en)) {
-    noonProduct.product_group.product_group_name_en = cleanText(patch.product_group_name_en);
-  }
-  if (isSafeArabicCopy(patch.product_group_name_ar)) {
-    noonProduct.product_group.product_group_name_ar = cleanText(patch.product_group_name_ar);
-  }
-  if (isSafeEnglishCopy(patch.model_name)) {
-    noonProduct.product_group.model_name = cleanText(patch.model_name);
-  }
-
-  for (const item of Array.isArray(patch.variants) ? patch.variants : []) {
-    const index = Number.parseInt(item.index, 10);
-    const variant = noonProduct.variants[index];
-
-    if (!variant) continue;
-    if (isSafeEnglishCopy(item.title_en)) variant.title_en = cleanText(item.title_en);
-    if (isSafeArabicCopy(item.title_ar)) variant.title_ar = cleanText(item.title_ar);
-    if (isSafeEnglishCopy(item.subtitle_en)) variant.subtitle_en = cleanText(item.subtitle_en);
-    if (isSafeArabicCopy(item.subtitle_ar)) variant.subtitle_ar = cleanText(item.subtitle_ar);
-    if (isSafeEnglishCopy(item.description_en)) variant.description_en = cleanText(item.description_en);
-    if (isSafeArabicCopy(item.description_ar)) variant.description_ar = cleanText(item.description_ar);
-    if (Array.isArray(item.feature_bullets_en)) {
-      const bullets = item.feature_bullets_en.map(cleanText).filter(isSafeEnglishCopy).slice(0, 5);
-      if (bullets.length > 0) variant.feature_bullets_en = bullets;
-    }
-    if (Array.isArray(item.feature_bullets_ar)) {
-      const bullets = item.feature_bullets_ar.map(cleanText).filter(isSafeArabicCopy).slice(0, 5);
-      if (bullets.length > 0) variant.feature_bullets_ar = bullets;
-    }
-  }
-}
-
-function isSafeEnglishCopy(value) {
-  const text = cleanText(value);
-  return Boolean(text) && !containsChinese(text) && !hasBlockedMarketplaceText(text);
-}
-
-function isSafeArabicCopy(value) {
-  const text = cleanText(value);
-  return Boolean(text) && /[\u0600-\u06ff]/.test(text) && !containsChinese(text) && !hasBlockedMarketplaceText(text);
 }
 
 function hasBlockedMarketplaceText(value) {
