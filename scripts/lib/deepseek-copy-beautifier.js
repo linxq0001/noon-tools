@@ -178,11 +178,11 @@ export function applyAiCopyPatch(noonProduct, patch) {
     if (isSafeArabicCopy(item.title_ar)) variant.title_ar = cleanText(item.title_ar);
     if (isSafeEnglishCopy(item.description_en)) variant.description_en = cleanText(item.description_en);
     if (Array.isArray(item.feature_bullets_en)) {
-      const bullets = item.feature_bullets_en.map(cleanText).filter(isSafeEnglishCopy).slice(0, 5);
+      const bullets = item.feature_bullets_en.filter(isSafeEnglishCopy).map(cleanText).slice(0, 5);
       if (bullets.length > 0) variant.feature_bullets_en = bullets;
     }
     if (Array.isArray(item.feature_bullets_ar)) {
-      const bullets = item.feature_bullets_ar.map(cleanText).filter(isSafeArabicCopy).slice(0, 5);
+      const bullets = item.feature_bullets_ar.filter(isSafeArabicCopy).map(cleanText).slice(0, 5);
       if (bullets.length > 0) variant.feature_bullets_ar = bullets;
     }
   }
@@ -234,6 +234,7 @@ function getErrorMessage(error) {
 }
 
 function isSafeEnglishCopy(value) {
+  if (typeof value !== "string") return false;
   const text = cleanText(value);
   if (!text) return false;
   if (/[\u3400-\u9fff]/.test(text)) return false;
@@ -242,6 +243,7 @@ function isSafeEnglishCopy(value) {
 }
 
 function isSafeArabicCopy(value) {
+  if (typeof value !== "string") return false;
   const text = cleanText(value);
   if (!text) return false;
   if (/[\u3400-\u9fff]/.test(text)) return false;

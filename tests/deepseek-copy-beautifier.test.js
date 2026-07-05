@@ -137,6 +137,35 @@ test("applyAiCopyPatch keeps rule copy when DeepSeek text mentions sourcing term
   assert.deepEqual(product.variants[0].feature_bullets_en, ["Rule bullet"]);
 });
 
+test("applyAiCopyPatch rejects object and array values for copy fields and bullets", () => {
+  const product = productFixture();
+
+  applyAiCopyPatch(product, {
+    product_group_name_en: { text: "Injected group copy" },
+    product_group_name_ar: ["Injected Arabic group copy"],
+    model_name: { text: "Injected model copy" },
+    variants: [
+      {
+        index: 0,
+        title_en: { text: "Injected title copy" },
+        title_ar: ["Injected Arabic title copy"],
+        description_en: [{ text: "Injected description copy" }],
+        feature_bullets_en: [{ text: "Injected bullet" }, ["Nested bullet"]],
+        feature_bullets_ar: [{ text: "نقطة" }, ["نقطة أخرى"]],
+      },
+    ],
+  });
+
+  assert.equal(product.product_group.product_group_name_en, "Rule Evening Bag");
+  assert.equal(product.product_group.product_group_name_ar, "حقيبة سهرة");
+  assert.equal(product.product_group.model_name, "Rule Evening Bag");
+  assert.equal(product.variants[0].title_en, "Rule Gold Evening Bag");
+  assert.equal(product.variants[0].title_ar, "حقيبة ذهبية");
+  assert.equal(product.variants[0].description_en, "Rule description stays available.");
+  assert.deepEqual(product.variants[0].feature_bullets_en, ["Rule bullet"]);
+  assert.deepEqual(product.variants[0].feature_bullets_ar, ["نقطة"]);
+});
+
 test("applyAiCopyPatch ignores malformed variant indexes", () => {
   const product = productFixtureWithTwoVariants();
 
