@@ -824,15 +824,24 @@ async function classifyColourImagesWithDeepSeek(meta, sourceColours, options = {
 }
 
 async function resolveDimensionsForNoon(meta, options = {}) {
-  if (meta.dimensions && meta.dimensions.source !== "default") return meta.dimensions;
+  if (meta.dimensions && meta.dimensions.source !== "default") {
+    logStep("dimension", `使用采集到的尺寸: ${meta.dimensions.lengthCm} x ${meta.dimensions.widthCm} x ${meta.dimensions.heightCm} cm，跳过 OCR。`);
+    return meta.dimensions;
+  }
 
   const fromAttributes = resolveProductDimensions({ attributes: meta.attributes, packageInfo: meta.packageInfo });
 
-  if (fromAttributes.source !== "default") return fromAttributes;
+  if (fromAttributes.source !== "default") {
+    logStep("dimension", `从属性/包裹信息解析尺寸: ${fromAttributes.lengthCm} x ${fromAttributes.widthCm} x ${fromAttributes.heightCm} cm，跳过 OCR。`);
+    return fromAttributes;
+  }
+
+  logStep("dimension", "属性/包裹信息未找到完整尺寸，进入图片 OCR 流程。");
 
   const ocrDimensions = await classifyDimensionsWithOcr(meta);
   if (ocrDimensions) return ocrDimensions;
 
+  logStep("dimension", "本地 OCR 未找到完整尺寸，检查是否启用 DeepSeek 图片尺寸识别。");
   const imageDimensions = await classifyDimensionsWithDeepSeek(meta, options);
   if (imageDimensions) return imageDimensions;
 
@@ -842,13 +851,18 @@ async function resolveDimensionsForNoon(meta, options = {}) {
 async function classifyDimensionsWithOcr(meta) {
   const candidates = (Array.isArray(meta.images) ? meta.images : []).filter((image) => image?.path).reverse();
 
-  if (candidates.length === 0) return null;
+  if (candidates.length === 0) {
+    logStep("dimension-ocr", "未找到可 OCR 图片，跳过本地 OCR。");
+    return null;
+  }
 
   const attemptedImages = [];
   let ocrResults = [];
 
   try {
+    logStep("dimension-ocr", `进入本地 OCR：倒序检查 ${candidates.length} 张图片。`);
     ocrResults = await readDimensionOcrResults(candidates.map((image) => path.join(meta.productDir, image.path)));
+    logStep("dimension-ocr", `本地 OCR 返回 ${ocrResults.length} 张图片结果，开始解析尺寸文本。`);
   } catch (error) {
     meta.dimensionOcr = {
       provider: "paddleocr",

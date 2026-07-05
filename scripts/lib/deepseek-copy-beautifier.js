@@ -24,6 +24,7 @@ export async function applyDeepSeekBeautification(noonProduct, meta, options = {
   }
 
   logStep("deepseek", `调用模型: ${model}，超时 ${Math.round(timeoutMs / 1000)}s，轻量文案模式`);
+  logStep("deepseek", "准备发送轻量 JSON 请求：thinking=disabled，max_tokens=1500。");
 
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
@@ -39,6 +40,8 @@ export async function applyDeepSeekBeautification(noonProduct, meta, options = {
       body: JSON.stringify({
         model,
         temperature: 0.25,
+        thinking: { type: "disabled" },
+        max_tokens: 1500,
         response_format: { type: "json_object" },
         messages: [
           {
@@ -55,6 +58,7 @@ export async function applyDeepSeekBeautification(noonProduct, meta, options = {
     });
 
     const data = await response.json().catch(() => null);
+    logStep("deepseek", `收到模型响应：HTTP ${response.status}，开始解析 JSON。`);
 
     if (!response.ok) {
       const errorMessage = `DeepSeek API failed: HTTP ${response.status} ${JSON.stringify(data)}`;
@@ -64,6 +68,7 @@ export async function applyDeepSeekBeautification(noonProduct, meta, options = {
     }
 
     const patch = parseAiJson(data?.choices?.[0]?.message?.content);
+    logStep("deepseek", "JSON 解析完成，开始应用安全文案字段。");
     applyAiCopyPatch(noonProduct, patch);
     const elapsedSeconds = elapsed(startedAt, now);
     noonProduct.ai_generation = {

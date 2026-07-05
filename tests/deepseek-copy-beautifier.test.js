@@ -204,8 +204,10 @@ test("applyAiCopyPatch ignores null variant entries without throwing", () => {
 test("applyDeepSeekBeautification records success with elapsed seconds", async () => {
   const product = productFixture();
   const logs = [];
-  const fetchImpl = async () =>
-    new Response(
+  let requestBody;
+  const fetchImpl = async (_url, options) => {
+    requestBody = JSON.parse(options.body);
+    return new Response(
       JSON.stringify({
         choices: [
           {
@@ -220,6 +222,7 @@ test("applyDeepSeekBeautification records success with elapsed seconds", async (
       }),
       { status: 200, headers: { "content-type": "application/json" } },
     );
+  };
 
   await applyDeepSeekBeautification(product, metaFixture(), {
     apiKey: "test-key",
@@ -237,7 +240,12 @@ test("applyDeepSeekBeautification records success with elapsed seconds", async (
   assert.equal(product.variants[0].title_en, "Crystal Evening Clutch Bag With Chain");
   assert.equal(product.ai_generation.status, "completed");
   assert.equal(product.ai_generation.elapsed_seconds, 8.4);
+  assert.equal(requestBody.thinking.type, "disabled");
+  assert.equal(requestBody.max_tokens, 1500);
   assert.match(logs.join("\n"), /轻量文案模式/);
+  assert.match(logs.join("\n"), /准备发送轻量 JSON 请求/);
+  assert.match(logs.join("\n"), /收到模型响应：HTTP 200，开始解析 JSON/);
+  assert.match(logs.join("\n"), /JSON 解析完成，开始应用安全文案字段/);
   assert.match(logs.join("\n"), /耗时 8\.4s/);
 });
 
