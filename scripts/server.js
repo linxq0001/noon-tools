@@ -20,6 +20,12 @@ import {
   defaultNoonUploadStatus,
   readStoreNoonUploadStatusFromProductDir,
 } from "./lib/noon-upload-status.js";
+import {
+  listRepositoryProducts,
+  listRepositorySummaries,
+  normalizeProductPageParams,
+  productDirsForRepository,
+} from "./lib/product-listing.js";
 import { readPlatformRepositories } from "./lib/product-storage.js";
 
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -151,8 +157,39 @@ const server = createServer(async (request, response) => {
       return;
     }
 
+    if (request.method === "GET" && url.pathname === "/api/repositories") {
+      sendJson(response, await listRepositorySummaries({
+        productsDir,
+        storeId: url.searchParams.get("storeId") || "",
+        readProductSummary,
+        buildRepositorySummary,
+      }));
+      return;
+    }
+
     if (request.method === "GET" && url.pathname === "/api/products") {
-      sendJson(response, await listRepositories(url.searchParams.get("storeId") || ""));
+      const repositoryId = url.searchParams.get("repository") || "";
+      if (!repositoryId) {
+        sendJson(response, { error: "缺少仓库参数。" }, 400);
+        return;
+      }
+
+      const params = normalizeProductPageParams({
+        page: url.searchParams.get("page"),
+        pageSize: url.searchParams.get("pageSize"),
+        status: url.searchParams.get("status"),
+        q: url.searchParams.get("q"),
+      });
+      const result = await listRepositoryProducts({
+        productsDir,
+        repositoryId,
+        storeId: url.searchParams.get("storeId") || "",
+        ...params,
+        readProductSummary,
+      });
+
+      if (!result) return notFound(response);
+      sendJson(response, result);
       return;
     }
 
@@ -343,10 +380,14 @@ async function createNoonStoreLoginJob(storeId, response) {
 
 async function createUploadJob(request, response) {
   const body = await readJsonBody(request);
-  const productDirs = Array.isArray(body.productDirs) ? body.productDirs.map(String).filter(Boolean) : [];
+  const repository = cleanPathSegment(body.repository || "");
+  let productDirs = Array.isArray(body.productDirs) ? body.productDirs.map(String).filter(Boolean) : [];
+  if (!body.all && repository && productDirs.length === 0 && !body.productDir) {
+    productDirs = await productDirsForRepository({ productsDir, repositoryId: repository });
+  }
 
   if (!body.all && !body.productDir && productDirs.length === 0) {
-    sendJson(response, { error: "请选择一个商品目录，或选择全部上传。" }, 400);
+    sendJson(response, { error: "请选择一个商品目录、仓库，或选择全部上传。" }, 400);
     return;
   }
 
@@ -385,7 +426,7 @@ async function createUploadJob(request, response) {
     url: args[args.indexOf("--noon-url") + 1],
     productDir: body.productDir ?? "",
     productDirs,
-    repository: body.all ? "" : repositoryFromProductDir(productDirs[0] || body.productDir || ""),
+    repository: body.all ? "" : repository || repositoryFromProductDir(productDirs[0] || body.productDir || ""),
     storeId: store.id,
     startedAt: new Date().toISOString(),
     finishedAt: null,
@@ -807,26 +848,6 @@ function appendLog(job, chunk) {
   const lines = chunk.toString("utf8").split(/\r?\n/).filter(Boolean);
   job.logs.push(...lines.map((line) => ({ time: new Date().toISOString(), line })));
   job.logs = job.logs.slice(-300);
-}
-
-async function listProducts(storeId = "") {
-  const repositories = await listRepositories(storeId);
-  return repositories.flatMap((repository) => repository.products);
-}
-
-async function listRepositories(storeId = "") {
-  const repositories = await readPlatformRepositories(productsDir, "1688");
-  const summaries = [];
-
-  for (const repository of repositories) {
-    const products = [];
-    for (const productDir of repository.productDirs) {
-      products.push(await readProductSummary(productDir.relativeDir, repository.id, storeId));
-    }
-    summaries.push(buildRepositorySummary(repository.id, repository.name, products));
-  }
-
-  return summaries.sort((left, right) => String(right.updatedAt).localeCompare(String(left.updatedAt)));
 }
 
 async function readProductSummary(relativeDir, repository, storeId = "") {

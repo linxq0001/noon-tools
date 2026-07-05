@@ -117,6 +117,17 @@ test("productDirsForRepository expands a repository to every product dir", async
   ]);
 });
 
+test("server exposes repository summaries and paginated product routes", async () => {
+  const serverSource = await readFile(new URL("../scripts/server.js", import.meta.url), "utf8");
+
+  assert.match(serverSource, /from "\.\/lib\/product-listing\.js"/);
+  assert.match(serverSource, /url\.pathname === "\/api\/repositories"/);
+  assert.match(serverSource, /await listRepositorySummaries\(/);
+  assert.match(serverSource, /await listRepositoryProducts\(/);
+  assert.match(serverSource, /normalizeProductPageParams/);
+  assert.match(serverSource, /productDirsForRepository/);
+});
+
 async function createProductsDir(products) {
   const tempDir = await mkdtemp(path.join(os.tmpdir(), "product-listing-"));
   const productsDir = path.join(tempDir, "products");
