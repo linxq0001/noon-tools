@@ -32,7 +32,27 @@ function productFixture() {
         price_sar_initial: 99,
       },
     ],
-  };
+    };
+}
+
+function productFixtureWithTwoVariants() {
+  const product = productFixture();
+  product.variants.push({
+    partner_sku: "G-1001-1001-V02-SILVER",
+    barcode: "202604280002",
+    colour: "Silver",
+    colour_name: "Silver",
+    title_en: "Rule Silver Evening Bag",
+    title_ar: "حقيبة فضية",
+    subtitle_en: "Rule subtitle 2",
+    subtitle_ar: "عنوان فرعي 2",
+    description_en: "Rule description stays available for the second variant.",
+    description_ar: "وصف عربي 2",
+    feature_bullets_en: ["Rule bullet 2"],
+    feature_bullets_ar: ["نقطة 2"],
+    price_sar_initial: 109,
+  });
+  return product;
 }
 
 function metaFixture() {
@@ -92,6 +112,26 @@ test("applyAiCopyPatch patches only safe copy fields", () => {
   assert.equal(product.variants[0].title_en, "Crystal Evening Clutch Bag With Chain");
   assert.equal(product.variants[0].price_sar_initial, 99);
   assert.deepEqual(product.variants[0].feature_bullets_en, ["Structured clutch shape for evening styling."]);
+});
+
+test("applyAiCopyPatch ignores malformed variant indexes", () => {
+  const product = productFixtureWithTwoVariants();
+
+  applyAiCopyPatch(product, {
+    variants: [
+      {
+        index: "0foo",
+        title_en: "Bad Index First Variant",
+      },
+      {
+        index: "01",
+        title_en: "Bad Index Second Variant",
+      },
+    ],
+  });
+
+  assert.equal(product.variants[0].title_en, "Rule Gold Evening Bag");
+  assert.equal(product.variants[1].title_en, "Rule Silver Evening Bag");
 });
 
 test("applyDeepSeekBeautification records success with elapsed seconds", async () => {
@@ -182,5 +222,23 @@ test("applyDeepSeekBeautification keeps rule copy on malformed JSON", async () =
 
   assert.equal(product.product_group.product_group_name_en, "Rule Evening Bag");
   assert.equal(product.ai_generation.status, "failed");
+  assert.equal(product.ai_generation.fallback, "rule_based_noon_product_kept");
+});
+
+test("applyDeepSeekBeautification records failed ai_generation for non-Error rejection", async () => {
+  const product = productFixture();
+  const fetchImpl = async () => Promise.reject("network boom");
+
+  await applyDeepSeekBeautification(product, metaFixture(), {
+    apiKey: "test-key",
+    fetchImpl,
+    timeoutMs: 20000,
+    logStep: () => {},
+  });
+
+  assert.equal(product.product_group.product_group_name_en, "Rule Evening Bag");
+  assert.equal(product.variants[0].title_en, "Rule Gold Evening Bag");
+  assert.equal(product.ai_generation.status, "failed");
+  assert.equal(product.ai_generation.error, "network boom");
   assert.equal(product.ai_generation.fallback, "rule_based_noon_product_kept");
 });

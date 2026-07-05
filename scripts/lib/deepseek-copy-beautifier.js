@@ -79,10 +79,11 @@ export async function applyDeepSeekBeautification(noonProduct, meta, options = {
   } catch (error) {
     const elapsedSeconds = elapsed(startedAt, now);
     const isTimeout = error?.name === "AbortError";
+    const errorMessage = getErrorMessage(error);
     const status = isTimeout ? "timeout" : "failed";
     const message = isTimeout
       ? `DeepSeek 超时 ${elapsedSeconds.toFixed(1)}s，已保留规则生成文案。`
-      : `DeepSeek 调用失败: ${error.message}，已保留规则生成文案。`;
+      : `DeepSeek 调用失败: ${errorMessage}，已保留规则生成文案。`;
 
     logStep("deepseek", message);
     recordAiGeneration(noonProduct, {
@@ -90,7 +91,7 @@ export async function applyDeepSeekBeautification(noonProduct, meta, options = {
       status,
       startedAt,
       now: () => startedAt + elapsedSeconds * 1000,
-      error: error.message,
+      error: errorMessage,
     });
     return noonProduct;
   } finally {
@@ -167,7 +168,8 @@ export function applyAiCopyPatch(noonProduct, patch) {
   }
 
   for (const item of Array.isArray(patch?.variants) ? patch.variants : []) {
-    const index = Number.parseInt(item.index, 10);
+    const index = parseVariantIndex(item.index);
+    if (index === null) continue;
     const variant = noonProduct.variants?.[index];
 
     if (!variant) continue;
@@ -209,6 +211,25 @@ function recordAiGeneration(noonProduct, { model, status, startedAt, now, error 
 
 function elapsed(startedAt, now) {
   return Math.round(((now() - startedAt) / 1000) * 10) / 10;
+}
+
+function parseVariantIndex(value) {
+  if (Number.isInteger(value)) return value >= 0 ? value : null;
+  if (typeof value !== "string") return null;
+  if (!/^(0|[1-9]\d*)$/.test(value)) return null;
+
+  const index = Number(value);
+  return Number.isInteger(index) && index >= 0 ? index : null;
+}
+
+function getErrorMessage(error) {
+  if (typeof error === "string") return error;
+  if (error instanceof Error && typeof error.message === "string" && error.message) return error.message;
+  try {
+    return JSON.stringify(error) || String(error);
+  } catch {
+    return String(error);
+  }
 }
 
 function isSafeEnglishCopy(value) {
