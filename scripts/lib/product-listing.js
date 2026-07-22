@@ -73,11 +73,37 @@ export async function productDirsForRepository({ productsDir, repositoryId } = {
   return repository ? repository.productDirs.map((productDir) => productDir.relativeDir) : [];
 }
 
+export async function findRepositoryProductBySku({
+  productsDir,
+  partnerSku = "",
+  sku = "",
+  storeId = "",
+  readProductSummary,
+  readProductSkus,
+} = {}) {
+  const candidates = new Set([partnerSku, sku].map(normalizeSku).filter(Boolean));
+  if (!candidates.size) return null;
+
+  const repositories = await readPlatformRepositories(productsDir, "1688");
+  for (const repository of repositories) {
+    for (const productDir of repository.productDirs) {
+      const productSkus = await readProductSkus(productDir.relativeDir, storeId);
+      if (!productSkus.some((item) => candidates.has(normalizeSku(item)))) continue;
+      return readProductSummary(productDir.relativeDir, repository.id, storeId);
+    }
+  }
+  return null;
+}
+
 async function findRepository(productsDir, repositoryId) {
   const normalizedId = String(repositoryId || "").trim();
   if (!normalizedId) return null;
   const repositories = await readPlatformRepositories(productsDir, "1688");
   return repositories.find((repository) => repository.id === normalizedId) || null;
+}
+
+function normalizeSku(value) {
+  return String(value || "").trim().toLowerCase();
 }
 
 function productMatchesQuery(product, q) {

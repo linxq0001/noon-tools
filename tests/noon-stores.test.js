@@ -44,6 +44,19 @@ test("adds, finds, and rejects duplicate stores", async () => {
   await assert.rejects(() => addNoonStore(root, created), /已存在/);
 });
 
+test("stores Noon API token privately and exposes only token status", async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), "noon-stores-token-"));
+  const created = await addNoonStore(
+    root,
+    { id: "UAE01", name: "Main UAE", projectId: "PRJ517205", apiToken: "secret-token" },
+    { now: () => "2026-06-24T00:00:00.000Z" },
+  );
+
+  assert.equal(created.apiToken, "secret-token");
+  const registry = await readNoonStoreRegistry(root);
+  assert.equal(registry.stores[0].apiToken, "secret-token");
+});
+
 test("reads, writes, and validates the registry file", async () => {
   const root = await mkdtemp(path.join(os.tmpdir(), "noon-stores-read-write-"));
   const registry = {

@@ -17,6 +17,8 @@ import { prepareNoonUploadProducts } from "./lib/noon-upload-product.js";
 import { acquireStoreUploadLock, assertStoreUploadAllowed } from "./lib/noon-upload-preflight.js";
 import { writeStoreNoonUploadStatus } from "./lib/noon-upload-status.js";
 
+import { fail, formatGroupRef, formatLogValue, logStep } from "./lib/upload-log.js";
+
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const productsDir = path.join(rootDir, "products");
 const args = parseArgs(process.argv.slice(2));
@@ -47,6 +49,7 @@ if (productDirs.length === 0) fail("No product directories found.");
 await regenerateProductIdentities(productsDir);
 
 const products = [];
+const productGroupRefs = new Map();
 let hadFailure = false;
 let skippedProducts = 0;
 for (const productDir of productDirs) {
@@ -189,6 +192,7 @@ async function uploadProduct(product) {
 
     await sellerLabPage.submitOfferDetails(product);
     fieldIssues.assertClear("Offer Details");
+    await handleProductGrouping(sellerLabPage, product);
 
     await writeStoreNoonUploadStatus(product.productDir, {
       productDir: product.relativeDir,
@@ -230,8 +234,30 @@ function sellerLabPageHelpers() {
     fillProductContent,
     fillDetailedContent,
     fillOfferDetails,
+    createProductGroup,
+    joinProductGroup,
   };
 }
+
+async function handleProductGrouping(sellerLabPage, product) {
+  const grouping = product.grouping;
+  if (!grouping) return;
+
+  if (grouping.role === "create") {
+    const groupRef = await sellerLabPage.createProductGroup(product);
+    productGroupRefs.set(grouping.key, groupRef);
+    logStep("group", `${product.productIdentity.partnerSku}: created group ${formatGroupRef(groupRef)}`);
+    return;
+  }
+
+  const groupRef = productGroupRefs.get(grouping.key);
+  if (!groupRef) {
+    throw new Error(`Missing product group reference for ${product.productIdentity.partnerSku}; upload variants[0] first.`);
+  }
+  await sellerLabPage.joinProductGroup(product, groupRef);
+  logStep("group", `${product.productIdentity.partnerSku}: joined group ${formatGroupRef(groupRef)}`);
+}
+
 
 async function loadProducts(productDir) {
   const productPath = path.join(productDir, "noon-product-attributes.json");
@@ -272,6 +298,118 @@ function warnRawContent(product) {
 
   if (/[\u3400-\u9fff]/.test(title)) logStep("warning", "标题包含中文：当前按原样上传，可能影响 noon 审核。");
   if (currency && currency !== "AED") logStep("warning", `价格币种为 ${currency}：当前按原样上传。`);
+}
+
+async function createProductGroup(page, product) {
+  await openGroupsTab(page);
+  await clickButton(page, ["Create New Group", "Create Group"], { required: true });
+  await page.waitForTimeout(2000);
+  await clickButton(page, ["Create Group", "Create", "Save"], { required: false });
+  await page.waitForTimeout(2000);
+
+  const groupRef = await readProductGroupRef(page, product);
+  if (!groupRef.id && !groupRef.name && !groupRef.url) {
+    throw new Error(`Created group for ${product.productIdentity.partnerSku}, but could not read the group reference.`);
+  }
+  return groupRef;
+}
+
+async function joinProductGroup(page, product, groupRef) {
+  await openGroupsTab(page);
+  const opened = await clickButton(page, [
+    "Link this product to an existing group",
+    "Link to Existing Group",
+    "Add to Group",
+    "Link Product",
+  ], { required: false });
+
+  if (!opened) {
+    logStep("group", "未找到 Link 按钮，尝试直接搜索已有 group。");
+  }
+
+  const filled = await fillGroupSearch(page, groupRef);
+  if (!filled) throw new Error(`Could not find group search input for ${product.productIdentity.partnerSku}.`);
+
+  await clickGroupSearchResult(page, groupRef);
+  await clickButton(page, ["Link Product", "Add to Group", "Link", "Save", "Confirm"], { required: true });
+  await page.waitForTimeout(2000);
+}
+
+async function openGroupsTab(page) {
+  const clicked = await clickText(page, ["Groups"]);
+  if (!clicked) throw new Error("Groups tab not found after product submit.");
+  await page.waitForTimeout(1500);
+}
+
+async function fillGroupSearch(page, groupRef) {
+  const query = groupRef.id || groupRef.name || groupRef.anchorPartnerSku;
+  if (!query) return false;
+
+  return page.evaluate((value) => {
+    const visible = (element) => {
+      const rect = element.getBoundingClientRect();
+      return rect.width > 0 && rect.height > 0;
+    };
+    const input = [...document.querySelectorAll("input:not([type=file]), textarea, [contenteditable=true]")]
+      .filter(visible)
+      .find((element) => /search|group|sku|product/i.test(`${element.placeholder || ""} ${element.getAttribute("aria-label") || ""}`)) ??
+      [...document.querySelectorAll("input:not([type=file]), textarea, [contenteditable=true]")].filter(visible).at(-1);
+
+    if (!input) return false;
+    input.focus();
+    if (input.isContentEditable) {
+      input.textContent = value;
+    } else {
+      input.value = value;
+    }
+    input.dispatchEvent(new InputEvent("input", { bubbles: true, inputType: "insertText", data: value }));
+    input.dispatchEvent(new Event("change", { bubbles: true }));
+    return true;
+  }, query);
+}
+
+async function clickGroupSearchResult(page, groupRef) {
+  await page.waitForTimeout(1500);
+  const clicked = await page.evaluate((ref) => {
+    const clean = (value) => String(value || "").replace(/\s+/g, " ").trim().toLowerCase();
+    const needles = [ref.id, ref.name, ref.anchorPartnerSku].map(clean).filter(Boolean);
+    const visible = (element) => {
+      const rect = element.getBoundingClientRect();
+      return rect.width > 0 && rect.height > 0;
+    };
+    const option = [...document.querySelectorAll("[role=option], li, tr, div")]
+      .filter(visible)
+      .find((element) => needles.some((needle) => clean(element.textContent).includes(needle)));
+
+    option?.click();
+    return Boolean(option);
+  }, groupRef);
+
+  if (!clicked) throw new Error(`Product group option not found: ${formatGroupRef(groupRef)}`);
+}
+
+async function readProductGroupRef(page, product) {
+  return page.evaluate((fallback) => {
+    const clean = (value) => String(value || "").replace(/\s+/g, " ").trim();
+    const text = clean(document.body?.innerText || "");
+    const url = location.href;
+    const id =
+      new URL(location.href).searchParams.get("groupId") ||
+      new URL(location.href).searchParams.get("group_id") ||
+      text.match(/\bgroup(?: id)?\s*[:#-]?\s*([A-Z0-9_-]{4,})\b/i)?.[1] ||
+      [...document.querySelectorAll("[data-group-id], [data-testid*=group], a[href*=group]")]
+        .map((element) => element.getAttribute("data-group-id") || element.getAttribute("href") || element.textContent)
+        .map(clean)
+        .find(Boolean) ||
+      "";
+
+    return {
+      id,
+      name: fallback.name || "",
+      anchorPartnerSku: fallback.anchorPartnerSku || "",
+      url,
+    };
+  }, product.grouping ?? {});
 }
 
 async function fillProductContent(page, product) {
@@ -453,11 +591,6 @@ async function waitForOpenPage(page, label) {
   }
 }
 
-function formatLogValue(value) {
-  const text = String(value).replace(/\s+/g, " ").trim();
-  const clipped = text.length > 120 ? `${text.slice(0, 117)}...` : text;
-  return `"${clipped}"`;
-}
 
 async function fillFeatureBullets(page, bullets) {
   const values = bullets.filter(hasValue).slice(0, 5);
@@ -2146,13 +2279,4 @@ function hasValue(value) {
 
 function escapeRegExp(value) {
   return String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
-
-function logStep(scope, message) {
-  console.log(`[${scope}] ${message}`);
-}
-
-function fail(message) {
-  console.error(`[failed] ${message}`);
-  process.exit(1);
 }

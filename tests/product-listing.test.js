@@ -4,6 +4,7 @@ import { mkdir, mkdtemp, readFile, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import {
+  findRepositoryProductBySku,
   listRepositoryProducts,
   listRepositorySummaries,
   normalizeProductPageParams,
@@ -117,6 +118,23 @@ test("productDirsForRepository expands a repository to every product dir", async
   ]);
 });
 
+test("findRepositoryProductBySku resolves a local product on demand", async () => {
+  const productsDir = await createProductsDir([
+    { repository: "default", productId: "1001", title: "Gold Bag" },
+    { repository: "default", productId: "1002", title: "Silver Bag" },
+  ]);
+
+  const result = await findRepositoryProductBySku({
+    productsDir,
+    partnerSku: "1688-1002",
+    readProductSummary: fakeReadProductSummary(productsDir),
+    readProductSkus: fakeReadProductSkus(productsDir),
+  });
+
+  assert.equal(result.title, "Silver Bag");
+  assert.equal(result.dirName, "1688/default/1002");
+});
+
 test("server exposes repository summaries and paginated product routes", async () => {
   const serverSource = await readFile(new URL("../scripts/server.js", import.meta.url), "utf8");
 
@@ -124,6 +142,7 @@ test("server exposes repository summaries and paginated product routes", async (
   assert.match(serverSource, /url\.pathname === "\/api\/repositories"/);
   assert.match(serverSource, /await listRepositorySummaries\(/);
   assert.match(serverSource, /await listRepositoryProducts\(/);
+  assert.match(serverSource, /await findRepositoryProductBySku\(/);
   assert.match(serverSource, /normalizeProductPageParams/);
   assert.match(serverSource, /productDirsForRepository/);
 });
@@ -176,6 +195,13 @@ function fakeReadProductSummary(productsDir) {
         uploaded: meta.uploaded,
       },
     };
+  };
+}
+
+function fakeReadProductSkus(productsDir) {
+  return async (relativeDir) => {
+    const product = JSON.parse(await readFile(path.join(productsDir, relativeDir, "noon-product-attributes.json"), "utf8"));
+    return (product.variants || []).map((variant) => variant.partner_sku);
   };
 }
 

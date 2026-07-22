@@ -14,6 +14,8 @@ import { buildBasePartnerSku, buildPartnerBarcode } from "./lib/noon-product-ide
 import { normalizeNoonProductVariantImages } from "./lib/noon-product-normalizer.js";
 import { ensureRepository, productStoragePath, rebuildProductIndexes, resolveRepositoryId } from "./lib/product-storage.js";
 import { cleanProductTitle } from "./lib/title-cleaner.js";
+
+import { logStep, logSample } from "./lib/upload-log.js";
 import { assignImagesToVariants, matchExistingColour } from "./lib/variant-image-assignment.js";
 
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -2758,15 +2760,6 @@ function firstNonEmpty(...values) {
   return values.find((value) => cleanText(value)) ?? "";
 }
 
-function logStep(scope, message) {
-  console.log(`[${scope}] ${message}`);
-}
-
-function logSample(scope, values, limit = 5, label = "样例") {
-  for (const [index, value] of values.slice(0, limit).entries()) {
-    console.log(`[${scope}] ${label}${index + 1}: ${value}`);
-  }
-}
 
 function parseArgs(values) {
   const parsed = {};

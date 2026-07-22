@@ -41,4 +41,12 @@ class SellerLabPageAdapter {
     await this.operations.fillOfferDetails(product);
     await this.operations.clickButton(["Submit", "Create Product", "Create & Submit", "Publish", "Create"], { required: true });
   }
+
+  async createProductGroup(product) {
+    return this.operations.createProductGroup(product);
+  }
+
+  async joinProductGroup(product, groupRef) {
+    await this.operations.joinProductGroup(product, groupRef);
+  }
 }

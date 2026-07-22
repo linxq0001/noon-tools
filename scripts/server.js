@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { createReadStream, existsSync } from "node:fs";
-import { readFile, stat, writeFile } from "node:fs/promises";
+import { readFile, readdir, stat, writeFile } from "node:fs/promises";
 import { createServer } from "node:http";
 import path from "node:path";
 import { spawn } from "node:child_process";
@@ -14,13 +14,21 @@ import {
 } from "./lib/noon-bulk-update-exporter.js";
 import { checkNoonProducts, writeOperationCheck } from "./lib/noon-operation-checks.js";
 import { handleNoonStoreApi } from "./lib/noon-store-api.js";
-import { buildNoonLoginArgs, buildNoonStatusArgs, buildNoonUploadIdentityArgs } from "./lib/noon-store-jobs.js";
+import {
+  buildNoonCatalogSyncArgs,
+  buildNoonLoginArgs,
+  buildNoonStatusArgs,
+  buildNoonUploadIdentityArgs,
+  normalizeCatalogMode,
+} from "./lib/noon-store-jobs.js";
 import { findNoonStore } from "./lib/noon-stores.js";
 import {
   defaultNoonUploadStatus,
   readStoreNoonUploadStatusFromProductDir,
 } from "./lib/noon-upload-status.js";
+import { summarizeNoonProduct } from "./lib/noon-product-summary.js";
 import {
+  findRepositoryProductBySku,
   listRepositoryProducts,
   listRepositorySummaries,
   normalizeProductPageParams,
@@ -130,6 +138,11 @@ const server = createServer(async (request, response) => {
       return;
     }
 
+    if (request.method === "POST" && url.pathname === "/api/noon-catalog-sync-jobs") {
+      await createNoonCatalogSyncJob(request, response);
+      return;
+    }
+
     if (request.method === "POST" && url.pathname === "/api/upload-jobs") {
       await createUploadJob(request, response);
       return;
@@ -190,6 +203,29 @@ const server = createServer(async (request, response) => {
 
       if (!result) return notFound(response);
       sendJson(response, result);
+      return;
+    }
+
+    if (request.method === "GET" && url.pathname === "/api/products/resolve") {
+      const result = await findRepositoryProductBySku({
+        productsDir,
+        partnerSku: url.searchParams.get("partnerSku") || "",
+        sku: url.searchParams.get("sku") || "",
+        storeId: url.searchParams.get("storeId") || "",
+        readProductSummary,
+        readProductSkus,
+      });
+
+      if (!result) return notFound(response);
+      sendJson(response, result);
+      return;
+    }
+
+    if (request.method === "GET" && url.pathname === "/api/noon-catalog-sync") {
+      sendJson(response, await readLatestNoonCatalogSync({
+        storeId: url.searchParams.get("storeId") || "",
+        mode: url.searchParams.get("mode") || "global",
+      }));
       return;
     }
 
@@ -498,6 +534,53 @@ async function createNoonGenerateJob(request, response) {
   jobs.set(id, job);
 
   const child = spawn(process.execPath, args, { cwd: rootDir, env });
+  job.child = child;
+  child.stdout.on("data", (chunk) => appendLog(job, chunk));
+  child.stderr.on("data", (chunk) => appendLog(job, chunk));
+  child.on("close", (code) => {
+    if (job.status === "cancelled") return;
+    job.status = code === 0 ? "completed" : "failed";
+    job.exitCode = code;
+    job.finishedAt = new Date().toISOString();
+  });
+
+  sendJson(response, serializeJob(job), 201);
+}
+
+async function createNoonCatalogSyncJob(request, response) {
+  const body = await readJsonBody(request);
+  const storeId = String(body.storeId || "").trim();
+  if (!storeId) {
+    sendJson(response, { error: "请选择一个 noon 店铺。" }, 400);
+    return;
+  }
+
+  const store = await findNoonStore(rootDir, storeId);
+  if (!store) {
+    sendJson(response, { error: "找不到 noon 店铺。" }, 404);
+    return;
+  }
+
+  const mode = normalizeCatalogMode(body.mode || "global");
+  const id = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  const args = buildNoonCatalogSyncArgs(rootDir, store, mode);
+  const job = {
+    id,
+    kind: "syncNoonCatalog",
+    status: "running",
+    url: args[args.indexOf("--catalog-url") + 1],
+    mode,
+    storeId: store.id,
+    startedAt: new Date().toISOString(),
+    finishedAt: null,
+    exitCode: null,
+    logs: [],
+    child: null,
+  };
+
+  jobs.set(id, job);
+
+  const child = spawn(process.execPath, args, { cwd: rootDir, env: process.env });
   job.child = child;
   child.stdout.on("data", (chunk) => appendLog(job, chunk));
   child.stderr.on("data", (chunk) => appendLog(job, chunk));
@@ -850,6 +933,85 @@ function appendLog(job, chunk) {
   job.logs = job.logs.slice(-300);
 }
 
+async function readLatestNoonCatalogSync({ storeId = "", mode = "global" } = {}) {
+  const normalizedMode = normalizeCatalogMode(mode);
+  const normalizedStoreId = String(storeId || "").trim().toUpperCase();
+  const syncDir = path.join(exportsDir, "noon-catalog-sync");
+
+  let fileNames = [];
+  try {
+    fileNames = await readdir(syncDir);
+  } catch (error) {
+    if (error?.code !== "ENOENT") throw error;
+  }
+
+  const candidates = fileNames
+    .filter((fileName) => fileName.endsWith(`-${normalizedMode}.json`))
+    .sort()
+    .reverse();
+
+  for (const fileName of candidates) {
+    try {
+      const sync = JSON.parse(await readFile(path.join(syncDir, fileName), "utf8"));
+      if (normalizedStoreId && String(sync.storeId || "").toUpperCase() !== normalizedStoreId) continue;
+      if (normalizeCatalogMode(sync.mode || normalizedMode) !== normalizedMode) continue;
+      const headers = Array.isArray(sync.headers) ? sync.headers : [];
+      return {
+        synced: true,
+        storeId: sync.storeId || normalizedStoreId,
+        mode: normalizedMode,
+        catalogUrl: sync.catalogUrl || "",
+        title: sync.title || "",
+        headers,
+        rows: sanitizeNoonCatalogRows(sync.rows, headers),
+        output: `/exports/noon-catalog-sync/${encodeURIComponent(fileName)}`,
+        fileName,
+      };
+    } catch {
+      // Ignore broken snapshots and keep looking for an older usable one.
+    }
+  }
+
+  return {
+    synced: false,
+    storeId: normalizedStoreId,
+    mode: normalizedMode,
+    catalogUrl: "",
+    title: "",
+    headers: [],
+    rows: [],
+    output: "",
+    fileName: "",
+  };
+}
+
+function sanitizeNoonCatalogRows(rows, headers = []) {
+  const headerText = headers.map(cleanCatalogCellText).join("|");
+  return (Array.isArray(rows) ? rows : [])
+    .map(normalizeNoonCatalogRow)
+    .filter(Boolean)
+    .filter((row) => row.cells.length > 0)
+    .filter((row) => row.cells.join("|") !== headerText);
+}
+
+function normalizeNoonCatalogRow(row) {
+  if (Array.isArray(row)) {
+    return {
+      cells: row.map(cleanCatalogCellText).filter(Boolean),
+      imageUrl: "",
+    };
+  }
+  if (!row || typeof row !== "object") return null;
+  return {
+    cells: (Array.isArray(row.cells) ? row.cells : []).map(cleanCatalogCellText).filter(Boolean),
+    imageUrl: cleanCatalogCellText(row.imageUrl),
+  };
+}
+
+function cleanCatalogCellText(value) {
+  return String(value ?? "").replace(/\s+/g, " ").trim();
+}
+
 async function readProductSummary(relativeDir, repository, storeId = "") {
   const metaPath = path.join(productsDir, relativeDir, "meta.json");
 
@@ -892,37 +1054,9 @@ async function readProductSummary(relativeDir, repository, storeId = "") {
 async function readNoonProductSummary(relativeDir) {
   try {
     const product = JSON.parse(await readFile(path.join(productsDir, relativeDir, "noon-product-attributes.json"), "utf8"));
-
-    if (product.product_group) {
-      const variants = Array.isArray(product.variants) ? product.variants : [];
-      const hasOfferPrices = variants.length > 0 && variants.every((variant) => hasValue(variant.price_sar_initial ?? variant.price));
-      const blockingIssues = (product.submission_gate?.blockingIssues || []).filter(
-        (issue) => !(hasOfferPrices && issue.includes("Source price is CNY")),
-      );
-
-      return {
-        title: product.product_group.product_group_name_en || "",
-        variantCount: variants.length,
-        imageCount: Math.max(...variants.map((variant) => (variant.images || []).length), 0),
-        gateStatus: blockingIssues.length > 0 ? product.submission_gate?.status || "" : "ready_for_manual_review",
-        blockingIssues,
-        warnings: product.submission_gate?.warnings || [],
-        sourcePrice: product.submission_gate?.sourcePrice || null,
-        blockingCount: blockingIssues.length,
-        operationStatus: product.operation_status || "active",
-        operationCheck: product.operation_check || null,
-      };
-    }
-
-    return {
-      title: product.productIdentity?.englishTitle || "",
-      variantCount: product.offerDetails?.offers?.length || 1,
-      imageCount: product.productIdentity?.productImages?.length || 0,
-      gateStatus: "",
-      blockingCount: 0,
-      operationStatus: product.operation_status || "active",
-      operationCheck: product.operation_check || null,
-    };
+    return summarizeNoonProduct(product, {
+      imageUrl: (image) => productImageUrl(relativeDir, image),
+    });
   } catch {
     return {
       title: "",
@@ -934,8 +1068,20 @@ async function readNoonProductSummary(relativeDir) {
   }
 }
 
-function hasValue(value) {
-  return value !== null && value !== undefined && String(value).trim() !== "";
+async function readProductSkus(relativeDir, storeId = "") {
+  const skus = new Set(readUploadedPartnerSkus(relativeDir, storeId));
+  try {
+    const product = JSON.parse(await readFile(path.join(productsDir, relativeDir, "noon-product-attributes.json"), "utf8"));
+    for (const variant of Array.isArray(product.variants) ? product.variants : []) {
+      [variant.partner_sku, variant.model_number, variant.barcode].forEach((value) => {
+        const sku = String(value || "").trim();
+        if (sku) skus.add(sku);
+      });
+    }
+  } catch {
+    // Missing attributes means there is nothing to resolve for this product.
+  }
+  return [...skus];
 }
 
 function buildRepositorySummary(id, name, products) {
@@ -955,6 +1101,10 @@ function buildRepositorySummary(id, name, products) {
 
 function productFileUrl(relativeDir, filename) {
   return `/products/${[...relativeDir.split("/"), ...String(filename).split("/")].map(encodeURIComponent).join("/")}`;
+}
+
+function productImageUrl(relativeDir, image) {
+  return /^https?:\/\//i.test(String(image || "")) ? image : productFileUrl(relativeDir, image);
 }
 
 function readNoonUploadStatus(productDir, storeId = "") {
@@ -1042,6 +1192,7 @@ function serializeJob(job) {
     productDirs: job.productDirs ?? [],
     repository: job.repository ?? "",
     storeId: job.storeId ?? "",
+    mode: job.mode ?? "",
     globalBulkUpdate: job.globalBulkUpdate ?? null,
     startedAt: job.startedAt,
     finishedAt: job.finishedAt,

@@ -12,7 +12,7 @@
         --muted-strong: #475569;
         --line: #dfe6ef;
         --line-strong: #c9d6e6;
-        --paper: #f4f7fb;
+        --paper: #eef3fb;
         --panel: #ffffff;
         --panel-strong: #f8fafc;
         --field: #fbfdff;
@@ -22,8 +22,26 @@
         --danger: #d94b3d;
         --amber: #b7791f;
         --blue: #176bd2;
-        --shadow: 0 10px 26px rgba(24, 39, 75, 0.06);
-        --radius: 8px;
+        --shadow: 0 14px 34px rgba(24, 39, 75, 0.07);
+        --font-ui: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+        --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+        --text-xs: 12px;
+        --text-sm: 13px;
+        --text-base: 14px;
+        --text-md: 15px;
+        --text-lg: 18px;
+        --text-xl: 22px;
+        --text-title: clamp(26px, 2.4vw, 34px);
+        --leading-tight: 1.25;
+        --leading-normal: 1.45;
+        --leading-relaxed: 1.6;
+        --control-height: 36px;
+        --control-compact: 32px;
+        --control-large: 40px;
+        --radius-sm: 8px;
+        --radius: 10px;
+        --radius-lg: 12px;
+        --radius-pill: 999px;
       }
 
       * {
@@ -32,9 +50,11 @@
 
       body {
         margin: 0;
-        background: var(--paper);
+        background: #eef3fb;
         color: var(--ink);
-        font-family: "Avenir Next", "PingFang SC", "Hiragino Sans GB", sans-serif;
+        font-family: var(--font-ui);
+        font-size: var(--text-base);
+        line-height: var(--leading-normal);
       }
 
       body::before {
@@ -43,8 +63,8 @@
         inset: 0;
         pointer-events: none;
         background:
-          linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(244, 247, 251, 0.9)),
-          radial-gradient(circle at 76% 0%, rgba(23, 107, 210, 0.06), transparent 24rem);
+          linear-gradient(180deg, rgba(247, 250, 255, 0.9), rgba(238, 243, 251, 0.92)),
+          radial-gradient(circle at 76% 0%, rgba(48, 103, 246, 0.08), transparent 24rem);
         opacity: 1;
         z-index: -1;
       }
@@ -53,6 +73,17 @@
       input,
       select {
         font: inherit;
+      }
+
+      .sr-only {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
       }
 
       button {
@@ -124,8 +155,12 @@
 
       .shell {
         min-height: 100vh;
+        min-width: 0;
+        width: 100%;
+        max-width: 100vw;
         display: grid;
         grid-template-columns: 244px minmax(0, 1fr);
+        overflow-x: hidden;
       }
 
       .rail {
@@ -170,6 +205,7 @@
         display: grid;
         grid-template-columns: 32px 1fr;
         align-items: center;
+        justify-content: stretch;
         gap: 10px;
         width: 100%;
         min-height: 42px;
@@ -227,6 +263,9 @@
 
       .content {
         min-width: 0;
+        width: 100%;
+        max-width: 100%;
+        overflow-x: hidden;
         padding: 24px 28px;
       }
 
@@ -598,8 +637,8 @@
       }
 
       .bulk-export {
-        margin-bottom: 10px;
-        padding: 12px;
+        margin-bottom: 8px;
+        padding: 8px 10px;
         border: 1px solid var(--line);
         border-radius: var(--radius);
         background: var(--panel-strong);
@@ -610,7 +649,7 @@
         align-items: center;
         justify-content: space-between;
         gap: 10px;
-        margin-bottom: 10px;
+        margin-bottom: 8px;
       }
 
       .bulk-export-head strong {
@@ -629,7 +668,7 @@
       }
 
       .bulk-export-links a {
-        min-height: 34px;
+        min-height: 30px;
         display: grid;
         place-items: center;
         border: 1px solid var(--line);
@@ -642,53 +681,212 @@
         font-weight: 900;
       }
 
-      .repository-controls {
+      .repository-summary-grid {
         display: grid;
-        gap: 8px;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        gap: 10px;
         margin-bottom: 10px;
-        padding: 12px;
+      }
+
+      .repository-summary-card {
+        min-height: 76px;
+        padding: 12px 14px;
         border: 1px solid var(--line);
+        border-radius: var(--radius);
+        background: #ffffff;
+        box-shadow: var(--shadow);
+      }
+
+      .repository-summary-card span {
+        display: block;
+        color: #74829a;
+        font-size: 12px;
+        font-weight: 800;
+      }
+
+      .repository-summary-card strong {
+        display: block;
+        margin-top: 8px;
+        color: var(--ink);
+        font-size: 24px;
+        line-height: 1;
+      }
+
+      .repository-summary-card[data-tone="blue"] strong {
+        color: #3067f6;
+      }
+
+      .repository-summary-card[data-tone="orange"] strong {
+        color: #d97706;
+      }
+
+      .repository-summary-card[data-tone="red"] strong {
+        color: var(--danger);
+      }
+
+    .repository-controls {
+      display: grid;
+      grid-template-columns: minmax(360px, 1fr) auto;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 8px;
+      padding: 10px 12px;
+      border: 1px solid var(--line);
         border-radius: var(--radius);
         background: var(--panel-strong);
       }
 
-      .repository-control-row {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        flex-wrap: wrap;
-        gap: 8px;
+      .repository-toolbar {
+        margin-bottom: 10px;
+        padding: 10px 12px;
+        border-radius: var(--radius);
+        background: #ffffff;
+        box-shadow: var(--shadow);
       }
 
-      .repository-control-row label {
-        margin: 0;
-        color: var(--ink);
+    .repository-control-row {
+      display: flex;
+      align-items: center;
+      justify-content: start;
+      flex-wrap: wrap;
+      gap: 10px;
+      min-width: 0;
+    }
+
+    .repository-control-row label {
+      margin: 0;
+      color: var(--ink);
+    }
+
+    .repository-control-row .meta {
+      display: inline-flex;
+      align-items: center;
+      min-height: var(--control-height);
+      white-space: nowrap;
+    }
+
+      .repository-control-row input {
+        min-height: 34px;
+        padding: 7px 10px;
+      }
+
+    .repository-control-row[data-bulk-actions] {
+      justify-content: end;
+      min-width: 0;
+    }
+
+    .repository-control-row[data-bulk-actions] .actions {
+      justify-content: flex-start;
+      align-items: center;
+      flex-wrap: nowrap;
+      gap: 6px;
+      max-width: 100%;
+      margin-left: auto;
+      margin-top: 0;
+      overflow-x: auto;
+      padding-bottom: 0;
+    }
+
+      .repository-control-row[data-bulk-actions] button {
+        min-height: 32px;
+        padding: 6px 10px;
+        white-space: nowrap;
       }
 
       .pager {
         display: flex;
         align-items: center;
-        gap: 6px;
+        justify-content: center;
+        flex-wrap: nowrap;
+        gap: 18px;
+        color: #172033;
+        font-size: 21px;
+        line-height: 1;
+        white-space: nowrap;
       }
 
-      .pager span {
-        color: var(--muted-strong);
-        font-size: 12px;
+      .pager button,
+      .pager select,
+      .pager input {
+        min-height: 42px;
+        font-size: 20px;
+      }
+
+      .pager button {
+        width: 34px;
+        min-width: 34px;
+        height: 34px;
+        min-height: 34px;
+        padding: 0;
+        border: 0;
+        background: transparent;
+        color: #172033;
+        box-shadow: none;
+        font-weight: 500;
+      }
+
+      .pager button.active {
+        width: 42px;
+        min-width: 42px;
+        height: 42px;
+        min-height: 42px;
+        border: 2px solid #2f6df6;
+        border-radius: 999px;
+        color: #2f6df6;
+        background: #ffffff;
+      }
+
+      .pager button:disabled {
+        color: #c2c8d0;
+        cursor: not-allowed;
+      }
+
+      .pager .pager-total,
+      .pager .pager-jump-label,
+      .pager .pager-page-text {
+        font-weight: 500;
+      }
+
+      .pager .pager-ellipsis {
+        color: #b8bec7;
         font-weight: 900;
+        letter-spacing: 6px;
+      }
+
+      .pager select {
+        height: 54px;
+        min-height: 54px;
+        padding: 0 44px 0 18px;
+        border: 1px solid #d5deea;
+        border-radius: 20px;
+        background: #f8fbff;
+        color: #172033;
+        font-weight: 500;
+      }
+
+      .pager input {
+        width: 86px;
+        height: 48px;
+        min-height: 48px;
+        padding: 0 12px;
+        border: 1px solid #d5d9df;
+        border-radius: 12px;
+        background: #ffffff;
+        text-align: center;
       }
 
       .repository-pager-footer {
         display: flex;
         justify-content: center;
         flex-shrink: 0;
-        padding: 10px 0 2px;
-        margin-top: 6px;
-        border-top: 1px solid var(--line);
-        background: transparent;
+        padding: 18px 0 16px;
+        margin-top: 0;
+        border-top: 1px solid #eef2f7;
+        background: #ffffff;
       }
 
       .title {
-        margin: 0 0 6px;
+        margin: 0 0 4px;
         font-weight: 900;
         line-height: 1.35;
       }
@@ -717,6 +915,1437 @@
         font-weight: 900;
       }
 
+      .repository-workspace {
+        flex: 1;
+        min-height: 0;
+        min-width: 0;
+      }
+
+      .product-page-shell {
+        display: grid;
+        gap: 12px;
+        min-width: 0;
+      }
+
+      .product-page-root {
+        display: grid;
+        gap: 12px;
+        min-width: 0;
+      }
+
+      .product-command-panel,
+      .product-bulk-bar {
+        padding: 12px;
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        background: #ffffff;
+        box-shadow: var(--shadow);
+      }
+
+      .product-command-panel {
+        display: grid;
+        grid-template-columns: minmax(360px, 0.7fr) minmax(0, 1fr);
+        gap: 12px;
+        padding: 14px;
+        background:
+          linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(246, 249, 253, 0.96)),
+          linear-gradient(90deg, rgba(23, 107, 210, 0.08), transparent 42%);
+      }
+
+      .noon-catalog-hero {
+        display: grid;
+        gap: 12px;
+        padding: 18px;
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        background: #f8fbff;
+        box-shadow: var(--shadow);
+      }
+
+      .noon-catalog-head {
+        display: flex;
+        align-items: start;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      .noon-catalog-head h3 {
+        margin: 0;
+        color: #172033;
+        font-size: 28px;
+        line-height: 1.1;
+      }
+
+      .noon-catalog-head p {
+        margin: 8px 0 0;
+        color: var(--muted-strong);
+        font-size: 13px;
+        line-height: 1.6;
+      }
+
+      .noon-catalog-badge {
+        min-height: 28px;
+        display: inline-flex;
+        align-items: center;
+        padding: 4px 12px;
+        border-radius: 999px;
+        background: #ffffff;
+        color: #66758f;
+        font-size: 12px;
+        font-weight: 900;
+        white-space: nowrap;
+      }
+
+      .noon-mode-card {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 10px;
+        padding: 10px;
+        border: 1px solid #d7e2f0;
+        border-radius: 14px;
+        background: #eef5ff;
+      }
+
+      .noon-mode-tabs {
+        display: inline-flex;
+        gap: 6px;
+        padding: 4px;
+        border: 1px solid #cbd9ea;
+        border-radius: 999px;
+        background: #dfe9f7;
+      }
+
+      .noon-mode-tabs button {
+        min-height: 32px;
+        border-color: transparent;
+        border-radius: 999px;
+        background: transparent;
+        color: #62708a;
+        box-shadow: none;
+      }
+
+      .noon-mode-tabs button.active {
+        border-color: #d8e4f7;
+        background: #ffffff;
+        color: var(--accent);
+        box-shadow: 0 8px 18px rgba(23, 107, 210, 0.12);
+      }
+
+      .noon-mode-note {
+        color: #8a96aa;
+        font-size: 12px;
+        font-weight: 800;
+      }
+
+      .noon-sync-card {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 10px;
+        align-items: center;
+        padding: 12px;
+        border: 1px solid #d7e2f0;
+        border-radius: 14px;
+        background: #ffffff;
+      }
+
+      .noon-sync-card span {
+        color: #8a96aa;
+        font-size: 13px;
+        font-weight: 800;
+      }
+
+      .noon-sync-progress {
+        display: grid;
+        gap: 10px;
+        padding: 12px;
+        border: 1px solid #dce7f6;
+        border-radius: var(--radius);
+        background: #f8fbff;
+      }
+
+      .noon-sync-progress-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        color: #66758e;
+        font-size: 12px;
+        font-weight: 800;
+      }
+
+      .noon-sync-progress-head strong {
+        color: var(--ink);
+        font-size: 13px;
+      }
+
+      .noon-progress-track {
+        height: 5px;
+        overflow: hidden;
+        border-radius: 999px;
+        background: #e6edf7;
+      }
+
+      .noon-progress-fill {
+        display: block;
+        width: var(--progress, 18%);
+        height: 100%;
+        border-radius: inherit;
+        background: #2f6df6;
+        transition: width 240ms ease;
+      }
+
+      .noon-catalog-metrics {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 10px;
+      }
+
+      .noon-catalog-metric {
+        min-height: 96px;
+        padding: 12px;
+        border: 1px solid #e3eaf4;
+        border-radius: 12px;
+        background: #ffffff;
+      }
+
+      .noon-catalog-metric span {
+        display: block;
+        color: #718099;
+        font-size: 12px;
+        font-weight: 900;
+      }
+
+      .noon-catalog-metric strong {
+        display: block;
+        margin-top: 10px;
+        color: var(--ink);
+        font-size: 26px;
+        line-height: 1;
+      }
+
+      .noon-empty-sync {
+        min-height: 300px;
+        display: grid;
+        place-items: center;
+        gap: 12px;
+        padding: 44px 20px;
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        background: #ffffff;
+        box-shadow: var(--shadow);
+        text-align: center;
+      }
+
+      .noon-empty-icon {
+        width: 86px;
+        height: 86px;
+        display: grid;
+        place-items: center;
+        border-radius: 18px;
+        background: #f4f7fb;
+        color: var(--accent);
+        font-size: 42px;
+        font-weight: 900;
+      }
+
+      .noon-empty-sync h3 {
+        margin: 0;
+        color: var(--ink);
+        font-size: 18px;
+      }
+
+      .noon-empty-sync p {
+        margin: 0;
+        color: #9aa7b8;
+        font-size: 13px;
+      }
+
+      .noon-sync-error {
+        max-width: 680px;
+        padding: 10px 12px;
+        border: 1px solid #fecaca;
+        border-radius: 10px;
+        background: #fff5f5;
+        color: #c2410c;
+        font-size: 13px;
+        font-weight: 800;
+      }
+
+      .noon-empty-sync.syncing {
+        min-height: 210px;
+        box-shadow: none;
+      }
+
+      .noon-empty-sync.syncing .noon-empty-icon {
+        width: 42px;
+        height: 42px;
+        border-radius: 999px;
+        background: transparent;
+        font-size: 28px;
+        animation: noon-spin 1s linear infinite;
+      }
+
+      @keyframes noon-spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      .product-filter-panel {
+        display: grid;
+        gap: 8px;
+        min-width: 0;
+      }
+
+      .product-search-panel {
+        display: grid;
+        min-width: 0;
+      }
+
+      .product-filter-head,
+      .product-filter-row {
+        display: grid;
+        grid-template-columns: minmax(82px, auto) minmax(0, 1fr);
+        align-items: center;
+        gap: 10px;
+      }
+
+      .product-filter-title {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 2px;
+        color: var(--ink);
+        font-size: 13px;
+        font-weight: 900;
+      }
+
+      .product-filter-title strong {
+        white-space: nowrap;
+      }
+
+      .product-filter-title span {
+        color: var(--muted-strong);
+        font-size: 12px;
+        font-weight: 700;
+      }
+
+      .product-source-select {
+        min-width: 0;
+      }
+
+      .product-source-select label {
+        margin: 0;
+        color: var(--ink);
+        font-size: 13px;
+        font-weight: 900;
+        white-space: nowrap;
+      }
+
+      .product-source-select select {
+        min-height: 42px;
+        border-color: #cbd9ea;
+        background: #ffffff;
+        font-weight: 800;
+      }
+
+      .product-platform-row {
+        display: grid;
+        grid-template-columns: minmax(82px, auto) minmax(0, 1fr);
+        align-items: center;
+        gap: 10px;
+      }
+
+      .product-warehouse-row {
+        display: grid;
+        grid-template-columns: minmax(82px, auto) minmax(0, 1fr);
+        align-items: center;
+        gap: 10px;
+      }
+
+      .product-source-card,
+      .product-search-card {
+        min-width: 0;
+        border: 1px solid #d7e2f0;
+        border-radius: 10px;
+        background: rgba(255, 255, 255, 0.84);
+      }
+
+      .product-source-card {
+        display: grid;
+        gap: 8px;
+        padding: 10px;
+      }
+
+      .product-search-card {
+        display: grid;
+        align-content: center;
+        gap: 10px;
+        height: 100%;
+        padding: 12px;
+        box-shadow: inset 4px 0 0 rgba(23, 107, 210, 0.12);
+      }
+
+      .product-pill-group {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+
+      .product-pill {
+        min-height: 30px;
+        padding: 5px 10px;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        background: #ffffff;
+        color: #607089;
+        font-size: 12px;
+        font-weight: 900;
+      }
+
+      .product-pill.active {
+        border-color: #9bb8ff;
+        background: #edf3ff;
+        color: var(--accent);
+      }
+
+      .product-search-row {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 8px;
+        align-items: center;
+      }
+
+      .product-search-panel .product-search-row {
+        margin-top: 0;
+      }
+
+      .product-search-row input {
+        min-height: 44px;
+        border-color: #cbd9ea;
+        background: #ffffff;
+        font-weight: 700;
+      }
+
+      .product-search-actions {
+        display: flex;
+        gap: 8px;
+        justify-content: flex-end;
+        white-space: nowrap;
+      }
+
+      .product-job-panel {
+        display: grid;
+        gap: 10px;
+      }
+
+      .repository-list-pane {
+        min-height: 0;
+        min-width: 0;
+        width: 100%;
+        max-width: 100%;
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        background: #ffffff;
+      }
+
+      .repository-list-pane {
+        display: flex;
+        flex-direction: column;
+        overflow: auto;
+      }
+
+      .detail-placeholder {
+        height: 100%;
+        min-height: 240px;
+        display: grid;
+        place-items: center;
+        color: var(--muted-strong);
+        text-align: center;
+        font-size: 13px;
+        line-height: 1.6;
+      }
+
+      .repository-table-head {
+        display: grid;
+        grid-template-columns: 56px minmax(430px, 1.55fr) 44px 136px 92px 170px 220px 112px 150px 170px;
+        gap: 0;
+        align-items: center;
+        min-height: 64px;
+        min-width: 1580px;
+        padding: 0 16px;
+        border-bottom: 1px solid var(--line);
+        background: #f6f9ff;
+        color: #6f7e98;
+        font-size: 12px;
+        font-weight: 900;
+      }
+
+      .repository-table-head span {
+        min-height: 22px;
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        padding: 0 18px;
+        border-right: 1px solid #e5ebf5;
+      }
+
+      .repository-table-head span:first-child {
+        padding-left: 0;
+      }
+
+      .repository-table-head span:last-child {
+        border-right: 0;
+        text-align: right;
+        justify-content: end;
+      }
+
+      .repository-table-head .sort-mark {
+        display: inline-grid;
+        gap: 3px;
+      }
+
+      .repository-table-head .sort-mark::before,
+      .repository-table-head .sort-mark::after {
+        content: "";
+        width: 0;
+        height: 0;
+        border-left: 4px solid transparent;
+        border-right: 4px solid transparent;
+      }
+
+      .repository-table-head .sort-mark::before {
+        border-bottom: 5px solid #b7c0cd;
+      }
+
+      .repository-table-head .sort-mark::after {
+        border-top: 5px solid #b7c0cd;
+      }
+
+      .repository-table-head .sort-mark.active::after {
+        border-top-color: #3067f6;
+      }
+
+      .noon-workbench-table .repository-table-head,
+      .noon-workbench-table .product-row {
+        grid-template-columns: 42px minmax(430px, 1.55fr) 170px 150px 190px 210px 170px 118px 112px;
+        min-width: 1600px;
+      }
+
+      .noon-workbench-table .repository-table-head span {
+        padding: 0 12px;
+      }
+
+      .noon-filter-strip {
+        display: grid;
+        gap: 10px;
+      }
+
+      .noon-filter-row {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .noon-filter-select,
+      .noon-filter-search {
+        min-height: 36px;
+        border-color: #d7e2f0;
+        border-radius: 10px;
+        background: #ffffff;
+        color: #516078;
+        font-size: 13px;
+        font-weight: 800;
+      }
+
+      .noon-filter-select {
+        width: auto;
+        min-width: 118px;
+      }
+
+      .noon-filter-search {
+        width: min(260px, 100%);
+      }
+
+      .noon-filter-label {
+        color: #8a96aa;
+        font-size: 12px;
+        font-weight: 900;
+      }
+
+      .noon-chip {
+        min-height: 32px;
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 5px 11px;
+        border: 1px solid #bdd1ff;
+        border-radius: 999px;
+        background: #eef5ff;
+        color: #3067f6;
+        font-size: 12px;
+        font-weight: 900;
+      }
+
+      .noon-quota-card {
+        grid-column: 1 / -1;
+        display: grid;
+        gap: 8px;
+        padding: 12px;
+        border: 1px solid #e3eaf4;
+        border-radius: 10px;
+        background: #fbfdff;
+      }
+
+      .noon-quota-card strong {
+        color: #4d5c74;
+        font-size: 13px;
+      }
+
+      .noon-quota-meter {
+        display: grid;
+        grid-template-columns: auto minmax(120px, 1fr) auto;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .noon-quota-meter b {
+        color: #172033;
+        font-size: 18px;
+      }
+
+      .noon-quota-track {
+        height: 8px;
+        overflow: hidden;
+        border-radius: 999px;
+        background: #edf1f6;
+      }
+
+      .noon-quota-fill {
+        display: block;
+        height: 100%;
+        width: 0%;
+        background: #3067f6;
+      }
+
+      .noon-money-cell,
+      .noon-stock-cell,
+      .noon-status-cell,
+      .noon-market-stack {
+        display: grid;
+        gap: 6px;
+        color: #516078;
+        font-size: 12px;
+      }
+
+      .noon-product-title {
+        margin: 0 0 6px;
+        color: #172033;
+        font-size: 15px;
+        font-weight: 900;
+        line-height: 1.25;
+      }
+
+      .noon-product-meta {
+        display: grid;
+        gap: 3px;
+        color: #7b879b;
+        font-size: 12px;
+        line-height: 1.35;
+      }
+
+      .noon-product-meta b {
+        color: #62708a;
+      }
+
+      .noon-metric-card {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr);
+        gap: 8px;
+        align-items: start;
+        padding: 10px 12px;
+        border-radius: 9px;
+        background: #f1f9ff;
+      }
+
+      .noon-metric-card[data-market="sa"] {
+        background: #fffaf0;
+      }
+
+      .noon-metric-card strong {
+        color: #176bd2;
+        font-size: 15px;
+        line-height: 1.2;
+      }
+
+      .noon-metric-card[data-market="sa"] strong {
+        color: #1f2937;
+      }
+
+      .noon-metric-card em {
+        display: block;
+        color: #7f8ca0;
+        font-style: normal;
+        line-height: 1.45;
+      }
+
+      .noon-warn-card {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 12px;
+        border-radius: 9px;
+        background: #fff7e8;
+        color: #d26b12;
+        font-size: 13px;
+        font-weight: 900;
+      }
+
+      .noon-status-stack {
+        display: grid;
+        gap: 7px;
+      }
+
+      .noon-market-line {
+        display: grid;
+        gap: 3px;
+        padding: 7px 8px;
+        border-radius: 8px;
+        background: #f8fbff;
+      }
+
+      .noon-market-line[data-market="sa"] {
+        background: #fffaf0;
+      }
+
+      .noon-market-label {
+        display: inline-flex;
+        width: fit-content;
+        min-height: 20px;
+        align-items: center;
+        padding: 2px 7px;
+        border-radius: 999px;
+        background: #e8f3ff;
+        color: #2272b8;
+        font-weight: 900;
+      }
+
+      .noon-market-line[data-market="sa"] .noon-market-label {
+        background: #fff1db;
+        color: #c07a25;
+      }
+
+      .noon-price-main {
+        color: #176bd2;
+        font-size: 15px;
+        font-weight: 900;
+      }
+
+      .noon-status-badge {
+        width: fit-content;
+        min-width: 110px;
+        padding: 8px 10px;
+        border-radius: 9px;
+        background: #ffeceb;
+        color: #ef4444;
+        font-weight: 900;
+        text-align: left;
+        line-height: 1.35;
+      }
+
+      .noon-status-badge[data-tone="neutral"] {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        background: #edfdf5;
+        color: #8a96aa;
+      }
+
+      .noon-toggle {
+        width: 42px;
+        height: 24px;
+        border-radius: 999px;
+        background: #c7ccd4;
+        position: relative;
+      }
+
+      .noon-toggle::after {
+        content: "";
+        position: absolute;
+        top: 3px;
+        left: 3px;
+        width: 18px;
+        height: 18px;
+        border-radius: 999px;
+        background: #ffffff;
+        box-shadow: 0 2px 8px rgba(15, 23, 42, 0.16);
+      }
+
+      .product-detail-body {
+        display: grid;
+        gap: 12px;
+        min-width: 0;
+      }
+
+      .detail-page-toolbar {
+        display: grid;
+        gap: 12px;
+        margin-bottom: 16px;
+        padding: 14px;
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        background: #ffffff;
+        box-shadow: var(--shadow);
+      }
+
+      .detail-toolbar-primary {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+      }
+
+      .detail-title-cluster {
+        min-width: 0;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .detail-title-line {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .detail-title-line h2 {
+        margin: 0;
+        color: var(--ink);
+        font-size: var(--text-xl);
+        line-height: var(--leading-tight);
+      }
+
+      .detail-title-cluster p {
+        margin: 3px 0 0;
+        color: var(--muted-strong);
+        font-size: var(--text-xs);
+        font-weight: 800;
+      }
+
+      .detail-draft-badge,
+      .detail-save-pill {
+        display: inline-flex;
+        align-items: center;
+        min-height: 24px;
+        padding: 3px 9px;
+        border-radius: 999px;
+        font-size: var(--text-xs);
+        font-weight: 900;
+      }
+
+      .detail-draft-badge {
+        background: #eaf3ff;
+        color: var(--accent);
+      }
+
+      .detail-save-pill {
+        background: #ecfdf5;
+        color: #15803d;
+      }
+
+      .detail-toolbar-actions {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .detail-toolbar-actions button {
+        min-height: 34px;
+        padding: 7px 12px;
+        white-space: nowrap;
+      }
+
+      .detail-product-layout {
+        display: grid;
+        gap: 12px;
+        min-width: 0;
+      }
+
+      .detail-field-grid {
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+      }
+
+      .detail-field,
+      .detail-section-card {
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        padding: 12px;
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        background: #ffffff;
+      }
+
+      .detail-field span,
+      .detail-section-card span {
+        display: block;
+        margin-bottom: 6px;
+        color: var(--muted-strong);
+        font-size: var(--text-xs);
+        font-weight: 900;
+      }
+
+      .detail-field strong,
+      .detail-section-card strong {
+        color: var(--ink);
+        font-size: var(--text-sm);
+        line-height: var(--leading-normal);
+        overflow-wrap: anywhere;
+      }
+
+      .detail-section-card h3 {
+        margin: 0 0 12px;
+        color: var(--ink);
+        font-size: var(--text-md);
+      }
+
+      .detail-section-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 10px;
+      }
+
+      .detail-product-editor {
+        width: 100%;
+        max-width: 100%;
+        display: grid;
+        gap: 14px;
+        min-width: 0;
+        padding: 14px;
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        background: #ffffff;
+        box-shadow: var(--shadow);
+      }
+
+      .detail-editor-title {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+
+      .detail-editor-title h3 {
+        position: relative;
+        margin: 0;
+        padding-left: 10px;
+        color: var(--ink);
+        font-size: var(--text-md);
+      }
+
+      .detail-editor-title h3::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 2px;
+        bottom: 2px;
+        width: 3px;
+        border-radius: 999px;
+        background: var(--accent);
+      }
+
+      .detail-form-row {
+        display: grid;
+        gap: 6px;
+      }
+
+      .detail-form-label {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 8px;
+        color: var(--muted-strong);
+        font-size: var(--text-xs);
+        font-weight: 900;
+      }
+
+      .detail-read-field,
+      .detail-read-area {
+        min-height: 38px;
+        padding: 9px 12px;
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        background: #fbfdff;
+        color: var(--ink);
+        line-height: var(--leading-relaxed);
+        overflow-wrap: anywhere;
+      }
+
+      .detail-read-area {
+        min-height: 110px;
+        white-space: pre-wrap;
+      }
+
+      .detail-helper-strip {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 8px;
+        padding: 10px 12px;
+        border-radius: var(--radius);
+        background: #f7faff;
+        color: var(--muted-strong);
+        font-size: var(--text-xs);
+        font-weight: 800;
+      }
+
+      .detail-badge {
+        display: inline-flex;
+        align-items: center;
+        min-height: 22px;
+        padding: 3px 8px;
+        border-radius: 999px;
+        background: #fff7ed;
+        color: #c05621;
+        font-size: var(--text-xs);
+        font-weight: 900;
+      }
+
+      .detail-bullet-list {
+        display: grid;
+        gap: 8px;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+
+      .detail-bullet-list li {
+        display: grid;
+        grid-template-columns: 26px minmax(0, 1fr);
+        gap: 8px;
+        align-items: start;
+      }
+
+      .detail-bullet-index {
+        display: grid;
+        place-items: center;
+        width: 24px;
+        height: 24px;
+        border-radius: 999px;
+        background: #edf3ff;
+        color: var(--accent);
+        font-size: var(--text-xs);
+        font-weight: 900;
+      }
+
+      .detail-image-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+        gap: 10px;
+      }
+
+      .detail-image-tile {
+        position: relative;
+        min-height: 132px;
+        overflow: hidden;
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        background: #f6f9fe;
+      }
+
+      .detail-image-tile img {
+        width: 100%;
+        height: 132px;
+        display: block;
+        object-fit: cover;
+      }
+
+      .detail-image-tile span {
+        position: absolute;
+        left: 8px;
+        bottom: 8px;
+        min-height: 20px;
+        padding: 2px 7px;
+        border-radius: 999px;
+        background: rgba(15, 23, 42, 0.72);
+        color: #ffffff;
+        font-size: var(--text-xs);
+        font-weight: 900;
+      }
+
+      .detail-head {
+        display: grid;
+        gap: 10px;
+        margin-bottom: 12px;
+        padding: 12px;
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        background: #ffffff;
+      }
+
+      .detail-head h3 {
+        margin: 0;
+        color: var(--ink);
+        font-size: var(--text-lg);
+        line-height: var(--leading-tight);
+      }
+
+      .detail-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        color: var(--muted-strong);
+        font-size: var(--text-xs);
+      }
+
+      .detail-links {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+
+      .detail-action-bar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+
+      .detail-links a,
+      .detail-links button {
+        min-height: 28px;
+        padding: 5px 7px;
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        background: #ffffff;
+        color: var(--accent);
+        box-shadow: none;
+        text-decoration: none;
+        font-size: var(--text-xs);
+        font-weight: 900;
+      }
+
+      .variant-row {
+        position: relative;
+        display: grid;
+        grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr) minmax(0, 0.8fr);
+        gap: 14px;
+        padding: 14px 14px 14px 18px;
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        background: #ffffff;
+        box-shadow: 0 10px 24px rgba(24, 39, 75, 0.05);
+      }
+
+      .variant-row::before {
+        content: "";
+        position: absolute;
+        inset: 0 auto 0 0;
+        width: 5px;
+        border-radius: 8px 0 0 8px;
+        background: var(--amber);
+      }
+
+      .variant-row + .variant-row {
+        margin-top: 10px;
+      }
+
+      .variant-identity,
+      .variant-metrics,
+      .variant-media {
+        min-width: 0;
+      }
+
+      .variant-field {
+        color: var(--ink);
+        font-size: var(--text-xs);
+        line-height: var(--leading-normal);
+        word-break: break-word;
+      }
+
+      .variant-field span {
+        display: block;
+        margin-top: 7px;
+        color: var(--muted-strong);
+        font-weight: 900;
+      }
+
+      .variant-field span:first-child {
+        margin-top: 0;
+      }
+
+      .variant-label {
+        display: block;
+        margin-bottom: 6px;
+        color: var(--muted-strong);
+        font-size: var(--text-xs);
+        font-weight: 900;
+        letter-spacing: 0;
+      }
+
+      .variant-sku {
+        margin: 0 0 12px;
+        color: var(--ink);
+        font-size: var(--text-sm);
+        font-weight: 900;
+        line-height: var(--leading-normal);
+        overflow-wrap: anywhere;
+      }
+
+      .variant-meta-list {
+        display: grid;
+        gap: 9px;
+      }
+
+      .variant-meta-item {
+        display: grid;
+        gap: 2px;
+      }
+
+      .variant-meta-item span {
+        color: var(--muted-strong);
+        font-size: var(--text-xs);
+        font-weight: 900;
+      }
+
+      .variant-meta-item strong {
+        color: var(--ink);
+        font-size: var(--text-sm);
+        line-height: var(--leading-normal);
+        overflow-wrap: anywhere;
+      }
+
+      .variant-section-title {
+        margin: 0 0 8px;
+        color: var(--muted-strong);
+        font-size: var(--text-xs);
+        font-weight: 900;
+      }
+
+      .variant-metrics {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+      }
+
+      .variant-metric {
+        min-height: 58px;
+        padding: 8px 10px;
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        background: #f8fafc;
+      }
+
+      .variant-metric[data-tone="warm"] {
+        border-color: #e8d2a4;
+        background: #fffaf0;
+      }
+
+      .variant-metric span {
+        display: block;
+        margin-bottom: 4px;
+        color: var(--muted-strong);
+        font-size: var(--text-xs);
+        font-weight: 900;
+      }
+
+      .variant-metric strong {
+        color: var(--ink);
+        font-size: var(--text-sm);
+        line-height: var(--leading-tight);
+        overflow-wrap: anywhere;
+      }
+
+      .variant-images {
+        display: grid;
+        grid-template-columns: minmax(84px, 1fr) repeat(2, 42px);
+        gap: 6px;
+        align-items: start;
+      }
+
+      .variant-images img {
+        width: 42px;
+        height: 42px;
+        object-fit: cover;
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        background: #f8fafc;
+      }
+
+      .variant-images a:first-child {
+        grid-row: span 2;
+      }
+
+      .variant-images a:first-child img {
+        width: 100%;
+        height: 90px;
+        border-color: var(--line-strong);
+      }
+
+      .detail-sku-card {
+        overflow: hidden;
+      }
+
+      .variant-group-list {
+        display: grid;
+        gap: 12px;
+      }
+
+      .variant-group-card {
+        overflow: hidden;
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        background: #ffffff;
+      }
+
+      .variant-group-head {
+        display: grid;
+        grid-template-columns: auto 72px minmax(0, 1fr) auto;
+        gap: 12px;
+        align-items: center;
+        padding: 12px;
+        border-bottom: 1px solid var(--line);
+        background: #fbfdff;
+      }
+
+      .variant-group-check {
+        width: 18px;
+        height: 18px;
+        border: 1px solid var(--line-strong);
+        border-radius: 5px;
+        background: #ffffff;
+      }
+
+      .variant-group-thumb {
+        width: 72px;
+        height: 72px;
+        overflow: hidden;
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        background: #f6f9fe;
+      }
+
+      .variant-group-thumb img {
+        width: 100%;
+        height: 100%;
+        display: block;
+        object-fit: cover;
+      }
+
+      .variant-group-index {
+        margin: 0 0 6px;
+        color: var(--muted-strong);
+        font-size: var(--text-xs);
+        font-weight: 900;
+      }
+
+      .variant-group-name {
+        min-height: 34px;
+        padding: 8px 10px;
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        background: #ffffff;
+        color: var(--ink);
+        font-size: var(--text-sm);
+        font-weight: 800;
+        overflow-wrap: anywhere;
+      }
+
+      .variant-group-count {
+        color: var(--muted-strong);
+        font-size: var(--text-xs);
+        font-weight: 800;
+        white-space: nowrap;
+      }
+
+      .variant-group-images {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 12px;
+        border-bottom: 1px solid var(--line);
+        background: #ffffff;
+      }
+
+      .variant-group-images span {
+        margin: 0;
+        color: var(--muted-strong);
+        font-size: var(--text-xs);
+        font-weight: 900;
+      }
+
+      .variant-group-image-list {
+        display: flex;
+        gap: 6px;
+        min-width: 0;
+        overflow-x: auto;
+      }
+
+      .variant-group-image-list img {
+        width: 42px;
+        height: 42px;
+        flex: 0 0 auto;
+        object-fit: cover;
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        background: #f6f9fe;
+      }
+
+      .variant-group-table-wrap {
+        overflow-x: auto;
+      }
+
+      .variant-group-table {
+        width: 100%;
+        min-width: 900px;
+        border-collapse: collapse;
+      }
+
+      .variant-group-table th,
+      .variant-group-table td {
+        padding: 10px 12px;
+        border-bottom: 1px solid var(--line);
+        text-align: left;
+        vertical-align: top;
+      }
+
+      .variant-group-table th {
+        color: var(--muted-strong);
+        background: #fbfdff;
+        font-size: var(--text-xs);
+        font-weight: 900;
+        white-space: nowrap;
+      }
+
+      .variant-group-table td {
+        color: var(--ink);
+        font-size: var(--text-sm);
+        font-weight: 700;
+        overflow-wrap: anywhere;
+      }
+
+      .variant-group-table tr:last-child td {
+        border-bottom: 0;
+      }
+
+      .variant-table-muted {
+        display: block;
+        margin-top: 3px;
+        color: var(--muted-strong);
+        font-size: var(--text-xs);
+        font-weight: 700;
+      }
+
       .empty,
       .notice {
         padding: 14px;
@@ -741,7 +2370,7 @@
         display: none;
         align-items: center;
         justify-content: center;
-        padding: 20px;
+        padding: 24px;
         background: rgba(15, 23, 42, 0.38);
         backdrop-filter: blur(6px);
         z-index: 20;
@@ -752,8 +2381,9 @@
       }
 
       .dialog {
-        width: min(980px, 100%);
-        max-height: min(760px, calc(100vh - 40px));
+        width: min(1500px, calc(100vw - 48px));
+        height: calc(100vh - 48px);
+        max-height: 900px;
         display: flex;
         flex-direction: column;
         overflow: hidden;
@@ -768,7 +2398,7 @@
         align-items: center;
         justify-content: space-between;
         gap: 10px;
-        padding: 12px 14px;
+        padding: 10px 14px;
         border-bottom: 1px solid var(--line);
         background: var(--panel-strong);
       }
@@ -783,38 +2413,562 @@
         flex: 1;
         flex-direction: column;
         min-height: 0;
-        max-height: calc(100vh - 130px);
         overflow: hidden;
-        padding: 12px;
+        padding: 10px 12px 12px;
       }
 
       .repository-product-list {
         flex: 1;
         min-height: 0;
         overflow: auto;
+        padding: 0;
       }
 
       .product-row {
         display: grid;
-        grid-template-columns: auto minmax(0, 1fr) auto;
-        gap: 12px;
-        padding: 12px 0;
+        grid-template-columns: 56px minmax(430px, 1.55fr) 44px 136px 92px 170px 220px 112px 150px 170px;
+        gap: 0;
+        align-items: center;
+        min-height: 136px;
+        min-width: 1580px;
+        padding: 14px 16px;
         border-bottom: 1px solid var(--line);
+        background: #ffffff;
+      }
+
+      .product-row.active {
+        background: #f3f8ff;
+        box-shadow: inset 3px 0 0 var(--accent);
       }
 
       .product-row > div:last-child {
         display: flex;
-        align-items: start;
+        align-items: center;
         justify-content: end;
       }
 
       .product-row > input[type="checkbox"] {
-        align-self: start;
-        margin-top: 3px;
+        align-self: center;
+        margin: 0;
+        width: 20px;
+        height: 20px;
+        border-radius: 6px;
       }
 
       .product-row:last-child {
         border-bottom: 0;
+      }
+
+      .product-main {
+        min-width: 0;
+        display: grid;
+        grid-template-columns: 92px minmax(0, 1fr);
+        gap: 16px;
+        align-items: center;
+        padding-right: 18px;
+      }
+
+      .product-cover {
+        width: 92px;
+        height: 92px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #ffffff;
+        object-fit: cover;
+      }
+
+      .product-cover-placeholder {
+        display: grid;
+        place-items: center;
+        color: #8a98ad;
+        font-size: 12px;
+        font-weight: 900;
+      }
+
+      .product-summary {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 5px 9px;
+        align-items: center;
+        margin-top: 6px;
+        color: var(--muted-strong);
+        font-size: 12px;
+      }
+
+      .product-summary span {
+        min-width: 0;
+      }
+
+      .product-summary .upload-status {
+        margin-top: 0;
+        justify-self: start;
+      }
+
+      .product-title-button {
+        max-width: 100%;
+        min-height: 0;
+        display: block;
+        margin: 0;
+        padding: 0;
+        border: 0;
+        border-radius: 0;
+        background: transparent;
+        box-shadow: none;
+        color: #172033;
+        text-align: left;
+        font-size: 15px;
+        font-weight: 900;
+        line-height: 1.35;
+      }
+
+      .product-title-button:hover:not(:disabled) {
+        transform: none;
+        background: transparent;
+        box-shadow: none;
+        color: var(--accent);
+      }
+
+      .product-source-badge,
+      .product-adjusted-badge {
+        display: inline-flex;
+        align-items: center;
+        min-height: 20px;
+        padding: 2px 8px;
+        border-radius: 999px;
+        font-size: 11px;
+        font-weight: 900;
+      }
+
+      .product-source-badge {
+        background: #fff2d8;
+        color: #f59e0b;
+      }
+
+      .product-adjusted-badge {
+        margin-top: 7px;
+        background: #fff7d6;
+        color: #d97706;
+      }
+
+      .product-inline-link {
+        color: #3067f6;
+        text-decoration: none;
+        font-weight: 800;
+      }
+
+      .product-inline-link:hover {
+        text-decoration: underline;
+      }
+
+      .product-health {
+        display: grid;
+        place-items: center;
+      }
+
+      .product-health-dot {
+        display: grid;
+        place-items: center;
+        width: 18px;
+        height: 18px;
+        border: 2px solid #4ade80;
+        border-radius: 999px;
+        color: #22c55e;
+        font-size: 11px;
+        font-weight: 900;
+        line-height: 1;
+      }
+
+      .product-price {
+        color: #f97316;
+        font-size: 15px;
+        font-weight: 900;
+        white-space: nowrap;
+        padding: 0 18px;
+      }
+
+      .product-sku {
+        color: #3067f6;
+        font-size: 18px;
+        font-weight: 900;
+        line-height: 1;
+        text-align: center;
+        padding: 0 16px;
+      }
+
+      .product-sku span {
+        display: block;
+        margin-top: 5px;
+        color: #8a98ad;
+        font-size: 12px;
+        font-weight: 800;
+      }
+
+      .product-logistics,
+      .product-hs-code,
+      .product-collected-at {
+        color: #526179;
+        font-size: 13px;
+        line-height: 1.5;
+        padding: 0 18px;
+        overflow-wrap: anywhere;
+      }
+
+      .product-logistics {
+        white-space: pre-line;
+      }
+
+      .product-status {
+        display: flex;
+        justify-content: center;
+        padding: 0 14px;
+      }
+
+      .product-status .upload-status {
+        margin-top: 0;
+        border: 0;
+        background: #e8f5ff;
+        color: #176bd2;
+      }
+
+      .product-actions {
+        display: flex;
+        flex-wrap: nowrap;
+        gap: 10px;
+        justify-content: end;
+        padding-left: 18px;
+      }
+
+      .product-actions button {
+        min-height: 36px;
+        padding: 7px 13px;
+        white-space: nowrap;
+      }
+
+      .product-upload-button {
+        min-width: 76px;
+      }
+
+      .product-delete-button {
+        width: 36px;
+        min-width: 36px;
+        padding: 0;
+        border-color: #e43f6f;
+        border-radius: 10px;
+        background: #e43f6f;
+        color: #ffffff;
+        box-shadow: 0 10px 22px rgba(228, 63, 111, 0.2);
+      }
+
+      .product-delete-button:hover:not(:disabled) {
+        border-color: #c72f5a;
+        background: #c72f5a;
+      }
+
+      /*
+        UI scale normalization: keep the single-page tool compact and consistent
+        without touching business markup or JavaScript.
+      */
+      button,
+      input,
+      select,
+      .links a,
+      .links button,
+      .bulk-export-links a,
+      .detail-links a,
+      .detail-links button {
+        min-height: var(--control-height);
+        border-radius: var(--radius);
+        font-size: var(--text-base);
+        line-height: var(--leading-tight);
+      }
+
+      button,
+      .links button,
+      .bulk-export-links a,
+      .detail-links a,
+      .detail-links button {
+        padding: 7px 12px;
+        font-weight: 800;
+      }
+
+      .repository-control-row[data-bulk-actions] button,
+      .actions button,
+      .product-search-actions button,
+      .detail-toolbar-actions button,
+      .product-actions button,
+      .links button,
+      .bulk-export-links a,
+      .detail-links a,
+      .detail-links button,
+      .pager button,
+      .noon-mode-tabs button,
+      .product-pill,
+      .noon-chip {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        vertical-align: middle;
+      }
+
+      input,
+      select {
+        padding: 8px 11px;
+      }
+
+      input[type="checkbox"] {
+        width: 18px;
+        height: 18px;
+        min-height: 18px;
+        margin: 0 7px 0 0;
+        padding: 0;
+        flex: 0 0 auto;
+        border-radius: 5px;
+        vertical-align: middle;
+      }
+
+      .secondary,
+      .ghost,
+      .danger,
+      .product-pill,
+      .noon-chip,
+      .upload-status,
+      .detail-badge,
+      .detail-draft-badge,
+      .detail-save-pill,
+      .product-source-badge,
+      .product-adjusted-badge,
+      .noon-market-label {
+        min-height: var(--control-compact);
+        border-radius: var(--radius-pill);
+        font-size: var(--text-xs);
+        line-height: var(--leading-tight);
+      }
+
+      .panel,
+      .brand,
+      .rail-status,
+      .status-strip,
+      .store-row,
+      .repository-summary-card,
+      .repository-controls,
+      .repository-toolbar,
+      .product-command-panel,
+      .product-bulk-bar,
+      .noon-catalog-hero,
+      .noon-sync-card,
+      .noon-sync-progress,
+      .noon-catalog-metric,
+      .noon-empty-sync,
+      .product-source-card,
+      .product-search-card,
+      .repository-list-pane,
+      .detail-page-toolbar,
+      .detail-field,
+      .detail-section-card,
+      .detail-product-editor,
+      .detail-read-field,
+      .detail-read-area,
+      .detail-helper-strip,
+      .detail-image-tile,
+      .detail-head,
+      .variant-row,
+      .variant-metric,
+      .empty,
+      .notice,
+      .dialog {
+        border-radius: var(--radius);
+      }
+
+      .brand h1 {
+        font-size: var(--text-xl);
+        line-height: var(--leading-tight);
+      }
+
+      .brand span,
+      .page-kicker,
+      .metric span,
+      .quick-card span,
+      .setting-hint,
+      .status-strip span,
+      .store-row span,
+      .repository-tab span,
+      .repository-summary-card span,
+      .meta,
+      .warning,
+      .noon-catalog-badge,
+      .noon-mode-note,
+      .noon-sync-progress-head,
+      .noon-catalog-metric span,
+      .product-filter-title span,
+      .noon-filter-label,
+      .noon-product-meta,
+      .noon-money-cell,
+      .noon-stock-cell,
+      .noon-status-cell,
+      .noon-market-stack,
+      .detail-title-cluster p,
+      .detail-form-label,
+      .detail-field span,
+      .detail-section-card span,
+      .detail-meta,
+      .variant-field,
+      .variant-label,
+      .variant-meta-item span,
+      .variant-section-title,
+      .variant-metric span,
+      .product-summary,
+      .product-cover-placeholder,
+      .product-sku span {
+        font-size: var(--text-xs);
+        line-height: var(--leading-relaxed);
+      }
+
+      label,
+      .noon-catalog-head p,
+      .noon-sync-card span,
+      .noon-empty-sync p,
+      .noon-sync-error,
+      .product-filter-title,
+      .product-source-select label,
+      .noon-filter-select,
+      .noon-filter-search,
+      .noon-quota-card strong,
+      .noon-warn-card,
+      .detail-placeholder,
+      .detail-section-card strong,
+      .detail-read-field,
+      .detail-read-area,
+      .variant-meta-item strong,
+      .product-logistics,
+      .product-hs-code,
+      .product-collected-at {
+        font-size: var(--text-sm);
+        line-height: var(--leading-normal);
+      }
+
+      .quick-card strong,
+      .panel-title,
+      .bulk-export-head strong,
+      .title,
+      .noon-sync-progress-head strong,
+      .noon-product-title,
+      .noon-metric-card strong,
+      .noon-price-main,
+      .detail-section-card h3,
+      .detail-editor-title h3,
+      .variant-sku,
+      .variant-metric strong,
+      .product-title-button,
+      .product-price {
+        font-size: var(--text-md);
+        line-height: var(--leading-normal);
+      }
+
+      .page-title {
+        font-size: var(--text-title);
+        line-height: var(--leading-tight);
+      }
+
+      .rail-status strong,
+      .noon-quota-meter b,
+      .noon-empty-sync h3,
+      .detail-head h3,
+      .product-sku {
+        font-size: var(--text-lg);
+        line-height: var(--leading-tight);
+      }
+
+      .metric strong {
+        font-size: 30px;
+        line-height: 1;
+      }
+
+      .repository-summary-card strong,
+      .noon-catalog-metric strong,
+      .detail-title-line h2,
+      .noon-catalog-head h3 {
+        font-size: var(--text-xl);
+        line-height: var(--leading-tight);
+      }
+
+      .repository-control-row input,
+      .repository-control-row[data-bulk-actions] button,
+      .noon-filter-select,
+      .noon-filter-search,
+      .product-source-select select,
+      .product-search-row input,
+      .detail-toolbar-actions button,
+      .product-actions button {
+        min-height: var(--control-height);
+      }
+
+      .repository-control-row label {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        min-height: var(--control-height);
+      }
+
+      .repository-control-row label input[type="checkbox"] {
+        margin-right: 0;
+      }
+
+      .product-row > input[type="checkbox"] {
+        width: 20px;
+        height: 20px;
+        min-height: 20px;
+        margin: 0;
+      }
+
+      .pager {
+        gap: 10px;
+        color: var(--ink);
+        font-size: var(--text-base);
+        line-height: var(--leading-tight);
+      }
+
+      .pager button,
+      .pager select,
+      .pager input {
+        min-height: var(--control-height);
+        height: var(--control-height);
+        font-size: var(--text-base);
+      }
+
+      .pager button {
+        width: var(--control-height);
+        min-width: var(--control-height);
+        border-radius: var(--radius);
+      }
+
+      .pager button.active {
+        width: var(--control-height);
+        min-width: var(--control-height);
+        height: var(--control-height);
+        min-height: var(--control-height);
+        border-width: 1px;
+        border-radius: var(--radius);
+      }
+
+      .pager select {
+        height: var(--control-height);
+        min-height: var(--control-height);
+        padding: 0 34px 0 12px;
+        border-radius: var(--radius);
+      }
+
+      .pager input {
+        width: 72px;
+        height: var(--control-height);
+        min-height: var(--control-height);
+        border-radius: var(--radius);
+      }
+
+      .log {
+        font-family: var(--font-mono);
+        font-size: var(--text-xs);
+        line-height: 1.55;
       }
 
       @media (max-width: 980px) {
@@ -849,16 +3003,138 @@
           flex-direction: column;
         }
 
-        .product-row {
+        .detail-page-toolbar {
+          align-items: start;
+          flex-direction: column;
+        }
+
+        .detail-title-cluster {
+          align-items: start;
+          flex-direction: column;
+        }
+
+        .detail-toolbar-actions {
+          justify-content: start;
+        }
+
+        .repository-summary-grid,
+        .noon-catalog-metrics,
+        .detail-status-strip,
+        .detail-field-grid,
+        .detail-section-grid {
+          grid-template-columns: 1fr 1fr;
+        }
+
+        .product-summary {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .product-command-panel {
           grid-template-columns: 1fr;
         }
 
-        .product-row > div:last-child {
-          justify-content: stretch;
+        .product-source-select {
+          width: 100%;
+          grid-template-columns: 1fr;
+        }
+
+        .product-platform-row,
+        .product-warehouse-row,
+        .product-filter-row {
+          grid-template-columns: 1fr;
+        }
+
+        .repository-controls {
+          grid-template-columns: 1fr;
+        }
+
+        .variant-row {
+          grid-template-columns: 1fr;
+        }
+
+        .dialog-backdrop {
+          padding: 8px;
+        }
+
+        .dialog {
+          width: calc(100vw - 16px);
+          height: calc(100vh - 16px);
+          max-height: none;
+        }
+
+        .dialog-head {
+          padding: 8px 10px;
+        }
+
+        .dialog-body {
+          padding: 8px;
+        }
+
+        .bulk-export {
+          display: grid;
+          grid-template-columns: minmax(0, 1fr) auto;
+          gap: 8px;
+          align-items: center;
+          padding: 8px;
+        }
+
+        .bulk-export-head {
+          display: contents;
         }
 
         .bulk-export-links {
+          grid-column: 1 / -1;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          margin-top: 0;
+        }
+
+        .repository-list-pane {
+          width: 100%;
+          max-width: 100%;
+        }
+
+        .repository-controls {
+          grid-template-columns: minmax(110px, auto) minmax(0, 1fr);
+          align-items: center;
+          gap: 8px;
+          padding: 8px;
+        }
+
+        .repository-control-row[data-bulk-actions] .actions {
+          justify-content: end;
+        }
+
+        .repository-control-row[data-bulk-actions] .actions {
+          width: 100%;
+          flex-wrap: wrap;
+          overflow-x: visible;
+          padding-bottom: 0;
+        }
+
+        .product-search-row,
+        .detail-hero {
           grid-template-columns: 1fr;
+        }
+
+        .product-search-actions {
+          justify-content: start;
+          flex-wrap: wrap;
+        }
+
+        .repository-pager-footer {
+          justify-content: flex-start;
+          overflow: hidden;
+        }
+
+        .pager {
+          justify-content: flex-start;
+          flex-wrap: wrap;
+          gap: 8px;
+          white-space: normal;
+        }
+
+        .detail-hero-actions {
+          justify-content: start;
         }
       }
 
@@ -878,7 +3154,28 @@
         }
 
         .page-title {
-          font-size: 34px;
+          font-size: 30px;
+        }
+
+        .repository-summary-grid,
+        .noon-catalog-metrics,
+        .detail-field-grid,
+        .detail-section-grid,
+        .detail-hero-main {
+          grid-template-columns: 1fr;
+        }
+
+        .noon-catalog-head,
+        .noon-sync-card {
+          grid-template-columns: 1fr;
+        }
+
+        .noon-catalog-head {
+          flex-direction: column;
+        }
+
+        .noon-catalog-badge {
+          width: fit-content;
         }
       }
     </style>
@@ -895,8 +3192,9 @@
             <button type="button" data-route="dashboard"><span>01</span><span>工作台</span></button>
             <button type="button" data-route="collect"><span>02</span><span>1688 采集</span></button>
             <button type="button" data-route="repositories"><span>03</span><span>商品仓库</span></button>
-            <button type="button" data-route="stores"><span>04</span><span>店铺</span></button>
-            <button type="button" data-route="settings"><span>05</span><span>配置</span></button>
+            <button type="button" data-route="noon-workbench"><span>04</span><span>Noon 工作台</span></button>
+            <button type="button" data-route="stores"><span>05</span><span>店铺</span></button>
+            <button type="button" data-route="settings"><span>06</span><span>配置</span></button>
           </nav>
           <div class="rail-status">
             <span>任务状态</span>
@@ -931,9 +3229,9 @@
                 <strong>查看仓库</strong>
                 <span>按仓库打开商品集合，查看 meta、noon 属性和上传状态。</span>
               </button>
-              <button class="quick-card" type="button" data-route="repositories">
+              <button class="quick-card" type="button" data-route="noon-workbench">
                 <strong>noon 作业</strong>
-                <span>在商品仓库里选择商品，再执行 AI 生成或上传到 noon。</span>
+                <span>集中处理检查、上架、停售和 Global 批量更新表。</span>
               </button>
               <button class="quick-card" type="button" data-route="settings">
                 <strong>配置</strong>
@@ -995,20 +3293,17 @@
           <section class="page" data-page="repositories">
             <div class="page-head">
               <div>
-                <p class="page-kicker">Storage</p>
-                <h2 class="page-title">商品仓库</h2>
+                <p class="page-kicker">Products</p>
+                <h2 class="page-title">待上架商品</h2>
               </div>
+              <button class="secondary" id="refreshRepositoriesButton" type="button">刷新商品</button>
             </div>
-            <div class="form-grid">
-              <section class="panel pad">
-                <div class="panel-title">
-                  <span>仓库商品</span>
-                  <button class="secondary" id="refreshRepositoriesButton" type="button">刷新仓库</button>
-                </div>
-                <div class="repository-grid" id="products"></div>
+            <div class="product-page-shell">
+              <section class="product-page-root" id="productPageRoot">
+                <div class="empty">正在加载商品...</div>
               </section>
 
-              <aside class="panel pad">
+              <aside class="panel pad product-job-panel">
                 <div class="panel-title"><span>noon 上传作业</span></div>
                 <label for="uploadStoreId">上传目标店铺</label>
                 <select id="uploadStoreId" name="uploadStoreId"></select>
@@ -1024,6 +3319,48 @@
                 <div class="panel log" id="repositoryLog"></div>
               </aside>
             </div>
+          </section>
+
+          <section class="page" data-page="noon-workbench">
+            <div class="page-head">
+              <div>
+                <p class="page-kicker">Noon Operations</p>
+                <h2 class="page-title">Noon 工作台</h2>
+              </div>
+              <button class="secondary" id="refreshNoonWorkbenchButton" type="button">刷新商品</button>
+            </div>
+            <div class="product-page-shell noon-workbench-shell">
+              <section class="product-page-root" id="noonWorkbenchRoot">
+                <div class="empty">正在加载商品...</div>
+              </section>
+            </div>
+          </section>
+
+          <section class="page" data-page="product-detail">
+            <div class="detail-page-toolbar">
+              <div class="detail-toolbar-primary">
+                <div class="detail-title-cluster">
+                  <button class="secondary" id="productDetailBackButton" type="button">← 返回</button>
+                  <div>
+                    <div class="detail-title-line">
+                      <h2 id="productDetailTitle">商品详情</h2>
+                      <span class="detail-draft-badge">草稿</span>
+                    </div>
+                    <p>1688 商品编辑与一键上架</p>
+                  </div>
+                </div>
+                <span class="detail-save-pill">已启用自动保存</span>
+              </div>
+              <div class="detail-toolbar-actions">
+                <button class="secondary" type="button">AI自动生成产品信息</button>
+                <button class="secondary" type="button">合规检测</button>
+                <button class="secondary" type="button">翻译全部图片</button>
+                <button type="button">多分组上架</button>
+              </div>
+            </div>
+            <section class="product-detail-body" id="productDetailBody">
+              <div class="empty">从商品仓库选择商品后查看详情。</div>
+            </section>
           </section>
 
           <section class="page" data-page="stores">
@@ -1177,15 +3514,20 @@
       const repositoryStopButton = document.querySelector("#repositoryStopButton");
       const refreshButton = document.querySelector("#refreshButton");
       const refreshRepositoriesButton = document.querySelector("#refreshRepositoriesButton");
+      const refreshNoonWorkbenchButton = document.querySelector("#refreshNoonWorkbenchButton");
       const clearCollectLogButton = document.querySelector("#clearCollectLogButton");
       const clearRepositoryLogButton = document.querySelector("#clearRepositoryLogButton");
       const collectLogEl = document.querySelector("#collectLog");
       const repositoryLogEl = document.querySelector("#repositoryLog");
-      const productsEl = document.querySelector("#products");
+      const productsEl = document.querySelector("#productPageRoot");
+      const noonWorkbenchEl = document.querySelector("#noonWorkbenchRoot");
       const repositoryDialog = document.querySelector("#repositoryDialog");
       const repositoryDialogTitle = document.querySelector("#repositoryDialogTitle");
       const repositoryDialogBody = document.querySelector("#repositoryDialogBody");
       const closeRepositoryDialog = document.querySelector("#closeRepositoryDialog");
+      const productDetailTitle = document.querySelector("#productDetailTitle");
+      const productDetailBody = document.querySelector("#productDetailBody");
+      const productDetailBackButton = document.querySelector("#productDetailBackButton");
       const jobStatusEl = document.querySelector("#jobStatus");
       const repositoryCountEl = document.querySelector("#repositoryCount");
       const productCountEl = document.querySelector("#productCount");
@@ -1200,6 +3542,18 @@
       let pollTimer = null;
       let saveFormTimer = null;
       let lastRepositories = [];
+      let lastNoonCatalogSync = { synced: false, rows: [] };
+      let productPageState = {
+        repositoryId: "",
+        products: [],
+        pagination: { page: 1, pageSize: 20, totalItems: 0, totalPages: 1 },
+        status: "all",
+        q: "",
+      };
+      let noonCatalogSyncState = { running: false, message: "", detail: "", percent: 0 };
+      let activePlatformSource = "all";
+      let activeRepositoryId = "";
+      let noonCatalogMode = "global";
       let noonStores = [];
       const savedFormKey = "noon-tools:job-form";
       const savedFormFields = [
@@ -1302,16 +3656,14 @@
       repositoryStopButton.addEventListener("click", stopCurrentJob);
       refreshButton.addEventListener("click", refreshProducts);
       refreshRepositoriesButton.addEventListener("click", refreshProducts);
+      refreshNoonWorkbenchButton.addEventListener("click", refreshProducts);
       clearCollectLogButton.addEventListener("click", () => {
         collectLogEl.innerHTML = "";
       });
       clearRepositoryLogButton.addEventListener("click", () => {
         repositoryLogEl.innerHTML = "";
       });
-      closeRepositoryDialog.addEventListener("click", closeDialog);
-      repositoryDialog.addEventListener("click", (event) => {
-        if (event.target === repositoryDialog) closeDialog();
-      });
+      productDetailBackButton.addEventListener("click", () => showRoute(productDetailBackButton.dataset.returnRoute || "repositories"));
 
       function bindNavigation() {
         for (const button of document.querySelectorAll("[data-route]")) {
@@ -1364,8 +3716,77 @@
       function renderJob(job) {
         jobStatusEl.textContent = job.status;
         setBusy(job.status === "running");
+        updateNoonCatalogSyncState(job);
         activeLogEl.innerHTML = "";
         for (const item of job.logs || []) appendLog(item.line);
+      }
+
+      function updateNoonCatalogSyncState(job) {
+        if (job.kind !== "syncNoonCatalog") return;
+        const latestLog = [...(job.logs || [])].reverse().find((item) => item.line)?.line || "";
+        const logInfo = parseNoonCatalogLogLine(latestLog);
+        noonCatalogSyncState = {
+          running: job.status === "running",
+          message: noonCatalogProgressMessage(logInfo, job.status),
+          detail: noonCatalogProgressDetail(logInfo, job.status),
+          percent: noonCatalogProgressPercent(latestLog, job.status),
+        };
+        if (noonWorkbenchEl.classList.contains("active") || currentRoute() === "noon-workbench") {
+          renderProductPage(lastRepositories, { rootEl: noonWorkbenchEl, mode: "operations" });
+        }
+      }
+
+      function parseNoonCatalogLogLine(line) {
+        try {
+          const parsed = JSON.parse(line);
+          return {
+            line,
+            error: parsed.error || "",
+            status: parsed.status || "",
+          };
+        } catch {
+          return { line, error: "", status: "" };
+        }
+      }
+
+      function noonCatalogProgressMessage(logInfo, status) {
+        const line = logInfo.line || "";
+        if (status === "completed") return "同步完成，正在刷新 SKU 数据...";
+        if (status === "failed") return "同步失败";
+        if (line.includes("正在同步第")) return "正在同步 Noon SKU...";
+        if (line.includes("写入同步快照")) return "正在保存同步结果...";
+        if (line.includes("读取 SKU 表格")) return "正在检查 Noon SKU 数量...";
+        if (line.includes("切换")) return "正在切换商品目录模式...";
+        if (line.includes("打开")) return "正在打开 Noon Catalog...";
+        return "正在检查 Noon SKU 数量...";
+      }
+
+      function noonCatalogProgressDetail(logInfo, status) {
+        const line = logInfo.line || "";
+        if (status === "completed") return "同步完成";
+        if (status === "failed") return logInfo.error || line || "同步失败";
+        if (line.includes("正在同步第")) return line;
+        if (line.includes("读取 SKU 表格")) return "正在获取总页数";
+        return line || "正在获取总页数";
+      }
+
+      function noonCatalogProgressPercent(line, status) {
+        if (status === "completed") return 100;
+        if (status === "failed") return 100;
+        const pageMatch = line.match(/正在同步第\s+(\d+)(?:\/(\d+))?/);
+        if (pageMatch) {
+          const current = Number(pageMatch[1]);
+          const total = Number(pageMatch[2]);
+          if (Number.isFinite(current) && Number.isFinite(total) && total > 0) {
+            return Math.min(84, Math.max(42, 42 + Math.round((current / total) * 40)));
+          }
+          return Math.min(84, 42 + current * 2);
+        }
+        if (line.includes("写入同步快照")) return 86;
+        if (line.includes("读取 SKU 表格")) return 58;
+        if (line.includes("切换")) return 36;
+        if (line.includes("打开")) return 18;
+        return 12;
       }
 
       function setBusy(running) {
@@ -1418,33 +3839,61 @@
         if (window.location.protocol === "file:") return;
         const params = new URLSearchParams();
         if (uploadStoreId.value) params.set("storeId", uploadStoreId.value);
-        const repositories = await fetchJson(params.toString() ? `/api/products?${params}` : "/api/products");
+        const syncParams = new URLSearchParams();
+        if (uploadStoreId.value) syncParams.set("storeId", uploadStoreId.value);
+        syncParams.set("mode", noonCatalogMode);
+        const repositories = await fetchJson(params.toString() ? `/api/repositories?${params}` : "/api/repositories");
+        let noonCatalogSync = { synced: false, mode: noonCatalogMode, rows: [] };
+        try {
+          noonCatalogSync = await fetchJson(`/api/noon-catalog-sync?${syncParams}`);
+        } catch (error) {
+          noonCatalogSync.error = error.message;
+        }
         lastRepositories = repositories;
+        lastNoonCatalogSync = noonCatalogSync;
+        if (!activeRepositoryId && repositories[0]) activeRepositoryId = repositories[0].id;
+        if (activeRepositoryId) {
+          await loadRepositoryProductPage({
+            repositoryId: activeRepositoryId,
+            page: productPageState.repositoryId === activeRepositoryId ? productPageState.pagination.page : 1,
+            pageSize: productPageState.pagination.pageSize || 20,
+            status: productPageState.status,
+            q: productPageState.q,
+          });
+        } else {
+          productPageState = {
+            repositoryId: "",
+            products: [],
+            pagination: { page: 1, pageSize: 20, totalItems: 0, totalPages: 1 },
+            status: "all",
+            q: "",
+          };
+        }
         const productCount = repositories.reduce((sum, repository) => sum + (repository.productCount || 0), 0);
         repositoryCountEl.textContent = repositories.length;
         productCountEl.textContent = productCount;
         imageCountEl.textContent = repositories.reduce((sum, repository) => sum + (repository.imageCount || 0), 0);
-        productsEl.innerHTML = "";
+        renderProductPage(repositories, { rootEl: productsEl, mode: "upload" });
+        renderProductPage(repositories, { rootEl: noonWorkbenchEl, mode: "operations" });
+      }
 
-        if (repositories.length === 0) {
-          productsEl.innerHTML = '<div class="empty">还没有生成商品目录。</div>';
-          return;
-        }
-
-        for (const repository of repositories) {
-          const tab = document.createElement("button");
-          tab.className = "repository-tab";
-          tab.type = "button";
-          tab.innerHTML = `
-            <strong></strong>
-            <span>${repository.productCount || 0} 个商品</span>
-            <span>${repository.uploadableCount || 0} 个可上传 · ${repository.blockedCount || 0} 个需检查</span>
-            <span>${repository.imageCount || 0} 张本地图片</span>
-          `;
-          tab.querySelector("strong").textContent = repository.name;
-          tab.addEventListener("click", () => openRepositoryDialog(repository));
-          productsEl.append(tab);
-        }
+      async function loadRepositoryProductPage({ repositoryId, page = 1, pageSize = 20, status = "all", q = "" } = {}) {
+        if (!repositoryId) return;
+        const productParams = new URLSearchParams();
+        productParams.set("repository", repositoryId);
+        productParams.set("page", String(page));
+        productParams.set("pageSize", String(pageSize));
+        if (uploadStoreId.value) productParams.set("storeId", uploadStoreId.value);
+        if (status && status !== "all") productParams.set("status", status);
+        if (q) productParams.set("q", q);
+        const result = await fetchJson(`/api/products?${productParams}`);
+        productPageState = {
+          repositoryId,
+          products: result.products || [],
+          pagination: result.pagination || { page, pageSize, totalItems: 0, totalPages: 1 },
+          status,
+          q,
+        };
       }
 
       async function loadStores(defaultStoreId = "") {
@@ -1561,170 +4010,364 @@
         startPolling();
       }
 
-      function openRepositoryDialog(repository) {
-        repositoryDialogTitle.textContent = repository.name;
-        repositoryDialogBody.innerHTML = "";
+      function renderProductPage(repositories, options = {}) {
+        const rootEl = options.rootEl || productsEl;
+        const mode = options.mode || "browse";
+        const isUpload = mode === "upload";
+        const isOperations = mode === "operations";
+        rootEl.innerHTML = "";
 
-        if (!repository.products?.length) {
-          repositoryDialogBody.innerHTML = '<div class="empty">这个仓库还没有商品。</div>';
-        } else {
-          const pageSize = 20;
-          let currentPage = 1;
-          const selectedProductDirs = new Set();
-          const exportPanel = document.createElement("section");
-          exportPanel.className = "bulk-export";
-          exportPanel.innerHTML = `
-            <div class="bulk-export-head">
-              <strong>Global 批量更新表</strong>
-              <button class="secondary" type="button" data-bulk-export>生成本仓库表</button>
+        if (repositories.length === 0) {
+          rootEl.innerHTML = '<div class="empty">还没有生成商品目录。</div>';
+          return;
+        }
+
+        const platformOptions = productPlatformOptions(repositories);
+        const platformRepositories = activePlatformSource === "all"
+          ? repositories
+          : repositories.filter((repository) => repositoryPlatform(repository) === activePlatformSource);
+        if (!platformRepositories.length) {
+          activeRepositoryId = "";
+        } else if (!activeRepositoryId || !platformRepositories.some((repository) => repository.id === activeRepositoryId)) {
+          activeRepositoryId = platformRepositories[0].id;
+        }
+
+        const repository = platformRepositories.find((item) => item.id === activeRepositoryId) || platformRepositories[0] || emptyRepository(activePlatformSource);
+        const products = isOperations
+          ? (repository.products || [])
+          : (productPageState.repositoryId === repository.id ? productPageState.products : []);
+        const pagination = productPageState.repositoryId === repository.id
+          ? productPageState.pagination
+          : { page: 1, pageSize: 20, totalItems: repository.productCount || 0, totalPages: Math.max(1, Math.ceil((repository.productCount || 0) / 20)) };
+        const statusCounts = countProductStatuses(products);
+        const activeStatusFilter = isOperations ? "all" : productPageState.status;
+        const catalogRows = isOperations && lastNoonCatalogSync.mode === noonCatalogMode
+          ? (lastNoonCatalogSync.rows || [])
+          : [];
+        const isNoonCatalogSyncing = isOperations && noonCatalogSyncState.running;
+        const noonCatalogSyncError = isOperations && !noonCatalogSyncState.running && noonCatalogSyncState.message === "同步失败"
+          ? noonCatalogSyncState.detail
+          : "";
+        const hasSyncedNoonSkus = catalogRows.length > 0;
+        const noonCatalogHero = document.createElement("section");
+        noonCatalogHero.className = "noon-catalog-hero";
+        noonCatalogHero.innerHTML = `
+          <div class="noon-catalog-head">
+            <div>
+              <h3>商品目录</h3>
+              <p>管理 Noon SKU、批量调价、改库存、改时效。批量操作后通常需要等待 1-3 分钟在 Noon 生效。</p>
             </div>
-            <div class="bulk-export-links" data-bulk-export-links></div>
+            <span class="noon-catalog-badge">Catalog Manager</span>
+          </div>
+          <div class="noon-mode-card">
+            <div class="noon-mode-tabs">
+              <button class="secondary ${noonCatalogMode === "fbn" ? "active" : ""}" type="button" data-noon-catalog-mode="fbn">FBN/FBP 模式</button>
+              <button class="secondary ${noonCatalogMode === "global" ? "active" : ""}" type="button" data-noon-catalog-mode="global">Global (NGS) 模式</button>
+            </div>
+            <span class="noon-mode-note">默认跟随仓库 & 运费配置</span>
+          </div>
+          ${hasSyncedNoonSkus && !isNoonCatalogSyncing ? `
+            <div class="noon-catalog-metrics">
+              <div class="noon-catalog-metric"><span>总销量</span><strong>${catalogRows.length}件</strong><small>统计区间 2026-01-01 至 2026-07-03</small></div>
+              <div class="noon-catalog-metric"><span>商品查看</span><strong>${catalogRows.length}</strong><small>来自 Noon Catalog 同步</small></div>
+              <div class="noon-catalog-metric"><span>阿联酋 (AE)</span><strong>AED 0.00</strong><small>GMV - 退款/取消金额</small></div>
+              <div class="noon-catalog-metric"><span>沙特 (SA)</span><strong>SAR 0.00</strong><small>GMV - 退款/取消金额</small></div>
+            </div>
+          ` : `
+            <div class="noon-sync-card">
+              <span>首次使用请先同步 SKU 数据</span>
+              <button type="button" data-sync-sku ${isNoonCatalogSyncing ? "disabled" : ""}>${isNoonCatalogSyncing ? "同步中" : "同步 SKU"}</button>
+            </div>
+          `}
+        `;
+        const syncProgress = document.createElement("section");
+        syncProgress.className = "noon-sync-progress";
+        syncProgress.innerHTML = `
+          <div class="noon-sync-progress-head">
+            <div><strong>同步进度</strong>　${escapeHtml(noonCatalogSyncState.message || "正在检查 Noon SKU 数量...")}</div>
+            <span>${escapeHtml(noonCatalogSyncState.detail || "正在获取总页数")}</span>
+          </div>
+          <div class="noon-progress-track"><span class="noon-progress-fill" style="--progress: ${Math.max(8, Math.min(100, noonCatalogSyncState.percent || 12))}%"></span></div>
+        `;
+        const summaryGrid = document.createElement("section");
+        summaryGrid.className = "repository-summary-grid";
+        summaryGrid.innerHTML = `
+          <div class="repository-summary-card">
+            <span>全部商品</span>
+            <strong>${repository.productCount || products.length}</strong>
+          </div>
+          <div class="repository-summary-card" data-tone="blue">
+            <span>待上架</span>
+            <strong>${statusCounts.not_uploaded}</strong>
+          </div>
+          <div class="repository-summary-card" data-tone="orange">
+            <span>上架中</span>
+            <strong>${statusCounts.uploading}</strong>
+          </div>
+          <div class="repository-summary-card">
+            <span>已上传</span>
+            <strong>${statusCounts.uploaded}</strong>
+          </div>
+          <div class="repository-summary-card" data-tone="red">
+            <span>上架失败</span>
+            <strong>${statusCounts.failed}</strong>
+          </div>
+        `;
+
+        const filterPanel = document.createElement("section");
+        filterPanel.className = "product-filter-panel";
+        filterPanel.innerHTML = `
+            <div class="product-source-card">
+              <div class="product-platform-row">
+                <div class="product-filter-title">
+                  <strong>数据来源</strong>
+                </div>
+                <div class="product-pill-group" data-platform-tabs>
+                  ${platformOptions.map((item) => `<button class="product-pill ${item.id === activePlatformSource ? "active" : ""}" type="button" data-platform-source="${escapeHtml(item.id)}">${escapeHtml(item.label)} <span>${item.count}</span></button>`).join("")}
+                </div>
+              </div>
+              <div class="product-filter-head product-warehouse-row">
+                <div class="product-filter-title">
+                  <strong>仓库</strong>
+                </div>
+                <div class="product-source-select">
+                  <label class="sr-only" for="repositorySourceSelect">仓库数据源</label>
+                  <select id="repositorySourceSelect" data-repository-source>
+                    ${platformRepositories.length ? platformRepositories.map((item) => `<option value="${escapeHtml(item.id)}" ${item.id === repository.id ? "selected" : ""}>${escapeHtml(item.name)} · ${item.productCount || 0} 个商品</option>`).join("") : '<option value="">当前平台暂无仓库</option>'}
+                  </select>
+                </div>
+              </div>
+              <div class="product-filter-row">
+                <div class="product-filter-title">
+                  <strong>状态筛选</strong>
+                </div>
+                <div class="product-pill-group" data-status-tabs>
+                  <button class="product-pill ${activeStatusFilter === "all" ? "active" : ""}" type="button" data-status-filter="all">全部 ${pagination.totalItems || products.length}</button>
+                  <button class="product-pill ${activeStatusFilter === "not_uploaded" ? "active" : ""}" type="button" data-status-filter="not_uploaded">待上架 ${statusCounts.not_uploaded}</button>
+                  <button class="product-pill ${activeStatusFilter === "uploading" ? "active" : ""}" type="button" data-status-filter="uploading">上架中 ${statusCounts.uploading}</button>
+                  <button class="product-pill ${activeStatusFilter === "uploaded" ? "active" : ""}" type="button" data-status-filter="uploaded">已上传 ${statusCounts.uploaded}</button>
+                  <button class="product-pill ${activeStatusFilter === "failed" ? "active" : ""}" type="button" data-status-filter="failed">上架失败 ${statusCounts.failed}</button>
+                </div>
+              </div>
+            </div>
           `;
-          exportPanel.querySelector("[data-bulk-export]").addEventListener("click", async (event) => {
+
+        const searchPanel = document.createElement("section");
+        searchPanel.className = "product-search-panel";
+        searchPanel.innerHTML = `
+          <div class="product-search-card">
+            <div class="product-filter-title">
+              <strong>搜索</strong>
+              <span>名称、目录、Noon 标题或 SKU</span>
+            </div>
+            <div class="product-search-row">
+              <input data-product-search placeholder="搜索商品名称、目录、Noon 标题、SKU..." value="${escapeHtml(isOperations ? "" : productPageState.q)}" />
+              <div class="product-search-actions">
+                <button class="secondary" type="button" data-reset-filter>重置</button>
+                ${isOperations ? '<button type="button" data-check-all>检查NGS价格/库存生效状态</button>' : ""}
+                ${isOperations ? '<button class="secondary" type="button" data-sync-sku>同步 SKU</button>' : ""}
+              </div>
+            </div>
+          </div>
+        `;
+
+        const exportPanel = document.createElement("section");
+        exportPanel.className = "bulk-export";
+        exportPanel.innerHTML = `
+          <div class="bulk-export-head">
+            <strong>Global 批量更新表</strong>
+            <button class="secondary" type="button" data-bulk-export ${repository.id ? "" : "disabled"}>生成本仓库表</button>
+          </div>
+          <div class="bulk-export-links" data-bulk-export-links></div>
+        `;
+
+        const controls = document.createElement("section");
+        controls.className = "product-bulk-bar";
+        controls.className = "repository-controls repository-toolbar";
+        controls.classList.add("repository-controls", "repository-toolbar");
+        controls.classList.add("product-bulk-bar");
+        controls.innerHTML = `
+          <div class="repository-control-row">
+            ${isOperations && (!hasSyncedNoonSkus || isNoonCatalogSyncing) ? "" : '<label><input type="checkbox" data-select-page />选择本页</label>'}
+            <span class="meta" data-selection-summary></span>
+          </div>
+          <div class="repository-control-row" data-bulk-actions>
+            <div class="actions" style="margin-top: 0">
+              ${isOperations ? '<button class="secondary" type="button" disabled>批量改商品属性</button>' : ""}
+              ${isOperations ? '<button class="secondary" type="button" data-set-price disabled>批量调价</button>' : ""}
+              ${isOperations ? '<button class="secondary" type="button" data-set-stock disabled>批量改FBP/NGS库存</button>' : ""}
+              ${isOperations ? '<button class="secondary" type="button" data-set-processing-time disabled>批量改时效</button>' : ""}
+              ${isOperations && hasSyncedNoonSkus && !isNoonCatalogSyncing ? '<button type="button" data-sync-sku>重新同步</button>' : ""}
+              ${isOperations ? '<button class="secondary" type="button" data-bulk-export ${repository.id ? "" : "disabled"}>导出 Global 表</button>' : ""}
+              ${isOperations ? '<button class="secondary" type="button" data-clear-selection disabled>取消选择</button>' : ""}
+              ${isUpload ? '<button class="secondary" type="button" data-upload-selected disabled>上传选中</button>' : ""}
+              ${isUpload ? '<button type="button" data-upload-repository>批量上架</button>' : ""}
+              ${isOperations ? '<button class="danger" type="button" data-deactivate-selected disabled>批量删除</button>' : ""}
+            </div>
+          </div>
+          ${isOperations && hasSyncedNoonSkus && !isNoonCatalogSyncing ? `
+            <div class="noon-quota-card">
+              <strong>跟卖监控配额</strong>
+              <div class="noon-quota-meter">
+                <b>0 / 10</b>
+                <span class="noon-quota-track"><span class="noon-quota-fill"></span></span>
+                <span class="meta">0%</span>
+              </div>
+              <span class="meta">剩余 10 个配额</span>
+            </div>
+          ` : ""}
+          ${isOperations ? '<div class="bulk-export-links" data-bulk-export-links></div>' : ""}
+        `;
+
+        const commandPanel = document.createElement("section");
+        commandPanel.className = "product-command-panel";
+        if (isOperations) {
+          commandPanel.remove();
+        } else {
+          commandPanel.append(filterPanel, searchPanel);
+        }
+
+        const workspace = document.createElement("section");
+        workspace.className = "repository-workspace";
+        const listPane = document.createElement("div");
+        listPane.className = "repository-list-pane";
+        const list = document.createElement("div");
+        list.className = "repository-product-list";
+        const tableHead = document.createElement("div");
+        tableHead.className = "repository-table-head";
+        tableHead.innerHTML = isOperations
+          ? `
+            <span></span>
+            <span>商品信息 <i class="sort-mark"></i></span>
+            <span>售价 <i class="sort-mark"></i></span>
+            <span>库存 <i class="sort-mark"></i></span>
+            <span>销售情况 <i class="sort-mark"></i></span>
+            <span>利润/规格</span>
+            <span>状态 <i class="sort-mark active"></i></span>
+            <span>跟卖监控</span>
+            <span>操作</span>
+          `
+          : `
+            <span></span>
+            <span>商品信息</span>
+            <span></span>
+            <span>采集价格 <i class="sort-mark"></i></span>
+            <span>SKU</span>
+            <span>物流信息</span>
+            <span>海关编码(HS Code)</span>
+            <span>状态</span>
+            <span>采集时间 <i class="sort-mark active"></i></span>
+            <span>操作</span>
+          `;
+        if (isOperations && (!hasSyncedNoonSkus || isNoonCatalogSyncing)) {
+          listPane.append(list);
+        } else {
+          listPane.append(tableHead, list);
+        }
+        if (isOperations) listPane.classList.add("noon-workbench-table");
+        workspace.append(listPane);
+
+        const pagerFooter = document.createElement("section");
+        pagerFooter.className = "repository-pager-footer";
+        pagerFooter.innerHTML = `
+          <div class="pager" data-pager></div>
+        `;
+
+        if (isOperations) {
+          rootEl.append(noonCatalogHero);
+          if (isNoonCatalogSyncing) rootEl.append(syncProgress);
+          rootEl.append(controls, workspace);
+          if (hasSyncedNoonSkus && !isNoonCatalogSyncing) rootEl.append(pagerFooter);
+        } else if (isUpload) {
+          rootEl.append(summaryGrid, commandPanel, controls, workspace, pagerFooter);
+        } else {
+          rootEl.append(summaryGrid, commandPanel, workspace, pagerFooter);
+        }
+
+        const tableProducts = isOperations ? catalogRows : products;
+        let pageSize = isOperations ? 10 : (pagination.pageSize || 20);
+        let currentPage = isOperations ? 1 : (pagination.page || 1);
+        let statusFilter = isOperations ? "all" : (productPageState.status || "all");
+        let keyword = isOperations ? "" : (productPageState.q || "");
+        const selectedProductDirs = new Set();
+
+        filterPanel.querySelectorAll("[data-platform-source]").forEach((button) => {
+          button.addEventListener("click", async () => {
+            activePlatformSource = button.dataset.platformSource;
+            activeRepositoryId = "";
+            const nextRepositories = activePlatformSource === "all"
+              ? lastRepositories
+              : lastRepositories.filter((repository) => repositoryPlatform(repository) === activePlatformSource);
+            activeRepositoryId = nextRepositories[0]?.id || "";
+            if (!isOperations && activeRepositoryId) {
+              await loadRepositoryProductPage({ repositoryId: activeRepositoryId, page: 1, pageSize: pagination.pageSize || 20 });
+            }
+            renderProductPage(lastRepositories, { rootEl, mode });
+          });
+        });
+        filterPanel.querySelector("[data-repository-source]")?.addEventListener("change", async (event) => {
+          activeRepositoryId = event.currentTarget.value;
+          if (!isOperations) {
+            await loadRepositoryProductPage({ repositoryId: activeRepositoryId, page: 1, pageSize: pagination.pageSize || 20 });
+          }
+          renderProductPage(lastRepositories, { rootEl, mode });
+        });
+        filterPanel.querySelectorAll("[data-status-filter]").forEach((button) => {
+          button.addEventListener("click", async () => {
+            statusFilter = button.dataset.statusFilter;
+            currentPage = 1;
+            filterPanel.querySelectorAll("[data-status-filter]").forEach((item) => item.classList.toggle("active", item === button));
+            if (!isOperations) {
+              await loadRepositoryProductPage({ repositoryId: repository.id, page: 1, pageSize, status: statusFilter, q: keyword });
+              renderProductPage(lastRepositories, { rootEl, mode });
+              return;
+            }
+            renderPage();
+          });
+        });
+        if (!isOperations) {
+          const searchInput = searchPanel.querySelector("[data-product-search]");
+          searchInput.addEventListener("input", async (event) => {
+            keyword = event.currentTarget.value.trim().toLowerCase();
+            currentPage = 1;
+            await loadRepositoryProductPage({ repositoryId: repository.id, page: 1, pageSize, status: statusFilter, q: keyword });
+            renderProductPage(lastRepositories, { rootEl, mode });
+          });
+          searchPanel.querySelector("[data-reset-filter]").addEventListener("click", async () => {
+            statusFilter = "all";
+            keyword = "";
+            searchInput.value = "";
+            filterPanel.querySelectorAll("[data-status-filter]").forEach((item) => item.classList.toggle("active", item.dataset.statusFilter === "all"));
+            await loadRepositoryProductPage({ repositoryId: repository.id, page: 1, pageSize, status: statusFilter, q: keyword });
+            renderProductPage(lastRepositories, { rootEl, mode });
+          });
+        }
+        rootEl.querySelectorAll("[data-noon-catalog-mode]").forEach((button) => {
+          button.addEventListener("click", () => {
+            noonCatalogMode = button.dataset.noonCatalogMode;
+            renderProductPage(lastRepositories, { rootEl, mode });
+          });
+        });
+        rootEl.querySelectorAll("[data-sync-sku]").forEach((button) => {
+          button.addEventListener("click", () => startNoonCatalogSync(noonCatalogMode));
+        });
+        if (isOperations) {
+          controls.querySelector("[data-bulk-export]").addEventListener("click", async (event) => {
             event.currentTarget.disabled = true;
-            const linksEl = exportPanel.querySelector("[data-bulk-export-links]");
+            const linksEl = rootEl.querySelector("[data-bulk-export-links]") || document.createElement("div");
             await createBulkUpdateFiles(repository.id === "__default__" ? "" : repository.id, linksEl);
             event.currentTarget.disabled = false;
           });
-          repositoryDialogBody.append(exportPanel);
-          if (repository.globalBulkUpdate?.available) {
-            renderBulkUpdateLinks(exportPanel.querySelector("[data-bulk-export-links]"), repository.globalBulkUpdate.files);
-          }
+        }
 
-          const controls = document.createElement("section");
-          controls.className = "repository-controls";
-          controls.innerHTML = `
-            <div class="repository-control-row">
-              <label><input type="checkbox" data-select-page />选择本页</label>
-              <div class="actions" style="margin-top: 0">
-                <button class="secondary" type="button" data-check-selected disabled>运行检查</button>
-                <button class="secondary" type="button" data-upload-selected disabled>上传选中</button>
-                <button type="button" data-upload-repository>上传全部</button>
-              </div>
-            </div>
-            <div class="repository-control-row">
-              <label>
-                价格 USD
-                <input name="bulkPriceUsd" data-bulk-price-usd inputmode="decimal" placeholder="18.5" />
-              </label>
-              <label>
-                库存
-                <input name="bulkStock" data-bulk-stock inputmode="numeric" placeholder="9" />
-              </label>
-              <label>
-                时效
-                <input name="bulkProcessingTime" data-bulk-processing-time placeholder="5_days" />
-              </label>
-              <div class="actions" style="margin-top: 0">
-                <button class="secondary" type="button" data-set-price disabled>批量改价</button>
-                <button class="secondary" type="button" data-set-stock disabled>批量改库存</button>
-                <button class="secondary" type="button" data-set-processing-time disabled>批量改时效</button>
-                <button class="danger" type="button" data-deactivate-selected disabled>批量停售</button>
-              </div>
-            </div>
-            <div class="repository-control-row">
-              <span class="meta" data-selection-summary></span>
-            </div>
-          `;
-          const list = document.createElement("div");
-          list.className = "repository-product-list";
-          const pagerFooter = document.createElement("section");
-          pagerFooter.className = "repository-pager-footer";
-          pagerFooter.innerHTML = `
-            <div class="pager">
-              <button class="secondary" type="button" data-page-prev>上一页</button>
-              <span data-page-summary></span>
-              <button class="secondary" type="button" data-page-next>下一页</button>
-            </div>
-          `;
-          repositoryDialogBody.append(controls, list, pagerFooter);
+        const selectedDirs = () => tableProducts.map((product) => product.dirName).filter((dirName) => selectedProductDirs.has(dirName));
 
-          const renderPage = () => {
-            const totalPages = Math.max(1, Math.ceil(repository.products.length / pageSize));
-            currentPage = Math.min(Math.max(currentPage, 1), totalPages);
-            const start = (currentPage - 1) * pageSize;
-            const pageProducts = repository.products.slice(start, start + pageSize);
-            const pageDirs = pageProducts.map((product) => product.dirName);
-
-            list.innerHTML = "";
+        if (isOperations || isUpload) {
+          controls.querySelector("[data-select-page]")?.addEventListener("change", (event) => {
+            const pageProducts = isOperations
+              ? filteredProducts().slice((currentPage - 1) * pageSize, currentPage * pageSize)
+              : filteredProducts();
             for (const product of pageProducts) {
-              const row = document.createElement("article");
-              row.className = "product-row";
-              row.innerHTML = `
-                <input type="checkbox" data-select-product="${escapeHtml(product.dirName)}" />
-                <div>
-                  <p class="title"></p>
-                  <div class="meta">
-                    <div>${product.imageCount || 0} 张本地图片 · ${product.noonSummary?.variantCount || 0} 个 noon SKU · ${product.noonSummary?.imageCount || 0} 张上传图</div>
-                    <div>${escapeHtml(product.noonSummary?.title || "未生成 noon 标题")}</div>
-                    <div class="upload-status">${escapeHtml(product.noonUploadStatus?.status || "not_uploaded")}</div>
-                    ${
-                      product.noonSummary?.blockingCount
-                        ? `<div class="warning">${formatBlockingIssues(product.noonSummary)}</div>`
-                        : ""
-                    }
-                  </div>
-                  ${product.warnings?.length ? `<div class="warning">${product.warnings.map(escapeHtml).join(" / ")}</div>` : ""}
-                  <div class="links">
-                    <a href="${product.metaUrl}" target="_blank">meta.json</a>
-                    <a href="${product.noonUrl}" target="_blank">noon 属性</a>
-                    ${product.sourceUrl ? `<a href="${product.sourceUrl}" target="_blank">1688</a>` : ""}
-                    <button type="button" data-ai-dir="${escapeHtml(product.dirName)}">AI noon</button>
-                  </div>
-                </div>
-                <div>
-                  <button type="button" data-upload-dir="${escapeHtml(product.dirName)}">上传</button>
-                </div>
-              `;
-              row.querySelector(".title").textContent = product.title;
-              row.querySelector("[data-select-product]").checked = selectedProductDirs.has(product.dirName);
-              row.querySelector("[data-select-product]").addEventListener("change", (event) => {
-                if (event.currentTarget.checked) {
-                  selectedProductDirs.add(product.dirName);
-                } else {
-                  selectedProductDirs.delete(product.dirName);
-                }
-                updateControls();
-              });
-              row.querySelector("[data-ai-dir]").addEventListener("click", async () => {
-                closeDialog();
-                await startNoonGenerateJob(product.dirName);
-              });
-              row.querySelector("[data-upload-dir]").addEventListener("click", async () => {
-                closeDialog();
-                await startUploadJob({ productDir: product.dirName });
-              });
-              list.append(row);
-            }
-
-            pagerFooter.querySelector("[data-page-summary]").textContent = `${currentPage} / ${totalPages}`;
-            pagerFooter.querySelector("[data-page-prev]").disabled = currentPage <= 1;
-            pagerFooter.querySelector("[data-page-next]").disabled = currentPage >= totalPages;
-            updateControls();
-
-            function updateControls() {
-              const selectedOnPage = pageDirs.filter((dirName) => selectedProductDirs.has(dirName)).length;
-              const selectPage = controls.querySelector("[data-select-page]");
-              selectPage.checked = pageDirs.length > 0 && selectedOnPage === pageDirs.length;
-              selectPage.indeterminate = selectedOnPage > 0 && selectedOnPage < pageDirs.length;
-              const hasSelection = selectedProductDirs.size > 0;
-              controls.querySelector("[data-upload-selected]").disabled = !hasSelection;
-              controls.querySelector("[data-check-selected]").disabled = !hasSelection;
-              controls.querySelector("[data-set-price]").disabled = !hasSelection;
-              controls.querySelector("[data-set-stock]").disabled = !hasSelection;
-              controls.querySelector("[data-set-processing-time]").disabled = !hasSelection;
-              controls.querySelector("[data-deactivate-selected]").disabled = !hasSelection;
-              controls.querySelector("[data-selection-summary]").textContent =
-                `共 ${repository.products.length} 个商品 · 已选 ${selectedProductDirs.size} 个 · 本页 ${pageProducts.length} 个`;
-            }
-          };
-
-          const selectedDirs = () =>
-            repository.products.map((product) => product.dirName).filter((dirName) => selectedProductDirs.has(dirName));
-
-          controls.querySelector("[data-select-page]").addEventListener("change", (event) => {
-            const start = (currentPage - 1) * pageSize;
-            for (const product of repository.products.slice(start, start + pageSize)) {
               if (event.currentTarget.checked) {
                 selectedProductDirs.add(product.dirName);
               } else {
@@ -1733,47 +4376,481 @@
             }
             renderPage();
           });
-          pagerFooter.querySelector("[data-page-prev]").addEventListener("click", () => {
-            currentPage -= 1;
-            renderPage();
-          });
-          pagerFooter.querySelector("[data-page-next]").addEventListener("click", () => {
-            currentPage += 1;
-            renderPage();
-          });
-          controls.querySelector("[data-upload-selected]").addEventListener("click", async () => {
+        }
+        pagerFooter.addEventListener("click", async (event) => {
+          const button = event.target.closest("[data-page-target]");
+          if (!button) return;
+          currentPage = Number(button.dataset.pageTarget);
+          if (!isOperations) {
+            await loadRepositoryProductPage({ repositoryId: repository.id, page: currentPage, pageSize, status: statusFilter, q: keyword });
+            renderProductPage(lastRepositories, { rootEl, mode });
+            return;
+          }
+          renderPage();
+        });
+        pagerFooter.addEventListener("change", async (event) => {
+          if (!event.target.matches("[data-page-size]")) return;
+          pageSize = Number(event.target.value) || pageSize;
+          currentPage = 1;
+          if (!isOperations) {
+            await loadRepositoryProductPage({ repositoryId: repository.id, page: 1, pageSize, status: statusFilter, q: keyword });
+            renderProductPage(lastRepositories, { rootEl, mode });
+            return;
+          }
+          renderPage();
+        });
+        pagerFooter.addEventListener("keydown", async (event) => {
+          if (!event.target.matches("[data-page-jump]") || event.key !== "Enter") return;
+          const totalPages = !isOperations ? pagination.totalPages : Math.max(1, Math.ceil(filteredProducts().length / pageSize));
+          const nextPage = Math.min(Math.max(Number(event.target.value) || currentPage, 1), totalPages);
+          currentPage = nextPage;
+          if (!isOperations) {
+            await loadRepositoryProductPage({ repositoryId: repository.id, page: currentPage, pageSize, status: statusFilter, q: keyword });
+            renderProductPage(lastRepositories, { rootEl, mode });
+            return;
+          }
+          renderPage();
+        });
+        if (isUpload) {
+          controls.querySelector("[data-upload-selected]")?.addEventListener("click", async () => {
             const productDirs = selectedDirs();
             if (productDirs.length === 0) return;
-            closeDialog();
             await startUploadJob({ productDirs });
           });
-          controls.querySelector("[data-upload-repository]").addEventListener("click", async () => {
-            closeDialog();
-            await startUploadJob({ productDirs: repository.products.map((product) => product.dirName) });
+          controls.querySelector("[data-upload-repository]")?.addEventListener("click", async () => {
+            await startUploadJob({ repository: repository.id });
           });
-          controls.querySelector("[data-check-selected]").addEventListener("click", async () => {
-            await runOperationChecks(selectedDirs());
-          });
-          controls.querySelector("[data-set-price]").addEventListener("click", async () => {
-            const priceUsd = controls.querySelector("[data-bulk-price-usd]").value.trim();
+        }
+        if (isOperations) {
+          controls.querySelector("[data-set-price]")?.addEventListener("click", async () => {
+            const priceUsd = prompt("输入新的 USD 售价");
+            if (!priceUsd) return;
             await runBulkOperation(repository, selectedDirs(), { type: "set_price", priceUsd });
           });
-          controls.querySelector("[data-set-stock]").addEventListener("click", async () => {
-            const stock = controls.querySelector("[data-bulk-stock]").value.trim();
+          controls.querySelector("[data-set-stock]")?.addEventListener("click", async () => {
+            const stock = prompt("输入新的库存数量");
+            if (!stock) return;
             await runBulkOperation(repository, selectedDirs(), { type: "set_stock", stock });
           });
-          controls.querySelector("[data-set-processing-time]").addEventListener("click", async () => {
-            const processingTime = controls.querySelector("[data-bulk-processing-time]").value.trim();
+          controls.querySelector("[data-set-processing-time]")?.addEventListener("click", async () => {
+            const processingTime = prompt("输入新的处理时效，例如 2_days");
+            if (!processingTime) return;
             await runBulkOperation(repository, selectedDirs(), { type: "set_processing_time", processingTime });
           });
-          controls.querySelector("[data-deactivate-selected]").addEventListener("click", async () => {
+          controls.querySelector("[data-clear-selection]")?.addEventListener("click", () => {
+            selectedProductDirs.clear();
+            renderPage();
+          });
+          controls.querySelector("[data-check-selected]")?.addEventListener("click", async () => {
+            await runOperationChecks(selectedDirs());
+          });
+          controls.querySelector("[data-deactivate-selected]")?.addEventListener("click", async () => {
             await runBulkOperation(repository, selectedDirs(), { type: "deactivate" });
           });
-
-          renderPage();
         }
 
-        repositoryDialog.classList.add("open");
+        renderPage();
+
+        function filteredProducts() {
+          return tableProducts.filter((product) => {
+            if (isOperations) {
+              if (!keyword) return true;
+              return noonCatalogRowCells(product)
+                .some((value) => String(value || "").toLowerCase().includes(keyword));
+            }
+            if (statusFilter !== "all" && productUploadStatus(product) !== statusFilter) return false;
+            if (!keyword) return true;
+            return [product.title, product.dirName, product.noonSummary?.title, product.noonSummary?.partnerSku]
+              .some((value) => String(value || "").toLowerCase().includes(keyword));
+          });
+        }
+
+        function renderPage() {
+          const visibleProducts = filteredProducts();
+          const serverPagination = !isOperations ? pagination : null;
+          const totalPages = serverPagination ? serverPagination.totalPages : Math.max(1, Math.ceil(visibleProducts.length / pageSize));
+          currentPage = serverPagination ? serverPagination.page : Math.min(Math.max(currentPage, 1), totalPages);
+          pageSize = serverPagination ? serverPagination.pageSize : pageSize;
+          const start = (currentPage - 1) * pageSize;
+          const pageProducts = serverPagination ? visibleProducts : visibleProducts.slice(start, start + pageSize);
+          const pageDirs = isOperations
+            ? pageProducts.map((_, index) => `catalog-${start + index}`)
+            : pageProducts.map((product) => product.dirName);
+
+          list.innerHTML = "";
+          if (isOperations && isNoonCatalogSyncing) {
+            list.innerHTML = `
+              <div class="noon-empty-sync syncing">
+                <div class="noon-empty-icon">↻</div>
+                <h3>${escapeHtml(noonCatalogSyncState.message || "正在检查 Noon SKU 数量...")}</h3>
+                <p>${escapeHtml(noonCatalogSyncState.detail || "正在获取总页数")}</p>
+              </div>
+            `;
+          } else if (isOperations && !hasSyncedNoonSkus) {
+            list.innerHTML = `
+              <div class="noon-empty-sync">
+                <div class="noon-empty-icon">↻</div>
+                <h3>暂无 SKU 数据</h3>
+                ${noonCatalogSyncError ? `<div class="noon-sync-error">获取数据失败：${escapeHtml(noonCatalogSyncError)}</div>` : '<p>点击下方按钮从 Noon Catalog 同步商品列表</p>'}
+                <button type="button" data-sync-sku>同步 SKU</button>
+              </div>
+            `;
+          } else if (!pageProducts.length) {
+            list.innerHTML = '<div class="empty">没有匹配的商品。</div>';
+          }
+          for (const [index, product] of pageProducts.entries()) {
+            const row = document.createElement("article");
+            row.className = "product-row";
+            if (isOperations) {
+              const rowKey = `catalog-${start + index}`;
+              row.innerHTML = renderNoonCatalogRow(product, rowKey);
+              row.querySelector("[data-select-product]").checked = selectedProductDirs.has(rowKey);
+              row.querySelector("[data-select-product]").addEventListener("change", (event) => {
+                if (event.currentTarget.checked) {
+                  selectedProductDirs.add(rowKey);
+                } else {
+                  selectedProductDirs.delete(rowKey);
+                }
+                updateControls();
+              });
+              list.append(row);
+              continue;
+            }
+            const coverHtml = product.coverImage
+              ? `<img class="product-cover" src="${escapeHtml(product.coverImage)}" alt="" loading="lazy" />`
+              : `<div class="product-cover product-cover-placeholder">无图</div>`;
+            const sourceId = productSourceId(product);
+            const originalLink = productOriginalLink(product);
+            const variantCount = product.noonSummary?.variantCount || 0;
+            row.innerHTML = isOperations
+              ? `
+                <input type="checkbox" data-select-product="${escapeHtml(product.dirName)}" />
+                <div class="product-main">
+                  ${coverHtml}
+                  <div>
+                    <button class="product-title-button" type="button" data-details-dir="${escapeHtml(product.dirName)}"></button>
+                    <div class="product-summary">PSKU: ${escapeHtml(product.noonSummary?.partnerSku || product.dirName)}</div>
+                    <div class="product-summary">SKU: ${escapeHtml(noonSkuText(product))}</div>
+                    <div class="product-summary">品牌 ${escapeHtml(productBrandText(product))}　来源 -</div>
+                  </div>
+                </div>
+                <div class="noon-money-cell">
+                  <div class="noon-market-line"><span class="noon-market-label">AE</span><span>买家最终价</span><strong class="noon-price-main">AED 0.00</strong><span>USD 0.00</span><span>CNY 0.00</span></div>
+                  <div class="noon-market-line" data-market="sa"><span class="noon-market-label">SA</span><span>买家最终价</span><strong>SAR 0.00</strong><span>USD 0.00</span><span>CNY 0.00</span></div>
+                </div>
+                <div class="noon-stock-cell">
+                  <div class="noon-market-line"><span class="noon-market-label">AE</span><strong>总计 0</strong><span>NGS 0</span></div>
+                  <div class="noon-market-line" data-market="sa"><span class="noon-market-label">SA</span><strong>总计 0</strong><span>NGS 0</span></div>
+                </div>
+                <div class="noon-market-stack">
+                  <div class="noon-market-line"><span class="noon-market-label">AE</span><strong>0件 浏览0</strong><span>AED 0.00</span><span>退款 0 · 退货 0</span></div>
+                  <div class="noon-market-line" data-market="sa"><span class="noon-market-label">SA</span><strong>0件 浏览0</strong><span>SAR 0.00</span><span>退款 0 · 退货 0</span></div>
+                </div>
+                <div class="noon-market-stack">
+                  <div class="noon-market-line"><span class="noon-market-label">AE</span><strong>未关联 Noon 大师货源</strong></div>
+                  <div class="noon-market-line" data-market="sa"><span class="noon-market-label">SA</span><strong>未关联 Noon 大师货源</strong></div>
+                </div>
+                <div class="noon-status-cell">
+                  <span class="noon-status-badge">下线<br />卖家停用<br />no_offer</span>
+                  <span class="noon-status-badge">GLOBAL<br />暂无数据</span>
+                </div>
+                <div><span class="noon-toggle" aria-hidden="true"></span></div>
+                <div class="product-actions"><button class="danger" type="button">删除</button></div>
+              `
+              : `
+                <input type="checkbox" data-select-product="${escapeHtml(product.dirName)}" />
+                <div class="product-main">
+                  ${coverHtml}
+                  <div>
+                    <button class="product-title-button" type="button" data-details-dir="${escapeHtml(product.dirName)}"></button>
+                    <div class="product-summary">
+                      <span class="product-source-badge">1688</span>
+                      <span>1688 ID： ${escapeHtml(sourceId)}</span>
+                    </div>
+                    <div class="product-summary">
+                      <span>✓ 已创建草稿</span>
+                      ${originalLink ? `<a class="product-inline-link" href="${escapeHtml(originalLink)}" target="_blank">原始链接</a>` : ""}
+                    </div>
+                    <div><span class="product-adjusted-badge">已调整</span></div>
+                    ${product.noonSummary?.blockingCount ? `<div class="warning">${formatBlockingIssues(product.noonSummary)}</div>` : ""}
+                    ${product.warnings?.length ? `<div class="warning">${product.warnings.map(escapeHtml).join(" / ")}</div>` : ""}
+                  </div>
+                </div>
+                <div class="product-health"><span class="product-health-dot">✓</span></div>
+                <div class="product-price">${escapeHtml(formatProductPrice(product.price))}</div>
+                <div class="product-sku">${variantCount}<span>/${variantCount}组</span></div>
+                <div class="product-logistics">${escapeHtml(productLogisticsText(product))}</div>
+                <div class="product-hs-code">${escapeHtml(productHsCode(product))}</div>
+                <div class="product-status"><div class="upload-status">${escapeHtml(formatUploadStatus(productUploadStatus(product)))}</div></div>
+                <div class="product-collected-at">${escapeHtml(productCollectedAt(product))}</div>
+                <div class="product-actions">
+                  ${isUpload ? `<button class="product-upload-button" type="button" data-upload-dir="${escapeHtml(product.dirName)}">上传</button>` : ""}
+                  ${isUpload ? '<button class="product-delete-button" type="button" title="删除" aria-label="删除">⌫</button>' : ""}
+                </div>
+              `;
+            row.querySelector(".product-title-button").textContent = product.noonSummary?.title || product.title;
+            row.querySelector("[data-select-product]").checked = selectedProductDirs.has(product.dirName);
+            row.querySelector("[data-select-product]").addEventListener("change", (event) => {
+              if (event.currentTarget.checked) {
+                selectedProductDirs.add(product.dirName);
+              } else {
+                selectedProductDirs.delete(product.dirName);
+              }
+              updateControls();
+            });
+            row.querySelector("[data-details-dir]").addEventListener("click", () => {
+              openProductDetailPage(product);
+            });
+            row.querySelector("[data-upload-dir]")?.addEventListener("click", async () => {
+              await startUploadJob({ productDir: product.dirName });
+            });
+            list.append(row);
+          }
+
+          pagerFooter.querySelector("[data-pager]").innerHTML = renderPager({
+            currentPage,
+            totalPages,
+            totalItems: serverPagination ? serverPagination.totalItems : visibleProducts.length,
+            pageSize,
+          });
+          list.querySelectorAll("[data-sync-sku]").forEach((button) => {
+            button.addEventListener("click", () => startNoonCatalogSync(noonCatalogMode));
+          });
+          updateControls();
+
+          function updateControls() {
+            const selectedOnPage = pageDirs.filter((dirName) => selectedProductDirs.has(dirName)).length;
+            const selectPage = controls.querySelector("[data-select-page]");
+            if (selectPage) {
+              selectPage.checked = pageDirs.length > 0 && selectedOnPage === pageDirs.length;
+              selectPage.indeterminate = selectedOnPage > 0 && selectedOnPage < pageDirs.length;
+            }
+            const hasSelection = selectedProductDirs.size > 0;
+            if (controls.querySelector("[data-upload-selected]")) controls.querySelector("[data-upload-selected]").disabled = !hasSelection;
+            if (controls.querySelector("[data-check-selected]")) controls.querySelector("[data-check-selected]").disabled = !hasSelection;
+            if (controls.querySelector("[data-set-price]")) controls.querySelector("[data-set-price]").disabled = !hasSelection;
+            if (controls.querySelector("[data-set-stock]")) controls.querySelector("[data-set-stock]").disabled = !hasSelection;
+            if (controls.querySelector("[data-set-processing-time]")) controls.querySelector("[data-set-processing-time]").disabled = !hasSelection;
+            if (controls.querySelector("[data-clear-selection]")) controls.querySelector("[data-clear-selection]").disabled = !hasSelection;
+            if (controls.querySelector("[data-deactivate-selected]")) controls.querySelector("[data-deactivate-selected]").disabled = !hasSelection;
+            controls.querySelector("[data-selection-summary]").textContent =
+              isOperations
+                ? `已选择 ${selectedProductDirs.size} 个商品`
+                : `共 ${visibleProducts.length} 个商品 · 已选 ${selectedProductDirs.size} 个 · 本页 ${pageProducts.length} 个`;
+          }
+        }
+      }
+
+      function renderNoonCatalogRow(row = [], rowKey = "") {
+        const values = noonCatalogRowCells(row).map((value) => cleanDisplayText(value));
+        const imageUrl = normalizeNoonCatalogImageUrl(row?.imageUrl || "");
+        const details = parseNoonCatalogDetails(values[0] || "");
+        return `
+          <input type="checkbox" data-select-product="${escapeHtml(rowKey)}" />
+          <div class="product-main">
+            ${imageUrl
+              ? `<img class="product-cover" src="${escapeHtml(imageUrl)}" alt="" loading="lazy" />`
+              : '<div class="product-cover product-cover-placeholder">Noon</div>'}
+            <div>
+              <h4 class="noon-product-title">${escapeHtml(details.title || "-")}</h4>
+              <div class="noon-product-meta">
+                <span><b>PSKU:</b> ${escapeHtml(details.psku || "-")}</span>
+                <span><b>SKU:</b> ${escapeHtml(details.sku || "-")}</span>
+                <span>品牌 Generic　来源 -</span>
+              </div>
+            </div>
+          </div>
+          <div class="noon-money-cell">
+            ${renderNoonMetricCard("AE", "买家最终价", "AED 0.00", ["USD 0.00", "CNY 0.00"])}
+            ${renderNoonMetricCard("SA", "买家最终价", "SAR 0.00", ["USD 0.00", "CNY 0.00"])}
+          </div>
+          <div class="noon-stock-cell">
+            ${renderNoonMetricCard("AE", "", "总计 0", ["NGS 0"])}
+            ${renderNoonMetricCard("SA", "", "总计 0", ["NGS 0"])}
+          </div>
+          <div class="noon-market-stack">
+            ${renderNoonMetricCard("AE", "", "0件　浏览0", ["AED 0.00", "取消 0 · 退货 0"])}
+            ${renderNoonMetricCard("SA", "", "0件　浏览0", ["SAR 0.00", "取消 0 · 退货 0"])}
+          </div>
+          <div class="noon-market-stack">
+            <div class="noon-warn-card"><span class="noon-market-label">AE</span><span>未关联 Noon 大师货源</span></div>
+            <div class="noon-warn-card"><span class="noon-market-label">SA</span><span>未关联 Noon 大师货源</span></div>
+          </div>
+          <div class="noon-status-cell">
+            <div class="noon-status-stack">
+              <span class="noon-status-badge"><span class="noon-market-label">AE</span><br />下线<br />卖家停用<br />no_offer</span>
+              <span class="noon-status-badge"><span class="noon-market-label">SA</span><br />下线<br />停用<br />no_offer</span>
+              <span class="noon-status-badge" data-tone="neutral"><span class="noon-market-label">GLOBAL</span>暂无数据</span>
+            </div>
+          </div>
+          <div><span class="noon-toggle" aria-hidden="true"></span></div>
+          <div class="product-actions"><button class="danger" type="button">删除</button></div>
+        `;
+      }
+
+      function renderPager({ currentPage, totalPages, totalItems, pageSize }) {
+        const pages = pagerPages(currentPage, totalPages);
+        return `
+          <span class="pager-total">共 ${escapeHtml(totalItems)} 条</span>
+          <button type="button" data-page-target="${Math.max(1, currentPage - 1)}" ${currentPage <= 1 ? "disabled" : ""}>‹</button>
+          ${pages.map((page) => page === "ellipsis"
+            ? '<span class="pager-ellipsis">•••</span>'
+            : `<button type="button" class="${page === currentPage ? "active" : ""}" data-page-target="${page}">${page}</button>`).join("")}
+          <button type="button" data-page-target="${Math.min(totalPages, currentPage + 1)}" ${currentPage >= totalPages ? "disabled" : ""}>›</button>
+          <select data-page-size aria-label="每页条数">
+            ${[10, 20, 50].map((size) => `<option value="${size}" ${size === pageSize ? "selected" : ""}>${size} 条/页</option>`).join("")}
+          </select>
+          <span class="pager-jump-label">跳至</span>
+          <input data-page-jump inputmode="numeric" aria-label="跳转页码" />
+          <span class="pager-page-text">页</span>
+        `;
+      }
+
+      function pagerPages(currentPage, totalPages) {
+        if (totalPages <= 7) return Array.from({ length: totalPages }, (_, index) => index + 1);
+        if (currentPage <= 5) return [1, 2, 3, 4, 5, "ellipsis", totalPages];
+        if (currentPage >= totalPages - 4) {
+          return [1, "ellipsis", ...Array.from({ length: 5 }, (_, index) => totalPages - 4 + index)];
+        }
+        return [1, "ellipsis", currentPage - 1, currentPage, currentPage + 1, "ellipsis", totalPages];
+      }
+
+      function noonCatalogRowCells(row) {
+        if (Array.isArray(row)) return row;
+        return Array.isArray(row?.cells) ? row.cells : [];
+      }
+
+      function normalizeNoonCatalogImageUrl(value) {
+        const imageUrl = cleanDisplayText(value);
+        if (!imageUrl) return "";
+        try {
+          const url = new URL(imageUrl);
+          const sourceUrl = url.hostname === "noon-catalog.noon.partners" && url.pathname.startsWith("/_next/image/")
+            ? url.searchParams.get("url")
+            : "";
+          return sourceUrl || imageUrl;
+        } catch {
+          return imageUrl;
+        }
+      }
+
+      function parseNoonCatalogDetails(text) {
+        const value = cleanDisplayText(text);
+        const pskuMatch = value.match(/\bPSKU:\s*(.*?)\s+SKU:/i);
+        const skuMatch = value.match(/\bSKU:\s*(.+)$/i);
+        const title = value
+          .replace(/\bPSKU:\s*.*$/i, "")
+          .replace(/^Product Details\s*/i, "")
+          .trim();
+        return {
+          title,
+          psku: pskuMatch?.[1]?.trim() || "",
+          sku: skuMatch?.[1]?.trim() || "",
+        };
+      }
+
+      function renderNoonMetricCard(market, label, value, lines = []) {
+        const marketKey = market.toLowerCase();
+        return `
+          <div class="noon-metric-card" data-market="${escapeHtml(marketKey)}">
+            <span class="noon-market-label">${escapeHtml(market)}</span>
+            <div>
+              ${label ? `<em>${escapeHtml(label)}</em>` : ""}
+              <strong>${escapeHtml(value)}</strong>
+              ${lines.map((line) => `<em>${escapeHtml(line)}</em>`).join("")}
+            </div>
+          </div>
+        `;
+      }
+
+      function renderNoonTextStack(text, itemClass = "noon-market-line") {
+        const lines = String(text || "")
+          .split(/\n| {2,}|(?=\b(?:AE|SA|GLOBAL)\b)/)
+          .map(cleanDisplayText)
+          .filter(Boolean)
+          .slice(0, 6);
+        return (lines.length ? lines : ["-"])
+          .map((line) => `<span class="${itemClass}">${escapeHtml(line)}</span>`)
+          .join("");
+      }
+
+      function countProductStatuses(products) {
+        return products.reduce(
+          (counts, product) => {
+            counts[productUploadStatus(product)] += 1;
+            return counts;
+          },
+          { not_uploaded: 0, uploading: 0, uploaded: 0, failed: 0 },
+        );
+      }
+
+      function productPlatformOptions(repositories) {
+        const platforms = [
+          { id: "all", label: "全部来源" },
+          { id: "1688", label: "1688" },
+          { id: "amazon", label: "Amazon" },
+          { id: "noon", label: "Noon" },
+        ];
+        return platforms.map((platform) => ({
+          ...platform,
+          count: platform.id === "all"
+            ? repositories.reduce((sum, repository) => sum + (repository.productCount || 0), 0)
+            : repositories
+                .filter((repository) => repositoryPlatform(repository) === platform.id)
+                .reduce((sum, repository) => sum + (repository.productCount || 0), 0),
+        }));
+      }
+
+      function repositoryPlatform(repository) {
+        const firstProduct = repository.products?.[0];
+        return cleanDisplayText(firstProduct?.dirName || repository.id).split("/")[0].toLowerCase() || "1688";
+      }
+
+      function emptyRepository(platform) {
+        const label = productPlatformOptions([]).find((item) => item.id === platform)?.label || "当前平台";
+        return {
+          id: "",
+          name: `${label} 暂无仓库`,
+          productCount: 0,
+          products: [],
+          globalBulkUpdate: { available: false, files: {} },
+        };
+      }
+
+      function productUploadStatus(product) {
+        const status = product.noonUploadStatus?.status || "not_uploaded";
+        return ["not_uploaded", "uploading", "uploaded", "failed"].includes(status) ? status : "not_uploaded";
+      }
+
+      function firstProductVariant(product) {
+        return product.noonSummary?.variants?.[0] || {};
+      }
+
+      function productLogisticsText(product) {
+        return "详情查看";
+      }
+
+      function productHsCode(product) {
+        return cleanDisplayText(product.noonSummary?.hsCode || product.noonSummary?.hs_code || firstProductVariant(product).hsCode) || "-";
+      }
+
+      function productSourceId(product) {
+        const sourceUrl = productOriginalLink(product);
+        const offerMatch = sourceUrl.match(/offer\/(\d+)/);
+        if (offerMatch) return offerMatch[1];
+        return cleanDisplayText(product.dirName).split("/").filter(Boolean).pop() || "-";
+      }
+
+      function productOriginalLink(product) {
+        return cleanDisplayText(product.sourceUrl || product.noonSummary?.sourceUrl || "");
+      }
+
+      function productCollectedAt(product) {
+        const value = product.createdAt || product.updatedAt || product.collectedAt || product.mtime || "";
+        if (!value) return "-";
+        const date = new Date(value);
+        if (Number.isNaN(date.getTime())) return cleanDisplayText(value);
+        return date.toISOString().slice(0, 16).replace("T", " ");
       }
 
       function closeDialog() {
@@ -1819,6 +4896,59 @@
 
         activeJobId = job.id;
         activeJobBase = "/api/upload-jobs";
+        activeJobArea = "repository";
+        activeLogEl = repositoryLogEl;
+        renderJob(job);
+        startPolling();
+      }
+
+      async function startNoonCatalogSync(mode = noonCatalogMode) {
+        if (window.location.protocol === "file:") return;
+
+        await persistFormState();
+        if (!uploadStoreId.value) {
+          showRoute("stores");
+          renderNoonStatus({ status: "error", error: "请先选择 noon 店铺。" });
+          return;
+        }
+
+        activeJobArea = "repository";
+        activeLogEl = repositoryLogEl;
+        showRoute("noon-workbench");
+        repositoryLogEl.innerHTML = "";
+        appendLog(`开始从 Noon Catalog 同步 ${mode === "global" ? "Global (NGS)" : "FBN/FBP"} 模式 SKU...`);
+        noonCatalogSyncState = {
+          running: true,
+          message: "正在打开 Noon Catalog...",
+          detail: "正在获取总页数",
+          percent: 12,
+        };
+        renderProductPage(lastRepositories, { rootEl: noonWorkbenchEl, mode: "operations" });
+
+        const response = await fetch("/api/noon-catalog-sync-jobs", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            storeId: uploadStoreId.value,
+            mode,
+          }),
+        });
+        const job = await readResponseJson(response);
+
+        if (!response.ok) {
+          noonCatalogSyncState = {
+            running: false,
+            message: "同步失败",
+            detail: job.error || "Noon Catalog 同步任务创建失败",
+            percent: 100,
+          };
+          renderProductPage(lastRepositories, { rootEl: noonWorkbenchEl, mode: "operations" });
+          appendLog(job.error || "Noon Catalog 同步任务创建失败");
+          return;
+        }
+
+        activeJobId = job.id;
+        activeJobBase = "/api/jobs";
         activeJobArea = "repository";
         activeLogEl = repositoryLogEl;
         renderJob(job);
@@ -1929,7 +5059,7 @@
           }
           if (result.files) {
             appendLog(`下载：${result.files.price} / ${result.files.stock}`);
-            const linksEl = repositoryDialogBody.querySelector("[data-bulk-export-links]");
+            const linksEl = productsEl.querySelector("[data-bulk-export-links]");
             if (linksEl) renderBulkUpdateLinks(linksEl, result.files);
           }
           await refreshProducts();
@@ -1954,6 +5084,420 @@
           <a href="${files.stock}" target="_blank">Stock Import</a>
         `;
         linksEl.classList.add("open");
+      }
+
+      async function openProductDetailPage(product) {
+        productDetailTitle.textContent = "商品详情";
+        productDetailBody.innerHTML = renderProductDetailPage(product, { loading: true, group: {}, variants: [] });
+        showRoute("product-detail");
+
+        try {
+          const detail = await loadProductDetailData(product);
+          if (!detail.variants?.length) detail.variants = await loadProductVariants(product);
+          productDetailBody.innerHTML = renderProductDetailPage(product, detail);
+        } catch (error) {
+          productDetailBody.innerHTML = renderProductDetailPage(product, { error: error.message, group: {}, variants: [] });
+        }
+      }
+
+      function renderProductDetailPage(product, detail) {
+        const group = detail?.group || {};
+        const variants = detail?.variants || [];
+        const bodyHtml = detail?.loading
+          ? '<div class="empty">正在加载商品详情...</div>'
+          : detail?.error
+            ? `<div class="warning">${escapeHtml(detail.error)}</div>`
+            : renderDetailProductContent(product, group, variants);
+
+        return `<section class="detail-product-layout">${bodyHtml}</section>`;
+      }
+
+      function detailFieldValue(source, fields, fallback = "-") {
+        for (const item of Array.isArray(source) ? source : [source]) {
+          for (const field of fields) {
+            if (hasDisplayValue(item?.[field])) return cleanDisplayText(item[field]);
+          }
+        }
+        return hasDisplayValue(fallback) ? cleanDisplayText(fallback) : "-";
+      }
+
+      function renderDetailProductContent(product, group, variants) {
+        const title = detailFieldValue(group, ["product_group_name_en", "title_en", "product_title_en"], product.noonSummary?.title || product.title);
+        const bullets = detailBullets(group, variants);
+        const description = detailFieldValue([group, ...variants], ["description_en", "long_description_en", "description"], "暂无商品描述。");
+        const images = detailImageUrls(product, group, variants).slice(0, 9);
+        const variant = variants[0] || firstProductVariant(product);
+
+        return `
+          <section class="detail-product-editor">
+            <div class="detail-editor-title">
+              <h3>商品信息</h3>
+            </div>
+            <div class="detail-form-row">
+              <div class="detail-form-label">
+                <span>* 商品标题 (英文)</span>
+                <span class="detail-badge">AI翻译不覆盖</span>
+              </div>
+              <div class="detail-read-field">${escapeHtml(title)}</div>
+              <div class="detail-helper-strip">
+                <span>分组独立标题未开启</span>
+                <span>已生成 ${variants.length ? variants.length : 0} / ${Math.max(variants.length, 1)} · 缺失 ${variants.length ? 0 : 1}</span>
+              </div>
+            </div>
+            <section class="detail-field-grid">
+              <div class="detail-field">
+                <span>品类</span>
+                <strong>${escapeHtml(detailCategoryPath(group))}</strong>
+              </div>
+              <div class="detail-field">
+                <span>* 品牌</span>
+                <strong>${escapeHtml(detailFieldValue(group, ["brand", "brand_name"], "No Brand"))}</strong>
+              </div>
+              <div class="detail-field">
+                <span>人群</span>
+                <strong>${escapeHtml(detailFieldValue(group, ["gender", "target_gender", "audience"]))}</strong>
+              </div>
+              <div class="detail-field">
+                <span>* 商品状况</span>
+                <strong>${escapeHtml(detailFieldValue(group, ["item_condition", "condition"], "全新"))}</strong>
+              </div>
+              <div class="detail-field">
+                <span>特征标签</span>
+                <strong>${escapeHtml(detailFeatures(group).join(" / ") || "-")}</strong>
+              </div>
+              <div class="detail-field">
+                <span>分组数量</span>
+                <strong>${variants.length || 0} 个变体</strong>
+              </div>
+            </section>
+
+            <section class="detail-section-card">
+              <div class="detail-editor-title">
+                <h3>物流 & 海关信息</h3>
+                <button class="secondary" type="button" onclick="return false;">编辑</button>
+              </div>
+              <div class="detail-section-grid">
+                <div>
+                  <span>重量</span>
+                  <strong>${escapeHtml(displayValue(variant.weightKg || valueFor({}, group, "actual_weight_kg", null)))}</strong>
+                </div>
+                <div>
+                  <span>体积</span>
+                  <strong>${escapeHtml(displayValue(variant.sizeText || variantSizeText({}, group)))}</strong>
+                </div>
+                <div>
+                  <span>HS Code</span>
+                  <strong>${escapeHtml(detailFieldValue(group, ["hs_code", "hsCode", "hsn_code"], productHsCode(product)))}</strong>
+                </div>
+                <div>
+                  <span>库存 / 时效</span>
+                  <strong>${escapeHtml(`${displayValue(variant.stock)} / ${displayValue(variant.processingTime)}`)}</strong>
+                </div>
+              </div>
+            </section>
+          </section>
+
+          <section class="detail-section-card">
+            <h3>卖点特征</h3>
+            ${
+              bullets.length
+                ? `<ol class="detail-bullet-list">${bullets.map((bullet, index) => `<li><span class="detail-bullet-index">${index + 1}</span><div class="detail-read-field">${escapeHtml(bullet)}</div></li>`).join("")}</ol>`
+                : '<div class="empty">没有卖点特征。</div>'
+            }
+          </section>
+
+          <section class="detail-section-card">
+            <h3>商品描述</h3>
+            <div class="detail-read-area">${escapeHtml(description)}</div>
+          </section>
+
+          <section class="detail-section-card">
+            <h3>上架设置</h3>
+            <div class="detail-section-grid">
+              <div>
+                <span>上架国家</span>
+                <strong>沙特 (SAR) / 阿联酋 (AED)</strong>
+              </div>
+              <div>
+                <span>质保期</span>
+                <strong>${escapeHtml(detailFieldValue(group, ["warranty", "warranty_type"], "无质保"))}</strong>
+              </div>
+              <div>
+                <span>上架模式</span>
+                <strong>标准分组上架</strong>
+              </div>
+              <div>
+                <span>库存来源</span>
+                <strong>${variants.length ? `${variants.reduce((sum, variant) => sum + Number(variant.stock || 0), 0)} 件` : "-"}</strong>
+              </div>
+            </div>
+          </section>
+
+          <section class="detail-section-card">
+            <div class="detail-editor-title">
+              <h3>商品图片(调整将同步所有SKU变体)</h3>
+              <span class="detail-badge">已选 ${images.length} / 9</span>
+            </div>
+            ${
+              images.length
+                ? `<div class="detail-image-grid">${images.map((image, index) => `<a class="detail-image-tile" href="${escapeHtml(image)}" target="_blank"><img src="${escapeHtml(image)}" alt="" loading="lazy" /><span>${index === 0 ? "首图" : index + 1}</span></a>`).join("")}</div>`
+                : '<div class="empty">没有商品图片。</div>'
+            }
+          </section>
+
+          <section class="detail-section-card detail-sku-card">
+            <div class="detail-editor-title">
+              <h3>SKU 变体详情</h3>
+              <span class="meta">${detailVariantGroupCount(variants)} 个类别，${variants.length} 个变体</span>
+            </div>
+            ${renderVariantDetails(variants)}
+          </section>
+        `;
+      }
+
+      function detailCategoryPath(group) {
+        const fields = ["family", "category", "category_path", "product_type", "product_subtype", "type"];
+        const values = fields.map((field) => cleanDisplayText(group?.[field])).filter(Boolean);
+        return values.length ? [...new Set(values)].join(" / ") : "-";
+      }
+
+      function detailBullets(group, variants = []) {
+        const source = [group, ...variants].find((item) => item?.feature_bullets_en || item?.feature_bullets || item?.bullets) || {};
+        const bullets = source.feature_bullets_en || source.feature_bullets || source.bullets || [];
+        return (Array.isArray(bullets) ? bullets : [bullets]).map(cleanDisplayText).filter(Boolean).slice(0, 5);
+      }
+
+      function detailFeatures(group) {
+        const features = group?.features || group?.feature || [];
+        return (Array.isArray(features) ? features : [features]).map(cleanDisplayText).filter(Boolean).slice(0, 6);
+      }
+
+      function detailImageUrls(product, group, variants) {
+        const rawImages = [
+          ...(Array.isArray(group?.images) ? group.images : []),
+          ...variants.flatMap((variant) => variant.images || []),
+          product.coverImage,
+        ];
+        const images = rawImages
+          .map((image) => (typeof image === "string" ? image : image?.url || image?.path))
+          .map(cleanDisplayText)
+          .filter(Boolean)
+          .map((image) => (product.noonUrl ? normalizeVariantImageUrl(image, product.noonUrl) : image));
+        return [...new Set(images)];
+      }
+
+      function detailVariantGroupCount(variants) {
+        const groups = variants.map((variant) => variant.colourDisplay || displayVariantColour(variant)).filter(Boolean);
+        return new Set(groups).size || (variants.length ? 1 : 0);
+      }
+
+      function groupDetailVariants(variants) {
+        const groups = new Map();
+        variants.forEach((variant) => {
+          const groupName = variant.colourDisplay || displayVariantColour(variant) || "默认分组";
+          if (!groups.has(groupName)) groups.set(groupName, []);
+          groups.get(groupName).push(variant);
+        });
+        return Array.from(groups, ([name, items]) => ({ name, items }));
+      }
+
+      function renderVariantDetails(variants) {
+        if (!variants.length) return '<div class="empty">没有 variants 信息。</div>';
+        return `<div class="variant-group-list">${groupDetailVariants(variants).map(renderVariantGroupCard).join("")}</div>`;
+      }
+
+      function renderVariantGroupCard(group, groupIndex) {
+        const images = [...new Set(group.items.flatMap((variant) => variant.images || []))].slice(0, 9);
+        const thumb = images[0] || "";
+        return `
+          <section class="variant-group-card">
+            <div class="variant-group-head">
+              <span class="variant-group-check"></span>
+              <a class="variant-group-thumb" href="${escapeHtml(thumb || "#")}" target="_blank">
+                ${thumb ? `<img src="${escapeHtml(thumb)}" alt="" loading="lazy" />` : ""}
+              </a>
+              <div>
+                <p class="variant-group-index">分组 ${groupIndex + 1}</p>
+                <div class="variant-group-name">${escapeHtml(group.name)}</div>
+              </div>
+              <div class="variant-group-count">${group.items.length} 个变体</div>
+            </div>
+            <div class="variant-group-images">
+              <span>分组上传图片</span>
+              <div class="variant-group-image-list">
+                ${images.length ? images.map((image) => `<a href="${escapeHtml(image)}" target="_blank"><img src="${escapeHtml(image)}" alt="" loading="lazy" /></a>`).join("") : '<span>-</span>'}
+              </div>
+            </div>
+            <div class="variant-group-table-wrap">
+              <table class="variant-group-table">
+                <thead>
+                  <tr>
+                    <th>成本价</th>
+                    <th>分组（如颜色）</th>
+                    <th>SKU变体（如Size、规格）</th>
+                    <th>PSKU</th>
+                    <th>建议售价</th>
+                    <th>预计利润</th>
+                    <th>库存</th>
+                    <th>促销价</th>
+                    <th>操作</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${group.items.map((variant) => renderVariantTableRow(variant, group.name)).join("")}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        `;
+      }
+
+      function renderVariantTableRow(variant, groupName) {
+        const sku = variant.partnerSku || variant.modelNumber || variant.id || "-";
+        const option = variant.colourDisplay || displayVariantColour(variant) || groupName;
+        return `
+          <tr>
+            <td>${escapeHtml(displayMoneyValue(variant.priceUsd, "$"))}<span class="variant-table-muted">重量 ${escapeHtml(displayValue(variant.weightKg))}</span></td>
+            <td>${escapeHtml(groupName)}<span class="variant-table-muted">库存: ${escapeHtml(displayValue(variant.stock))}</span></td>
+            <td>${escapeHtml(option)}</td>
+            <td>${escapeHtml(sku)}<span class="variant-table-muted">Barcode: ${escapeHtml(variant.barcode || "-")}</span></td>
+            <td>${escapeHtml(displayMoneyValue(variant.priceSarInitial, "SAR"))}</td>
+            <td>${escapeHtml(displayValue(variant.processingTime))}<span class="variant-table-muted">时效</span></td>
+            <td>${escapeHtml(displayValue(variant.stock))} 件</td>
+            <td>-</td>
+            <td><button class="secondary" type="button" onclick="return false;">查看</button></td>
+          </tr>
+        `;
+      }
+
+      function displayMoneyValue(value, currency) {
+        if (!hasDisplayValue(value)) return "-";
+        return `${currency} ${cleanDisplayText(value)}`;
+      }
+
+      async function loadProductVariants(product) {
+        const detail = await loadProductDetailData(product);
+        return detail.variants;
+      }
+
+      async function loadProductDetailData(product) {
+        if (product.noonDetail) return product.noonDetail;
+        const summaryVariants = product.noonSummary?.variants || [];
+        if (!product.noonUrl) {
+          product.noonDetail = { group: product.noonSummary?.group || {}, variants: summaryVariants };
+          return product.noonDetail;
+        }
+        const noonProduct = await fetchJson(product.noonUrl);
+        const group = noonProduct.product_group || product.noonSummary?.group || {};
+        const variants = Array.isArray(noonProduct.variants) && noonProduct.variants.length
+          ? noonProduct.variants.map((variant, index) => normalizeNoonVariant(variant, group, index, product.noonUrl))
+          : summaryVariants;
+        product.noonSummary = { ...(product.noonSummary || {}), variants };
+        product.noonDetail = { group, variants };
+        return product.noonDetail;
+      }
+
+      function normalizeNoonVariant(variant, group, index, noonUrl) {
+        const partnerSku = cleanDisplayText(variant.partner_sku);
+        const modelNumber = cleanDisplayText(variant.model_number);
+        const barcode = cleanDisplayText(variant.barcode);
+        const rawImages = variant.images ?? group.images ?? [];
+
+	        return {
+	          id: partnerSku || modelNumber || barcode || `variant-${index + 1}`,
+	          partnerSku,
+	          modelNumber,
+	          barcode,
+	          colour: cleanDisplayText(variant.colour),
+	          colourName: cleanDisplayText(variant.colour_name),
+	          colourDisplay: displayVariantColour({ colour: variant.colour, colourName: variant.colour_name }),
+	          sourceColourCode: sourceColourCode(variant.colour_name, variant.colour),
+	          description_en: variant.description_en,
+	          long_description_en: variant.long_description_en,
+	          description: variant.description,
+	          feature_bullets_en: variant.feature_bullets_en,
+	          feature_bullets: variant.feature_bullets,
+	          bullets: variant.bullets,
+	          priceSarInitial: valueFor(variant, group, "price_sar_initial", null),
+	          priceUsd: valueFor(variant, group, "price_usd", null),
+	          stock: valueFor(variant, group, "stock", null),
+	          processingTime: cleanDisplayText(valueFor(variant, group, "processing_time", "")),
+	          sizeText: variantSizeText(variant, group),
+	          weightKg: valueFor(variant, group, "actual_weight_kg", null),
+	          images: (Array.isArray(rawImages) ? rawImages : [])
+	            .map((image) => (typeof image === "string" ? image : image?.url || image?.path))
+	            .map(cleanDisplayText)
+	            .filter(Boolean)
+	            .map((image) => normalizeVariantImageUrl(image, noonUrl)),
+	        };
+	      }
+
+	      function valueFor(variant, group, field, fallback = undefined) {
+	        return variant[field] ?? group[field] ?? fallback;
+	      }
+
+	      function displayVariantColour(variant) {
+	        const readable = [variant.colourName, variant.colour].map(cleanDisplayText).filter((value) => value && !isSourceOptionCode(value));
+	        return readable.length ? [...new Set(readable)].join(" / ") : "颜色未识别";
+	      }
+
+	      function sourceColourCode(colourName, colour) {
+	        const codes = [colourName, colour].map(cleanDisplayText).filter((value) => value && isSourceOptionCode(value));
+	        return codes.length ? [...new Set(codes)].join(" / ") : "";
+	      }
+
+	      function isSourceOptionCode(value) {
+	        return /^\d{5,}$/.test(cleanDisplayText(value));
+	      }
+
+	      function variantSizeText(variant, group) {
+	        const values = ["length_cm", "width_cm", "height_cm"].map((field) => valueFor(variant, group, field, null));
+	        return values.every(hasDisplayValue) ? `${values.join(" x ")} cm` : "";
+	      }
+
+	      function hasDisplayValue(value) {
+	        return value !== null && value !== undefined && String(value).trim() !== "";
+	      }
+
+	      function displayValue(value) {
+	        return hasDisplayValue(value) ? String(value) : "-";
+	      }
+
+      function formatProductPrice(price) {
+        if (!hasDisplayValue(price)) return "-";
+        if (typeof price === "number") return `¥${price.toFixed(2)}`;
+        if (typeof price === "string") return price.includes("¥") ? price : `¥${price}`;
+        if (typeof price === "object") {
+          const value = price.value ?? price.amount ?? price.min ?? price.low ?? "";
+          const currency = price.currency || "¥";
+          return hasDisplayValue(value) ? `${currency}${value}` : "-";
+        }
+        return String(price);
+      }
+
+      function noonSkuText(product) {
+        return product.noonSummary?.partnerSku || product.noonSummary?.sku || product.dirName.split("/").at(-1) || "-";
+      }
+
+      function productBrandText(product) {
+        return product.noonSummary?.brand || product.brand || "Generic";
+      }
+
+      function formatUploadStatus(status) {
+        if (status === "uploaded") return "已上传";
+        if (status === "uploading") return "上架中";
+        if (status === "failed") return "上架失败";
+        if (status === "not_uploaded") return "待上架";
+        return status || "待上架";
+      }
+
+      function normalizeVariantImageUrl(image, noonUrl) {
+        if (/^https?:\/\//i.test(image) || image.startsWith("/")) return image;
+        return new URL(image, new URL(noonUrl, window.location.href)).pathname;
+      }
+
+      function cleanDisplayText(value) {
+        return String(value ?? "").replace(/\s+/g, " ").trim();
       }
 
       async function stopCurrentJob() {

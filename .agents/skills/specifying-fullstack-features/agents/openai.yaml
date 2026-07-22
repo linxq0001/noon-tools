@@ -1,0 +1,4 @@
+interface:
+  display_name: "specifying-fullstack-features"
+  short_description: "用于处理全栈工程任务中的独立阶段、风险边界和可验证交付结果"
+  default_prompt: "使用 $specifying-fullstack-features 处理当前全栈任务。"

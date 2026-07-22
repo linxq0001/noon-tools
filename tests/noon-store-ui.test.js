@@ -57,3 +57,66 @@ test("store status messages wrap long browser errors", async () => {
 
   assert.match(html, /\.status-strip span\s*\{[\s\S]*overflow-wrap:\s*anywhere/);
 });
+
+test("variant details can load variants from noon attributes when summary is stale", async () => {
+  const html = await readFile(new URL("../public/index.html", import.meta.url), "utf8");
+
+  assert.match(html, /await loadProductVariants\(product\)/);
+  assert.match(html, /fetchJson\(product\.noonUrl\)/);
+  assert.match(html, /normalizeNoonVariant/);
+});
+
+test("repositories page has a wide product workspace and a separate detail page", async () => {
+  const html = await readFile(new URL("../public/index.html", import.meta.url), "utf8");
+
+  assert.match(html, /class=["']product-page-shell["']/);
+  assert.match(html, /id=["']productPageRoot["']/);
+  assert.match(html, /\.repository-controls\s*\{[\s\S]*grid-template-columns:\s*minmax\(360px,\s*1fr\) auto/);
+  assert.match(html, /data-page=["']product-detail["']/);
+  assert.match(html, /id=["']productDetailBody["']/);
+  assert.doesNotMatch(html, /openRepositoryDialog\(repository\)/);
+  assert.doesNotMatch(html, /className = "repository-detail-panel"/);
+});
+
+test("repositories page loads summaries and product pages separately", async () => {
+  const html = await readFile(new URL("../public/index.html", import.meta.url), "utf8");
+
+  assert.match(html, /\/api\/repositories/);
+  assert.match(html, /async function loadRepositoryProductPage/);
+  assert.match(html, /\/api\/products\?\$\{productParams\}/);
+  assert.match(html, /productPageState/);
+  assert.doesNotMatch(html, /fetchJson\(params\.toString\(\) \? `\/api\/products\?\$\{params\}` : "\/api\/products"\)/);
+});
+
+test("repository upload sends repository id instead of current page product dirs", async () => {
+  const html = await readFile(new URL("../public/index.html", import.meta.url), "utf8");
+
+  assert.match(html, /startUploadJob\(\{\s*repository:\s*repository\.id/);
+  assert.doesNotMatch(html, /startUploadJob\(\{\s*productDirs:\s*products\.map/);
+});
+
+test("product detail page uses grouped SKU variant table layout", async () => {
+  const html = await readFile(new URL("../public/index.html", import.meta.url), "utf8");
+
+  assert.match(html, /class=["']detail-toolbar-primary["']/);
+  assert.match(html, /class=["'][^"']*detail-sku-card/);
+  assert.match(html, /function groupDetailVariants/);
+  assert.match(html, /class=["']variant-group-card["']/);
+  assert.match(html, /class=["']variant-group-table["']/);
+  assert.match(html, />成本价</);
+  assert.match(html, />SKU变体/);
+  assert.match(html, />建议售价/);
+  assert.match(html, />促销价/);
+});
+
+test("product detail page reuses shared app typography and radius tokens", async () => {
+  const html = await readFile(new URL("../public/index.html", import.meta.url), "utf8");
+  const detailCss = html.match(/\.product-detail-body\s*\{[\s\S]*?\.empty,\s*\n\s*\.notice\s*\{/);
+  assert.ok(detailCss, "detail CSS block should be present");
+
+  assert.match(detailCss[0], /\.detail-title-line h2\s*\{[\s\S]*font-size:\s*var\(--text-xl\)/);
+  assert.match(detailCss[0], /\.detail-editor-title h3\s*\{[\s\S]*font-size:\s*var\(--text-md\)/);
+  assert.match(detailCss[0], /\.variant-group-table td\s*\{[\s\S]*font-weight:\s*700/);
+  assert.doesNotMatch(detailCss[0], /border-radius:\s*14px/);
+  assert.doesNotMatch(detailCss[0], /border-radius:\s*10px/);
+});

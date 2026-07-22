@@ -73,6 +73,26 @@ test("prepares one upload product per current variant", async () => {
   assert.deepEqual(products.map((product) => product.offerDetails.offers[0].barcode), ["123456789012", "123456789029"]);
 });
 
+test("marks the first variant to create a group and other variants to join it", async () => {
+  const productDir = await makeProductDir();
+  const products = await prepareNoonUploadProducts(currentProduct(), productDir, "uae01");
+
+  assert.deepEqual(products.map((product) => product.grouping), [
+    {
+      key: "G-1001-1001-V01-BLACK-UAE01",
+      role: "create",
+      name: "Black Bag",
+      anchorPartnerSku: "G-1001-1001-V01-BLACK-UAE01",
+    },
+    {
+      key: "G-1001-1001-V01-BLACK-UAE01",
+      role: "join",
+      name: "Black Bag",
+      anchorPartnerSku: "G-1001-1001-V01-BLACK-UAE01",
+    },
+  ]);
+});
+
 test("prepares upload product from group-level shared variant fields", async () => {
   const productDir = await makeProductDir();
   const rawProduct = currentProduct();
@@ -127,6 +147,8 @@ test("upload-noon wires current identity, preflight, lock, and store status", as
 
   assert.match(source, /regenerateProductIdentities\(productsDir\)/);
   assert.match(source, /prepareNoonUploadProducts\(rawProduct,\s*productDir,\s*storeId\)/);
+  assert.match(source, /productGroupRefs\s*=\s*new Map/);
+  assert.match(source, /handleProductGrouping\(sellerLabPage,\s*product\)/);
   assert.match(source, /assertStoreUploadAllowed\(/);
   assert.match(source, /acquireStoreUploadLock\(/);
   assert.match(source, /status:\s*"uploading"/);

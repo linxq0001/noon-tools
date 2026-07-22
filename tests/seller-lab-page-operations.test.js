@@ -19,6 +19,11 @@ test("seller lab page operations binds helpers to a page", async () => {
     fillProductContent: async (pageArg, product) => calls.push(["fillProductContent", pageArg.id, product.sku]),
     fillDetailedContent: async (pageArg, product) => calls.push(["fillDetailedContent", pageArg.id, product.sku]),
     fillOfferDetails: async (pageArg, product) => calls.push(["fillOfferDetails", pageArg.id, product.sku]),
+    createProductGroup: async (pageArg, product) => {
+      calls.push(["createProductGroup", pageArg.id, product.sku]);
+      return { id: "group-1" };
+    },
+    joinProductGroup: async (pageArg, product, groupRef) => calls.push(["joinProductGroup", pageArg.id, product.sku, groupRef.id]),
   };
 
   const operations = createSellerLabPageOperations(page, helpers);
@@ -35,6 +40,8 @@ test("seller lab page operations binds helpers to a page", async () => {
   await operations.fillProductContent({ sku: "1688-1001" });
   await operations.fillDetailedContent({ sku: "1688-1001" });
   await operations.fillOfferDetails({ sku: "1688-1001" });
+  const groupRef = await operations.createProductGroup({ sku: "1688-1001" });
+  await operations.joinProductGroup({ sku: "1688-1001" }, groupRef);
 
   assert.deepEqual(calls, [
     ["gotoNoonCreatePage", "page-1"],
@@ -50,5 +57,7 @@ test("seller lab page operations binds helpers to a page", async () => {
     ["fillProductContent", "page-1", "1688-1001"],
     ["fillDetailedContent", "page-1", "1688-1001"],
     ["fillOfferDetails", "page-1", "1688-1001"],
+    ["createProductGroup", "page-1", "1688-1001"],
+    ["joinProductGroup", "page-1", "1688-1001", "group-1"],
   ]);
 });

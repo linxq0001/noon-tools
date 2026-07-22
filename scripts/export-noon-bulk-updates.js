@@ -9,8 +9,12 @@ const outputDir = path.resolve(positional(1) || "exports/noon-bulk-updates");
 const platform = optionValue("--platform");
 const repository = optionValue("--repository");
 const catalogType = optionValue("--catalog-type") || "global";
+const productDirs = optionValue("--product-dirs")
+  .split(",")
+  .map((value) => value.trim())
+  .filter(Boolean);
 
-const result = await exportNoonBulkUpdates({ productsDir, outputDir, platform, repository, catalogType });
+const result = await exportNoonBulkUpdates({ productsDir, outputDir, platform, repository, catalogType, productDirs });
 
 console.log(`Exported ${result.skuCount} SKU row(s) from ${result.productCount} product(s) to ${outputDir}`);
 if (result.duplicateProducts.length) {
@@ -28,5 +32,5 @@ function optionValue(name) {
 }
 
 function optionNames() {
-  return new Set(["--platform", "--repository", "--catalog-type"]);
+  return new Set(["--platform", "--repository", "--catalog-type", "--product-dirs"]);
 }

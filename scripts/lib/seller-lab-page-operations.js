@@ -13,5 +13,7 @@ export function createSellerLabPageOperations(page, helpers) {
     fillProductContent: (product) => helpers.fillProductContent(page, product),
     fillDetailedContent: (product) => helpers.fillDetailedContent(page, product),
     fillOfferDetails: (product) => helpers.fillOfferDetails(page, product),
+    createProductGroup: (product) => helpers.createProductGroup(page, product),
+    joinProductGroup: (product, groupRef) => helpers.joinProductGroup(page, product, groupRef),
   };
 }

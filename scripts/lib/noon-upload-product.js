@@ -16,6 +16,7 @@ export async function prepareNoonUploadProducts(rawProduct, productDir, storeId)
   for (const [variantIndex] of rawProduct.variants.entries()) {
     products.push(scopeProductToStore(await normalizeNoonUploadProduct(rawProduct, productDir, variantIndex), storeId));
   }
+  applyVariantGrouping(products, rawProduct.product_group);
   return products;
 }
 
@@ -108,6 +109,14 @@ export async function normalizeNoonUploadProduct(product, productDir, variantInd
 }
 
 async function listLocalProductImages(productDir) {
+  const imageDirEntries = await readdir(`${productDir}/images`).catch(() => []);
+  const images = imageDirEntries
+    .filter((entry) => /\.(?:jpe?g|png|webp|gif)$/i.test(entry))
+    .sort((left, right) => left.localeCompare(right, "en", { numeric: true }))
+    .slice(0, 9)
+    .map((entry) => `images/${entry}`);
+  if (images.length > 0) return images;
+
   const entries = await readdir(productDir);
 
   return entries
@@ -153,4 +162,20 @@ function valueFor(variant, group, field, fallback = "") {
 
 function hasValue(value) {
   return value !== null && value !== undefined && String(value).trim() !== "";
+}
+
+function applyVariantGrouping(products, group) {
+  if (products.length < 2) return;
+
+  const anchorPartnerSku = products[0]?.productIdentity?.partnerSku ?? "";
+  if (!anchorPartnerSku) return;
+
+  for (const [index, product] of products.entries()) {
+    product.grouping = {
+      key: anchorPartnerSku,
+      role: index === 0 ? "create" : "join",
+      name: group.product_group_name_en || products[0].productIdentity.englishTitle || anchorPartnerSku,
+      anchorPartnerSku,
+    };
+  }
 }

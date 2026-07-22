@@ -51,6 +51,7 @@ function publicStore(store) {
     name: store.name,
     projectId: store.projectId,
     createdAt: store.createdAt,
+    hasApiToken: Boolean(String(store.apiToken || "").trim()),
     url: noonStoreUrl(store),
   };
 }

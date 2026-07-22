@@ -3,6 +3,7 @@ import os from "node:os";
 import path from "node:path";
 import test from "node:test";
 import {
+  buildNoonCatalogSyncArgs,
   buildNoonLoginArgs,
   buildNoonStatusArgs,
   buildNoonUploadIdentityArgs,
@@ -35,5 +36,11 @@ test("builds profile-safe login, status, and upload arguments", () => {
     "--store-id",
     "UAE01",
   ]);
+  assert.deepEqual(buildNoonCatalogSyncArgs(rootDir, store, "global"), [
+    "scripts/sync-noon-catalog-api.js",
+    "--store-id",
+    "UAE01",
+    "--mode",
+    "global",
+  ]);
 });
-

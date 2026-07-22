@@ -1,0 +1,4 @@
+interface:
+  display_name: "designing-frontend-ui"
+  short_description: "用于处理全栈工程任务中的独立阶段、风险边界和可验证交付结果"
+  default_prompt: "使用 $designing-frontend-ui 处理当前全栈任务。"

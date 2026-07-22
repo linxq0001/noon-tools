@@ -93,6 +93,28 @@ test("exportNoonBulkUpdates writes product, price, and stock workbooks per SKU",
   ]);
 });
 
+test("exportNoonBulkUpdates can limit output to selected product dirs", async () => {
+  const tempDir = await mkdtemp(path.join(os.tmpdir(), "noon-bulk-selected-"));
+  const productsDir = path.join(tempDir, "products");
+  const firstProductDir = path.join(productsDir, "1688", "default", "1001");
+  const secondProductDir = path.join(productsDir, "1688", "default", "1002");
+  const outputDir = path.join(tempDir, "exports");
+  await mkdir(firstProductDir, { recursive: true });
+  await mkdir(secondProductDir, { recursive: true });
+  await writeNoonProduct(firstProductDir, { sku: "G-1001-1001-GOLD", barcode: "10010001", title: "Gold Bag" });
+  await writeNoonProduct(secondProductDir, { sku: "G-1001-1002-SILVER", barcode: "10010002", title: "Silver Bag" });
+
+  const result = await exportNoonBulkUpdates({
+    productsDir,
+    outputDir,
+    platform: "1688",
+    productDirs: ["1688/default/1001"],
+  });
+
+  assert.equal(result.skuCount, 1);
+  assert.deepEqual(readRows(path.join(outputDir, bulkUpdateFileNames.price)).slice(1), [["G-1001-1001-GOLD", "sa", 10, "TRUE"]]);
+});
+
 test("exportNoonBulkUpdates reads products from a platform repository", async () => {
   const tempDir = await mkdtemp(path.join(os.tmpdir(), "noon-bulk-platform-"));
   const productsDir = path.join(tempDir, "products");

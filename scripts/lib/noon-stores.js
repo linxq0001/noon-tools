@@ -13,9 +13,10 @@ export function validateNoonStore(input = {}) {
   const id = normalizeNoonStoreId(input.id);
   const name = String(input.name || "").trim();
   const projectId = String(input.projectId || "").trim().toUpperCase();
+  const apiToken = String(input.apiToken || "").trim();
   if (name.length < 1 || name.length > 80) throw new Error("店铺名称必须是 1-80 个字符。");
   if (!/^PRJ[0-9]+$/.test(projectId)) throw new Error("projectId 格式不合法。");
-  return { id, name, projectId };
+  return { id, name, projectId, ...(apiToken ? { apiToken } : {}) };
 }
 
 export function noonStoreProfileDir(rootDir, storeId) {

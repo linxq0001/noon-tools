@@ -21,6 +21,11 @@ test("seller lab page adapter runs the upload page steps in order", async () => 
     fillProductContent: async (product) => calls.push(["fillProductContent", product.productIdentity.partnerSku]),
     fillDetailedContent: async (product) => calls.push(["fillDetailedContent", product.productIdentity.partnerSku]),
     fillOfferDetails: async (product) => calls.push(["fillOfferDetails", product.productIdentity.partnerSku]),
+    createProductGroup: async (product) => {
+      calls.push(["createProductGroup", product.productIdentity.partnerSku]);
+      return { id: "group-1" };
+    },
+    joinProductGroup: async (product, groupRef) => calls.push(["joinProductGroup", product.productIdentity.partnerSku, groupRef.id]),
   };
   const product = {
     productIdentity: {
@@ -43,6 +48,8 @@ test("seller lab page adapter runs the upload page steps in order", async () => 
   await adapter.fillProductContent(product);
   await adapter.fillDetailedContent(product);
   await adapter.submitOfferDetails(product);
+  const groupRef = await adapter.createProductGroup(product);
+  await adapter.joinProductGroup(product, groupRef);
 
   assert.deepEqual(calls, [
     ["gotoCreatePage"],
@@ -62,5 +69,7 @@ test("seller lab page adapter runs the upload page steps in order", async () => 
     ["waitForStep", "Offer Details", "Detailed Content"],
     ["fillOfferDetails", "1688-1001"],
     ["clickButton", ["Submit", "Create Product", "Create & Submit", "Publish", "Create"], { required: true }],
+    ["createProductGroup", "1688-1001"],
+    ["joinProductGroup", "1688-1001", "group-1"],
   ]);
 });
