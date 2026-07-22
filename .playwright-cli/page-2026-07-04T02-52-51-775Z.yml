@@ -1,0 +1,202 @@
+- main [ref=e3]:
+  - complementary [ref=e4]:
+    - generic [ref=e5]:
+      - heading "Noon Tools" [level=1] [ref=e6]
+      - generic [ref=e7]: 1688 collection workspace
+    - navigation "业务导航" [ref=e8]:
+      - button "01 工作台" [ref=e9] [cursor=pointer]:
+        - generic [ref=e10]: "01"
+        - generic [ref=e11]: 工作台
+      - button "02 1688 采集" [ref=e12] [cursor=pointer]:
+        - generic [ref=e13]: "02"
+        - generic [ref=e14]: 1688 采集
+      - button "03 商品仓库" [ref=e15] [cursor=pointer]:
+        - generic [ref=e16]: "03"
+        - generic [ref=e17]: 商品仓库
+      - button "04 Noon 工作台" [ref=e18] [cursor=pointer]:
+        - generic [ref=e19]: "04"
+        - generic [ref=e20]: Noon 工作台
+      - button "05 店铺" [ref=e21] [cursor=pointer]:
+        - generic [ref=e22]: "05"
+        - generic [ref=e23]: 店铺
+      - button "06 配置" [ref=e24] [cursor=pointer]:
+        - generic [ref=e25]: "06"
+        - generic [ref=e26]: 配置
+    - generic [ref=e27]:
+      - generic [ref=e28]: 任务状态
+      - strong [ref=e29]: Idle
+  - generic [ref=e30]:
+    - generic [ref=e665]:
+      - generic [ref=e666]:
+        - generic [ref=e667]:
+          - button "← 返回" [ref=e668] [cursor=pointer]
+          - generic [ref=e669]:
+            - generic [ref=e670]:
+              - heading "商品详情" [level=2] [ref=e671]
+              - generic [ref=e672]: 草稿
+            - paragraph [ref=e673]: 1688 商品编辑与一键上架
+        - generic [ref=e674]:
+          - button "AI自动生成产品信息" [ref=e675] [cursor=pointer]
+          - button "合规检测" [ref=e676] [cursor=pointer]
+          - generic [ref=e677]: 已启用自动保存
+          - button "翻译全部图片" [ref=e678] [cursor=pointer]
+          - button "一键上架" [ref=e679] [cursor=pointer]
+      - generic [ref=e681]:
+        - generic [ref=e682]:
+          - heading "商品信息" [level=3] [ref=e684]
+          - generic [ref=e685]:
+            - generic [ref=e686]:
+              - generic [ref=e687]: "* 商品标题 (英文)"
+              - generic [ref=e688]: AI翻译不覆盖
+            - generic [ref=e689]: Evening Clutch Bag
+            - generic [ref=e690]:
+              - generic [ref=e691]: 分组独立标题未开启
+              - generic [ref=e692]: 已生成 1 / 1 · 缺失 0
+          - generic [ref=e693]:
+            - generic [ref=e694]:
+              - generic [ref=e695]: 品类
+              - strong [ref=e696]: Bags & Luggage > Handbag > Clutch / Envelope
+            - generic [ref=e697]:
+              - generic [ref=e698]: "* 品牌"
+              - strong [ref=e699]: No Brand
+            - generic [ref=e700]:
+              - generic [ref=e701]: 人群
+              - strong [ref=e702]: Women
+            - generic [ref=e703]:
+              - generic [ref=e704]: "* 商品状况"
+              - strong [ref=e705]: New
+            - generic [ref=e706]:
+              - generic [ref=e707]: 特征标签
+              - strong [ref=e708]: Lightweight
+            - generic [ref=e709]:
+              - generic [ref=e710]: 分组数量
+              - strong [ref=e711]: 1 个变体
+          - generic [ref=e712]:
+            - generic [ref=e713]:
+              - heading "物流 & 海关信息" [level=3] [ref=e714]
+              - button "编辑" [ref=e715] [cursor=pointer]
+            - generic [ref=e716]:
+              - generic [ref=e717]:
+                - generic [ref=e718]: 重量
+                - strong [ref=e719]: "1"
+              - generic [ref=e720]:
+                - generic [ref=e721]: 体积
+                - strong [ref=e722]: 16.5 x 5 x 16 cm
+              - generic [ref=e723]:
+                - generic [ref=e724]: HS Code
+                - strong [ref=e725]: "420222"
+              - generic [ref=e726]:
+                - generic [ref=e727]: 库存 / 时效
+                - strong [ref=e728]: 0 / 2_days
+        - generic [ref=e729]:
+          - heading "卖点特征" [level=3] [ref=e730]
+          - generic [ref=e731]: 没有卖点特征。
+        - generic [ref=e732]:
+          - heading "商品描述" [level=3] [ref=e733]
+          - generic [ref=e734]: 暂无商品描述。
+        - generic [ref=e735]:
+          - heading "上架设置" [level=3] [ref=e736]
+          - generic [ref=e737]:
+            - generic [ref=e738]:
+              - generic [ref=e739]: 上架国家
+              - strong [ref=e740]: 沙特 (SAR) / 阿联酋 (AED)
+            - generic [ref=e741]:
+              - generic [ref=e742]: 质保期
+              - strong [ref=e743]: 无质保
+            - generic [ref=e744]:
+              - generic [ref=e745]: 上架模式
+              - strong [ref=e746]: 标准分组上架
+            - generic [ref=e747]:
+              - generic [ref=e748]: 库存来源
+              - strong [ref=e749]: 0 件
+        - generic [ref=e750]:
+          - generic [ref=e751]:
+            - heading "商品图片(调整将同步所有SKU变体)" [level=3] [ref=e752]
+            - generic [ref=e753]: 已选 9 / 9
+          - generic [ref=e754]:
+            - link "首图" [ref=e755] [cursor=pointer]:
+              - /url: /products/1688/%E4%B9%89%E4%B9%8C%E9%93%AD%E9%9B%AF%E7%AE%B1%E5%8C%85%E6%9C%89%E9%99%90%E5%85%AC%E5%8F%B8/1000182597731/images/001.jpg
+              - generic [ref=e756]: 首图
+            - link "2" [ref=e757] [cursor=pointer]:
+              - /url: /products/1688/%E4%B9%89%E4%B9%8C%E9%93%AD%E9%9B%AF%E7%AE%B1%E5%8C%85%E6%9C%89%E9%99%90%E5%85%AC%E5%8F%B8/1000182597731/images/002.jpg
+              - generic [ref=e758]: "2"
+            - link "3" [ref=e759] [cursor=pointer]:
+              - /url: /products/1688/%E4%B9%89%E4%B9%8C%E9%93%AD%E9%9B%AF%E7%AE%B1%E5%8C%85%E6%9C%89%E9%99%90%E5%85%AC%E5%8F%B8/1000182597731/images/003.jpg
+              - generic [ref=e760]: "3"
+            - link "4" [ref=e761] [cursor=pointer]:
+              - /url: /products/1688/%E4%B9%89%E4%B9%8C%E9%93%AD%E9%9B%AF%E7%AE%B1%E5%8C%85%E6%9C%89%E9%99%90%E5%85%AC%E5%8F%B8/1000182597731/images/004.jpg
+              - generic [ref=e762]: "4"
+            - link "5" [ref=e763] [cursor=pointer]:
+              - /url: /products/1688/%E4%B9%89%E4%B9%8C%E9%93%AD%E9%9B%AF%E7%AE%B1%E5%8C%85%E6%9C%89%E9%99%90%E5%85%AC%E5%8F%B8/1000182597731/images/005.jpg
+              - generic [ref=e764]: "5"
+            - link "6" [ref=e765] [cursor=pointer]:
+              - /url: /products/1688/%E4%B9%89%E4%B9%8C%E9%93%AD%E9%9B%AF%E7%AE%B1%E5%8C%85%E6%9C%89%E9%99%90%E5%85%AC%E5%8F%B8/1000182597731/images/006.jpg
+              - generic [ref=e766]: "6"
+            - link "7" [ref=e767] [cursor=pointer]:
+              - /url: /products/1688/%E4%B9%89%E4%B9%8C%E9%93%AD%E9%9B%AF%E7%AE%B1%E5%8C%85%E6%9C%89%E9%99%90%E5%85%AC%E5%8F%B8/1000182597731/images/007.jpg
+              - generic [ref=e768]: "7"
+            - link "8" [ref=e769] [cursor=pointer]:
+              - /url: /products/1688/%E4%B9%89%E4%B9%8C%E9%93%AD%E9%9B%AF%E7%AE%B1%E5%8C%85%E6%9C%89%E9%99%90%E5%85%AC%E5%8F%B8/1000182597731/images/008.jpg
+              - generic [ref=e770]: "8"
+            - link "9" [ref=e771] [cursor=pointer]:
+              - /url: /products/1688/%E4%B9%89%E4%B9%8C%E9%93%AD%E9%9B%AF%E7%AE%B1%E5%8C%85%E6%9C%89%E9%99%90%E5%85%AC%E5%8F%B8/1000182597731/images/009.jpg
+              - generic [ref=e772]: "9"
+        - generic [ref=e773]:
+          - generic [ref=e774]:
+            - heading "SKU 变体详情" [level=3] [ref=e775]
+            - generic [ref=e776]: 1 个类别，1 个变体
+          - generic [ref=e777]:
+            - generic [ref=e778]:
+              - generic [ref=e779]: 主 SKU
+              - paragraph [ref=e780]: G-1001-1000182597731-V01-GOLD
+              - generic [ref=e781]:
+                - generic [ref=e782]:
+                  - generic [ref=e783]: Barcode
+                  - strong [ref=e784]: "105591478396"
+                - generic [ref=e785]:
+                  - generic [ref=e786]: 源色号 / 选项
+                  - strong [ref=e787]: Gold
+            - generic [ref=e788]:
+              - paragraph [ref=e789]: 运营字段
+              - generic [ref=e790]:
+                - generic [ref=e791]:
+                  - generic [ref=e792]: 颜色
+                  - strong [ref=e793]: Gold
+                - generic [ref=e794]:
+                  - generic [ref=e795]: 售价 SAR
+                  - strong [ref=e796]: "125"
+                - generic [ref=e797]:
+                  - generic [ref=e798]: 价格 USD
+                  - strong [ref=e799]: "-"
+                - generic [ref=e800]:
+                  - generic [ref=e801]: 库存
+                  - strong [ref=e802]: "0"
+                - generic [ref=e803]:
+                  - generic [ref=e804]: 时效
+                  - strong [ref=e805]: 2_days
+                - generic [ref=e806]:
+                  - generic [ref=e807]: 尺寸
+                  - strong [ref=e808]: 16.5 x 5 x 16 cm
+                - generic [ref=e809]:
+                  - generic [ref=e810]: 重量 kg
+                  - strong [ref=e811]: "1"
+            - generic [ref=e812]:
+              - paragraph [ref=e813]: 图片
+              - generic [ref=e814]:
+                - link [ref=e815] [cursor=pointer]:
+                  - /url: /products/1688/%E4%B9%89%E4%B9%8C%E9%93%AD%E9%9B%AF%E7%AE%B1%E5%8C%85%E6%9C%89%E9%99%90%E5%85%AC%E5%8F%B8/1000182597731/images/001.jpg
+                - link [ref=e816] [cursor=pointer]:
+                  - /url: /products/1688/%E4%B9%89%E4%B9%8C%E9%93%AD%E9%9B%AF%E7%AE%B1%E5%8C%85%E6%9C%89%E9%99%90%E5%85%AC%E5%8F%B8/1000182597731/images/002.jpg
+                - link [ref=e817] [cursor=pointer]:
+                  - /url: /products/1688/%E4%B9%89%E4%B9%8C%E9%93%AD%E9%9B%AF%E7%AE%B1%E5%8C%85%E6%9C%89%E9%99%90%E5%85%AC%E5%8F%B8/1000182597731/images/003.jpg
+                - link [ref=e818] [cursor=pointer]:
+                  - /url: /products/1688/%E4%B9%89%E4%B9%8C%E9%93%AD%E9%9B%AF%E7%AE%B1%E5%8C%85%E6%9C%89%E9%99%90%E5%85%AC%E5%8F%B8/1000182597731/images/004.jpg
+                - link [ref=e819] [cursor=pointer]:
+                  - /url: /products/1688/%E4%B9%89%E4%B9%8C%E9%93%AD%E9%9B%AF%E7%AE%B1%E5%8C%85%E6%9C%89%E9%99%90%E5%85%AC%E5%8F%B8/1000182597731/images/005.jpg
+                - link [ref=e820] [cursor=pointer]:
+                  - /url: /products/1688/%E4%B9%89%E4%B9%8C%E9%93%AD%E9%9B%AF%E7%AE%B1%E5%8C%85%E6%9C%89%E9%99%90%E5%85%AC%E5%8F%B8/1000182597731/images/006.jpg
+                - link [ref=e821] [cursor=pointer]:
+                  - /url: /products/1688/%E4%B9%89%E4%B9%8C%E9%93%AD%E9%9B%AF%E7%AE%B1%E5%8C%85%E6%9C%89%E9%99%90%E5%85%AC%E5%8F%B8/1000182597731/images/007.jpg
+                - link [ref=e822] [cursor=pointer]:
+                  - /url: /products/1688/%E4%B9%89%E4%B9%8C%E9%93%AD%E9%9B%AF%E7%AE%B1%E5%8C%85%E6%9C%89%E9%99%90%E5%85%AC%E5%8F%B8/1000182597731/images/008.jpg
+    - text: ✓ 当前默认

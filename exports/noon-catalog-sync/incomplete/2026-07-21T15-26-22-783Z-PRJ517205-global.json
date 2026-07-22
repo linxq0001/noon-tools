@@ -1,0 +1,16 @@
+{
+  "storeId": "PRJ517205",
+  "mode": "global",
+  "catalogUrl": "/v1/export/create",
+  "title": "Noon Global Catalog Export",
+  "textSample": "",
+  "headers": [
+    "Product",
+    "Price",
+    "Inventory",
+    "Performance",
+    "Issues"
+  ],
+  "rows": [],
+  "totalPages": 1
+}

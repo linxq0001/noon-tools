@@ -1,0 +1,44 @@
+- main [ref=e3]:
+  - complementary [ref=e4]:
+    - generic [ref=e5]:
+      - heading "Noon Tools" [level=1] [ref=e6]
+      - generic [ref=e7]: 1688 collection workspace
+    - navigation "业务导航" [ref=e8]:
+      - button "01 工作台" [ref=e9] [cursor=pointer]:
+        - generic [ref=e10]: "01"
+        - generic [ref=e11]: 工作台
+      - button "02 1688 采集" [ref=e12] [cursor=pointer]:
+        - generic [ref=e13]: "02"
+        - generic [ref=e14]: 1688 采集
+      - button "03 商品仓库" [ref=e15] [cursor=pointer]:
+        - generic [ref=e16]: "03"
+        - generic [ref=e17]: 商品仓库
+      - button "04 Noon 工作台" [ref=e18] [cursor=pointer]:
+        - generic [ref=e19]: "04"
+        - generic [ref=e20]: Noon 工作台
+      - button "05 店铺" [ref=e21] [cursor=pointer]:
+        - generic [ref=e22]: "05"
+        - generic [ref=e23]: 店铺
+      - button "06 配置" [ref=e24] [cursor=pointer]:
+        - generic [ref=e25]: "06"
+        - generic [ref=e26]: 配置
+    - generic [ref=e27]:
+      - generic [ref=e28]: 任务状态
+      - strong [ref=e29]: Idle
+  - generic [ref=e31]:
+    - generic [ref=e32]:
+      - generic [ref=e33]:
+        - paragraph [ref=e34]: Products
+        - heading "待上架商品" [level=2] [ref=e35]
+      - button "刷新商品" [ref=e36] [cursor=pointer]
+    - generic [ref=e37]:
+      - generic [ref=e39]: 正在加载商品...
+      - complementary [ref=e40]:
+        - generic [ref=e42]: noon 上传作业
+        - generic [ref=e43]: 上传目标店铺
+        - combobox "上传目标店铺" [ref=e44]
+        - button "上传全部仓库商品" [ref=e46] [cursor=pointer]
+        - generic [ref=e48]: 仓库作业日志
+        - generic [ref=e49]:
+          - button "停止任务" [disabled] [ref=e50]
+          - button "清空日志" [ref=e51] [cursor=pointer]

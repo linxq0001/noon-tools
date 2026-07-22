@@ -1,0 +1,612 @@
+- main [ref=f1e3]:
+  - complementary [ref=f1e4]:
+    - generic [ref=f1e5]:
+      - heading "Noon Tools" [level=1] [ref=f1e6]
+      - generic [ref=f1e7]: 1688 collection workspace
+    - navigation "业务导航" [ref=f1e8]:
+      - button "01 工作台" [ref=f1e9] [cursor=pointer]:
+        - generic [ref=f1e10]: "01"
+        - generic [ref=f1e11]: 工作台
+      - button "02 1688 采集" [ref=f1e12] [cursor=pointer]:
+        - generic [ref=f1e13]: "02"
+        - generic [ref=f1e14]: 1688 采集
+      - button "03 商品仓库" [ref=f1e15] [cursor=pointer]:
+        - generic [ref=f1e16]: "03"
+        - generic [ref=f1e17]: 商品仓库
+      - button "04 Noon 工作台" [ref=f1e18] [cursor=pointer]:
+        - generic [ref=f1e19]: "04"
+        - generic [ref=f1e20]: Noon 工作台
+      - button "05 店铺" [ref=f1e21] [cursor=pointer]:
+        - generic [ref=f1e22]: "05"
+        - generic [ref=f1e23]: 店铺
+      - button "06 配置" [ref=f1e24] [cursor=pointer]:
+        - generic [ref=f1e25]: "06"
+        - generic [ref=f1e26]: 配置
+    - generic [ref=f1e27]:
+      - generic [ref=f1e28]: 任务状态
+      - strong [ref=f1e29]: Idle
+  - generic [ref=f1e30]:
+    - generic [ref=f1e48]:
+      - generic [ref=f1e49]:
+        - generic [ref=f1e50]:
+          - paragraph [ref=f1e51]: Products
+          - heading "待上架商品" [level=2] [ref=f1e52]
+        - button "刷新商品" [ref=f1e53] [cursor=pointer]
+      - generic [ref=f1e54]:
+        - generic [ref=f1e55]:
+          - generic [ref=f1e56]:
+            - generic [ref=f1e57]:
+              - generic [ref=f1e58]: 全部商品
+              - strong [ref=f1e59]: "149"
+            - generic [ref=f1e60]:
+              - generic [ref=f1e61]: 待上架
+              - strong [ref=f1e62]: "149"
+            - generic [ref=f1e63]:
+              - generic [ref=f1e64]: 上架中
+              - strong [ref=f1e65]: "0"
+            - generic [ref=f1e66]:
+              - generic [ref=f1e67]: 已上传
+              - strong [ref=f1e68]: "0"
+            - generic [ref=f1e69]:
+              - generic [ref=f1e70]: 上架失败
+              - strong [ref=f1e71]: "0"
+          - generic [ref=f1e72]:
+            - generic [ref=f1e74]:
+              - generic [ref=f1e75]:
+                - strong [ref=f1e77]: 数据来源
+                - generic [ref=f1e78]:
+                  - button "全部来源 153" [ref=f1e79] [cursor=pointer]
+                  - button "1688 153" [ref=f1e80] [cursor=pointer]
+                  - button "Amazon 0" [ref=f1e81] [cursor=pointer]
+                  - button "Noon 0" [ref=f1e82] [cursor=pointer]
+              - generic [ref=f1e83]:
+                - strong [ref=f1e85]: 仓库
+                - generic [ref=f1e86]:
+                  - generic [ref=f1e87]: 仓库数据源
+                  - combobox "仓库数据源" [ref=f1e88]:
+                    - option "义乌铭雯箱包有限公司 · 149 个商品" [selected]
+                    - option "义乌铭雯箱包有限公司2 · 4 个商品"
+              - generic [ref=f1e89]:
+                - strong [ref=f1e91]: 状态筛选
+                - generic [ref=f1e92]:
+                  - button "全部 149" [ref=f1e93] [cursor=pointer]
+                  - button "待上架 149" [ref=f1e94] [cursor=pointer]
+                  - button "上架中 0" [ref=f1e95] [cursor=pointer]
+                  - button "已上传 0" [ref=f1e96] [cursor=pointer]
+                  - button "上架失败 0" [ref=f1e97] [cursor=pointer]
+            - generic [ref=f1e99]:
+              - generic [ref=f1e100]:
+                - strong [ref=f1e101]: 搜索
+                - generic [ref=f1e102]: 名称、目录、Noon 标题或 SKU
+              - generic [ref=f1e103]:
+                - textbox "搜索商品名称、目录、Noon 标题、SKU..." [ref=f1e104]
+                - button "重置" [ref=f1e106] [cursor=pointer]
+          - generic [ref=f1e107]:
+            - generic [ref=f1e108]:
+              - generic [ref=f1e109]:
+                - checkbox "选择本页" [ref=f1e110]
+                - text: 选择本页
+              - generic [ref=f1e111]: 共 149 个商品 · 已选 0 个 · 本页 20 个
+            - generic [ref=f1e113]:
+              - button "上传选中" [disabled] [ref=f1e114]
+              - button "批量上架" [ref=f1e115] [cursor=pointer]
+          - generic [ref=f1e117]:
+            - generic [ref=f1e118]:
+              - generic [ref=f1e120]: 商品信息
+              - generic [ref=f1e122]: 采集价格
+              - generic [ref=f1e124]: SKU
+              - generic [ref=f1e125]: 物流信息
+              - generic [ref=f1e126]: 海关编码(HS Code)
+              - generic [ref=f1e127]: 状态
+              - generic [ref=f1e128]: 采集时间
+              - generic [ref=f1e130]: 操作
+            - generic [ref=f1e131]:
+              - article [ref=f1e132]:
+                - checkbox [ref=f1e133]
+                - generic [ref=f1e135]:
+                  - button "Evening Clutch Bag" [ref=f1e136] [cursor=pointer]
+                  - generic [ref=f1e137]:
+                    - generic [ref=f1e138]: "1688"
+                    - generic [ref=f1e139]: 1688 ID： 1000182597731
+                  - generic [ref=f1e140]:
+                    - generic [ref=f1e141]: ✓ 已创建草稿
+                    - link "原始链接" [ref=f1e142] [cursor=pointer]:
+                      - /url: https://detail.1688.com/offer/1000182597731.html
+                  - generic [ref=f1e144]: 已调整
+                - generic [ref=f1e146]: ✓
+                - generic [ref=f1e147]: ¥125.00
+                - generic [ref=f1e148]:
+                  - text: "1"
+                  - generic [ref=f1e149]: /1组
+                - generic [ref=f1e150]: "重量: 1 体积: 16.5 x 5 x 16 cm"
+                - generic [ref=f1e151]: "-"
+                - generic [ref=f1e153]: 待上架
+                - generic [ref=f1e154]: "-"
+                - generic [ref=f1e155]:
+                  - button "上传" [ref=f1e156] [cursor=pointer]
+                  - button "删除" [ref=f1e157] [cursor=pointer]: ⌫
+              - article [ref=f1e158]:
+                - checkbox [ref=f1e159]
+                - generic [ref=f1e161]:
+                  - button "Rhinestone Evening Clutch" [ref=f1e162] [cursor=pointer]
+                  - generic [ref=f1e163]:
+                    - generic [ref=f1e164]: "1688"
+                    - generic [ref=f1e165]: 1688 ID： 1000910892731
+                  - generic [ref=f1e166]:
+                    - generic [ref=f1e167]: ✓ 已创建草稿
+                    - link "原始链接" [ref=f1e168] [cursor=pointer]:
+                      - /url: https://detail.1688.com/offer/1000910892731.html
+                  - generic [ref=f1e170]: 已调整
+                - generic [ref=f1e172]: ✓
+                - generic [ref=f1e173]: ¥90.00
+                - generic [ref=f1e174]:
+                  - text: "2"
+                  - generic [ref=f1e175]: /2组
+                - generic [ref=f1e176]: "重量: 1 体积: 20 x 7 x 14.5 cm"
+                - generic [ref=f1e177]: "-"
+                - generic [ref=f1e179]: 待上架
+                - generic [ref=f1e180]: "-"
+                - generic [ref=f1e181]:
+                  - button "上传" [ref=f1e182] [cursor=pointer]
+                  - button "删除" [ref=f1e183] [cursor=pointer]: ⌫
+              - article [ref=f1e184]:
+                - checkbox [ref=f1e185]
+                - generic [ref=f1e187]:
+                  - button "Shiny Silk Satin Evening Clutch Handbag" [ref=f1e188] [cursor=pointer]
+                  - generic [ref=f1e189]:
+                    - generic [ref=f1e190]: "1688"
+                    - generic [ref=f1e191]: 1688 ID： 1016581836220
+                  - generic [ref=f1e192]:
+                    - generic [ref=f1e193]: ✓ 已创建草稿
+                    - link "原始链接" [ref=f1e194] [cursor=pointer]:
+                      - /url: https://detail.1688.com/offer/1016581836220.html
+                  - generic [ref=f1e196]: 已调整
+                - generic [ref=f1e198]: ✓
+                - generic [ref=f1e199]: ¥39.00
+                - generic [ref=f1e200]:
+                  - text: "5"
+                  - generic [ref=f1e201]: /5组
+                - generic [ref=f1e202]: "重量: 1 体积: 17 x 6 x 15 cm"
+                - generic [ref=f1e203]: "-"
+                - generic [ref=f1e205]: 待上架
+                - generic [ref=f1e206]: "-"
+                - generic [ref=f1e207]:
+                  - button "上传" [ref=f1e208] [cursor=pointer]
+                  - button "删除" [ref=f1e209] [cursor=pointer]: ⌫
+              - article [ref=f1e210]:
+                - checkbox [ref=f1e211]
+                - generic [ref=f1e213]:
+                  - button "Crocodile Pattern PU Leather Evening Clutch Box Bag" [ref=f1e214] [cursor=pointer]
+                  - generic [ref=f1e215]:
+                    - generic [ref=f1e216]: "1688"
+                    - generic [ref=f1e217]: 1688 ID： 1018847378889
+                  - generic [ref=f1e218]:
+                    - generic [ref=f1e219]: ✓ 已创建草稿
+                    - link "原始链接" [ref=f1e220] [cursor=pointer]:
+                      - /url: https://detail.1688.com/offer/1018847378889.html
+                  - generic [ref=f1e222]: 已调整
+                - generic [ref=f1e224]: ✓
+                - generic [ref=f1e225]: ¥37.00
+                - generic [ref=f1e226]:
+                  - text: "3"
+                  - generic [ref=f1e227]: /3组
+                - generic [ref=f1e228]: "重量: 1 体积: 23 x 6 x 8.5 cm"
+                - generic [ref=f1e229]: "-"
+                - generic [ref=f1e231]: 待上架
+                - generic [ref=f1e232]: "-"
+                - generic [ref=f1e233]:
+                  - button "上传" [ref=f1e234] [cursor=pointer]
+                  - button "删除" [ref=f1e235] [cursor=pointer]: ⌫
+              - article [ref=f1e236]:
+                - checkbox [ref=f1e237]
+                - generic [ref=f1e239]:
+                  - button "Rhinestone Lip Evening Clutch" [ref=f1e240] [cursor=pointer]
+                  - generic [ref=f1e241]:
+                    - generic [ref=f1e242]: "1688"
+                    - generic [ref=f1e243]: 1688 ID： 1019817046845
+                  - generic [ref=f1e244]:
+                    - generic [ref=f1e245]: ✓ 已创建草稿
+                    - link "原始链接" [ref=f1e246] [cursor=pointer]:
+                      - /url: https://detail.1688.com/offer/1019817046845.html
+                  - generic [ref=f1e248]: 已调整
+                - generic [ref=f1e250]: ✓
+                - generic [ref=f1e251]: ¥50.00
+                - generic [ref=f1e252]:
+                  - text: "7"
+                  - generic [ref=f1e253]: /7组
+                - generic [ref=f1e254]: "重量: 1 体积: 17 x 6 x 15 cm"
+                - generic [ref=f1e255]: "-"
+                - generic [ref=f1e257]: 待上架
+                - generic [ref=f1e258]: "-"
+                - generic [ref=f1e259]:
+                  - button "上传" [ref=f1e260] [cursor=pointer]
+                  - button "删除" [ref=f1e261] [cursor=pointer]: ⌫
+              - article [ref=f1e262]:
+                - checkbox [ref=f1e263]
+                - generic [ref=f1e265]:
+                  - button "Rhinestone Heart Evening Clutch with Chain" [ref=f1e266] [cursor=pointer]
+                  - generic [ref=f1e267]:
+                    - generic [ref=f1e268]: "1688"
+                    - generic [ref=f1e269]: 1688 ID： 1021488344768
+                  - generic [ref=f1e270]:
+                    - generic [ref=f1e271]: ✓ 已创建草稿
+                    - link "原始链接" [ref=f1e272] [cursor=pointer]:
+                      - /url: https://detail.1688.com/offer/1021488344768.html
+                  - generic [ref=f1e274]: 已调整
+                - generic [ref=f1e276]: ✓
+                - generic [ref=f1e277]: ¥46.00
+                - generic [ref=f1e278]:
+                  - text: "6"
+                  - generic [ref=f1e279]: /6组
+                - generic [ref=f1e280]: "重量: 1 体积: 14 x 6 x 12 cm"
+                - generic [ref=f1e281]: "-"
+                - generic [ref=f1e283]: 待上架
+                - generic [ref=f1e284]: "-"
+                - generic [ref=f1e285]:
+                  - button "上传" [ref=f1e286] [cursor=pointer]
+                  - button "删除" [ref=f1e287] [cursor=pointer]: ⌫
+              - article [ref=f1e288]:
+                - checkbox [ref=f1e289]
+                - generic [ref=f1e291]:
+                  - button "Rhinestone Victory Gesture Evening Hand Clutch" [ref=f1e292] [cursor=pointer]
+                  - generic [ref=f1e293]:
+                    - generic [ref=f1e294]: "1688"
+                    - generic [ref=f1e295]: 1688 ID： 1025228619536
+                  - generic [ref=f1e296]:
+                    - generic [ref=f1e297]: ✓ 已创建草稿
+                    - link "原始链接" [ref=f1e298] [cursor=pointer]:
+                      - /url: https://detail.1688.com/offer/1025228619536.html
+                  - generic [ref=f1e300]: 已调整
+                - generic [ref=f1e302]: ✓
+                - generic [ref=f1e303]: ¥190.00
+                - generic [ref=f1e304]:
+                  - text: "1"
+                  - generic [ref=f1e305]: /1组
+                - generic [ref=f1e306]: "重量: 1 体积: 22.5 x 6.5 x 14.2 cm"
+                - generic [ref=f1e307]: "-"
+                - generic [ref=f1e309]: 待上架
+                - generic [ref=f1e310]: "-"
+                - generic [ref=f1e311]:
+                  - button "上传" [ref=f1e312] [cursor=pointer]
+                  - button "删除" [ref=f1e313] [cursor=pointer]: ⌫
+              - article [ref=f1e314]:
+                - checkbox [ref=f1e315]
+                - generic [ref=f1e317]:
+                  - button "Peacock Rhinestone Box Clutch" [ref=f1e318] [cursor=pointer]
+                  - generic [ref=f1e319]:
+                    - generic [ref=f1e320]: "1688"
+                    - generic [ref=f1e321]: 1688 ID： 1025598914006
+                  - generic [ref=f1e322]:
+                    - generic [ref=f1e323]: ✓ 已创建草稿
+                    - link "原始链接" [ref=f1e324] [cursor=pointer]:
+                      - /url: https://detail.1688.com/offer/1025598914006.html
+                  - generic [ref=f1e326]: 已调整
+                - generic [ref=f1e328]: ✓
+                - generic [ref=f1e329]: ¥49.00
+                - generic [ref=f1e330]:
+                  - text: "7"
+                  - generic [ref=f1e331]: /7组
+                - generic [ref=f1e332]: "重量: 1 体积: 17 x 6 x 15 cm"
+                - generic [ref=f1e333]: "-"
+                - generic [ref=f1e335]: 待上架
+                - generic [ref=f1e336]: "-"
+                - generic [ref=f1e337]:
+                  - button "上传" [ref=f1e338] [cursor=pointer]
+                  - button "删除" [ref=f1e339] [cursor=pointer]: ⌫
+              - article [ref=f1e340]:
+                - checkbox [ref=f1e341]
+                - generic [ref=f1e343]:
+                  - button "Rhinestone Retro Clutch Bag" [ref=f1e344] [cursor=pointer]
+                  - generic [ref=f1e345]:
+                    - generic [ref=f1e346]: "1688"
+                    - generic [ref=f1e347]: 1688 ID： 1025900198330
+                  - generic [ref=f1e348]:
+                    - generic [ref=f1e349]: ✓ 已创建草稿
+                    - link "原始链接" [ref=f1e350] [cursor=pointer]:
+                      - /url: https://detail.1688.com/offer/1025900198330.html
+                  - generic [ref=f1e352]: 已调整
+                - generic [ref=f1e354]: ✓
+                - generic [ref=f1e355]: ¥190.00
+                - generic [ref=f1e356]:
+                  - text: "1"
+                  - generic [ref=f1e357]: /1组
+                - generic [ref=f1e358]: "重量: 2 体积: 29 x 6.7 x 7.5 cm"
+                - generic [ref=f1e359]: "-"
+                - generic [ref=f1e361]: 待上架
+                - generic [ref=f1e362]: "-"
+                - generic [ref=f1e363]:
+                  - button "上传" [ref=f1e364] [cursor=pointer]
+                  - button "删除" [ref=f1e365] [cursor=pointer]: ⌫
+              - article [ref=f1e366]:
+                - checkbox [ref=f1e367]
+                - generic [ref=f1e369]:
+                  - button "Evening Bag" [ref=f1e370] [cursor=pointer]
+                  - generic [ref=f1e371]:
+                    - generic [ref=f1e372]: "1688"
+                    - generic [ref=f1e373]: 1688 ID： 1026910603296
+                  - generic [ref=f1e374]:
+                    - generic [ref=f1e375]: ✓ 已创建草稿
+                    - link "原始链接" [ref=f1e376] [cursor=pointer]:
+                      - /url: https://detail.1688.com/offer/1026910603296.html
+                  - generic [ref=f1e378]: 已调整
+                - generic [ref=f1e380]: ✓
+                - generic [ref=f1e381]: ¥42.00
+                - generic [ref=f1e382]:
+                  - text: "3"
+                  - generic [ref=f1e383]: /3组
+                - generic [ref=f1e384]: "重量: 1 体积: 19.1 x 6.5 x 19 cm"
+                - generic [ref=f1e385]: "-"
+                - generic [ref=f1e387]: 待上架
+                - generic [ref=f1e388]: "-"
+                - generic [ref=f1e389]:
+                  - button "上传" [ref=f1e390] [cursor=pointer]
+                  - button "删除" [ref=f1e391] [cursor=pointer]: ⌫
+              - article [ref=f1e392]:
+                - checkbox [ref=f1e393]
+                - generic [ref=f1e395]:
+                  - button "Woven Color-Block Chain Evening Clutch" [ref=f1e396] [cursor=pointer]
+                  - generic [ref=f1e397]:
+                    - generic [ref=f1e398]: "1688"
+                    - generic [ref=f1e399]: 1688 ID： 1027661636017
+                  - generic [ref=f1e400]:
+                    - generic [ref=f1e401]: ✓ 已创建草稿
+                    - link "原始链接" [ref=f1e402] [cursor=pointer]:
+                      - /url: https://detail.1688.com/offer/1027661636017.html
+                  - generic [ref=f1e404]: 已调整
+                - generic [ref=f1e406]: ✓
+                - generic [ref=f1e407]: ¥41.00
+                - generic [ref=f1e408]:
+                  - text: "2"
+                  - generic [ref=f1e409]: /2组
+                - generic [ref=f1e410]: "重量: 1 体积: 23.5 x 7 x 16 cm"
+                - generic [ref=f1e411]: "-"
+                - generic [ref=f1e413]: 待上架
+                - generic [ref=f1e414]: "-"
+                - generic [ref=f1e415]:
+                  - button "上传" [ref=f1e416] [cursor=pointer]
+                  - button "删除" [ref=f1e417] [cursor=pointer]: ⌫
+              - article [ref=f1e418]:
+                - checkbox [ref=f1e419]
+                - generic [ref=f1e421]:
+                  - button "Evening Clutch Bag" [ref=f1e422] [cursor=pointer]
+                  - generic [ref=f1e423]:
+                    - generic [ref=f1e424]: "1688"
+                    - generic [ref=f1e425]: 1688 ID： 1029604703567
+                  - generic [ref=f1e426]:
+                    - generic [ref=f1e427]: ✓ 已创建草稿
+                    - link "原始链接" [ref=f1e428] [cursor=pointer]:
+                      - /url: https://detail.1688.com/offer/1029604703567.html
+                  - generic [ref=f1e430]: 已调整
+                - generic [ref=f1e432]: ✓
+                - generic [ref=f1e433]: ¥63.00
+                - generic [ref=f1e434]:
+                  - text: "1"
+                  - generic [ref=f1e435]: /1组
+                - generic [ref=f1e436]: "重量: 1 体积: 17 x 5 x 12 cm"
+                - generic [ref=f1e437]: "-"
+                - generic [ref=f1e439]: 待上架
+                - generic [ref=f1e440]: "-"
+                - generic [ref=f1e441]:
+                  - button "上传" [ref=f1e442] [cursor=pointer]
+                  - button "删除" [ref=f1e443] [cursor=pointer]: ⌫
+              - article [ref=f1e444]:
+                - checkbox [ref=f1e445]
+                - generic [ref=f1e447]:
+                  - button "Rhinestone Flower Oval Evening Clutch" [ref=f1e448] [cursor=pointer]
+                  - generic [ref=f1e449]:
+                    - generic [ref=f1e450]: "1688"
+                    - generic [ref=f1e451]: 1688 ID： 1029614835695
+                  - generic [ref=f1e452]:
+                    - generic [ref=f1e453]: ✓ 已创建草稿
+                    - link "原始链接" [ref=f1e454] [cursor=pointer]:
+                      - /url: https://detail.1688.com/offer/1029614835695.html
+                  - generic [ref=f1e456]: 已调整
+                - generic [ref=f1e458]: ✓
+                - generic [ref=f1e459]: ¥178.00
+                - generic [ref=f1e460]:
+                  - text: "3"
+                  - generic [ref=f1e461]: /3组
+                - generic [ref=f1e462]: "重量: 2 体积: 20 x 7.5 x 18 cm"
+                - generic [ref=f1e463]: "-"
+                - generic [ref=f1e465]: 待上架
+                - generic [ref=f1e466]: "-"
+                - generic [ref=f1e467]:
+                  - button "上传" [ref=f1e468] [cursor=pointer]
+                  - button "删除" [ref=f1e469] [cursor=pointer]: ⌫
+              - article [ref=f1e470]:
+                - checkbox [ref=f1e471]
+                - generic [ref=f1e473]:
+                  - button "Rhinestone Evening Handheld Clutch Bag" [ref=f1e474] [cursor=pointer]
+                  - generic [ref=f1e475]:
+                    - generic [ref=f1e476]: "1688"
+                    - generic [ref=f1e477]: 1688 ID： 1029615607421
+                  - generic [ref=f1e478]:
+                    - generic [ref=f1e479]: ✓ 已创建草稿
+                    - link "原始链接" [ref=f1e480] [cursor=pointer]:
+                      - /url: https://detail.1688.com/offer/1029615607421.html
+                  - generic [ref=f1e482]: 已调整
+                - generic [ref=f1e484]: ✓
+                - generic [ref=f1e485]: ¥178.00
+                - generic [ref=f1e486]:
+                  - text: "2"
+                  - generic [ref=f1e487]: /2组
+                - generic [ref=f1e488]: "重量: 2 体积: 19.5 x 7.5 x 18 cm"
+                - generic [ref=f1e489]: "-"
+                - generic [ref=f1e491]: 待上架
+                - generic [ref=f1e492]: "-"
+                - generic [ref=f1e493]:
+                  - button "上传" [ref=f1e494] [cursor=pointer]
+                  - button "删除" [ref=f1e495] [cursor=pointer]: ⌫
+              - article [ref=f1e496]:
+                - checkbox [ref=f1e497]
+                - generic [ref=f1e499]:
+                  - button "Rhinestone Unicorn Evening Clutch" [ref=f1e500] [cursor=pointer]
+                  - generic [ref=f1e501]:
+                    - generic [ref=f1e502]: "1688"
+                    - generic [ref=f1e503]: 1688 ID： 1029681071274
+                  - generic [ref=f1e504]:
+                    - generic [ref=f1e505]: ✓ 已创建草稿
+                    - link "原始链接" [ref=f1e506] [cursor=pointer]:
+                      - /url: https://detail.1688.com/offer/1029681071274.html
+                  - generic [ref=f1e508]: 已调整
+                - generic [ref=f1e510]: ✓
+                - generic [ref=f1e511]: ¥178.00
+                - generic [ref=f1e512]:
+                  - text: "1"
+                  - generic [ref=f1e513]: /1组
+                - generic [ref=f1e514]: "重量: 1 体积: 54 x 8 x 14 cm"
+                - generic [ref=f1e515]: "-"
+                - generic [ref=f1e517]: 待上架
+                - generic [ref=f1e518]: "-"
+                - generic [ref=f1e519]:
+                  - button "上传" [ref=f1e520] [cursor=pointer]
+                  - button "删除" [ref=f1e521] [cursor=pointer]: ⌫
+              - article [ref=f1e522]:
+                - checkbox [ref=f1e523]
+                - generic [ref=f1e525]:
+                  - button "Rhinestone Evening Clutch Bag" [ref=f1e526] [cursor=pointer]
+                  - generic [ref=f1e527]:
+                    - generic [ref=f1e528]: "1688"
+                    - generic [ref=f1e529]: 1688 ID： 1029883522702
+                  - generic [ref=f1e530]:
+                    - generic [ref=f1e531]: ✓ 已创建草稿
+                    - link "原始链接" [ref=f1e532] [cursor=pointer]:
+                      - /url: https://detail.1688.com/offer/1029883522702.html
+                  - generic [ref=f1e534]: 已调整
+                - generic [ref=f1e536]: ✓
+                - generic [ref=f1e537]: ¥180.00
+                - generic [ref=f1e538]:
+                  - text: "1"
+                  - generic [ref=f1e539]: /1组
+                - generic [ref=f1e540]: "重量: 1 体积: 18 x 6 x 12 cm"
+                - generic [ref=f1e541]: "-"
+                - generic [ref=f1e543]: 待上架
+                - generic [ref=f1e544]: "-"
+                - generic [ref=f1e545]:
+                  - button "上传" [ref=f1e546] [cursor=pointer]
+                  - button "删除" [ref=f1e547] [cursor=pointer]: ⌫
+              - article [ref=f1e548]:
+                - checkbox [ref=f1e549]
+                - generic [ref=f1e551]:
+                  - button "Acrylic Glossy Evening Clutch" [ref=f1e552] [cursor=pointer]
+                  - generic [ref=f1e553]:
+                    - generic [ref=f1e554]: "1688"
+                    - generic [ref=f1e555]: 1688 ID： 1030067031734
+                  - generic [ref=f1e556]:
+                    - generic [ref=f1e557]: ✓ 已创建草稿
+                    - link "原始链接" [ref=f1e558] [cursor=pointer]:
+                      - /url: https://detail.1688.com/offer/1030067031734.html
+                  - generic [ref=f1e560]: 已调整
+                - generic [ref=f1e562]: ✓
+                - generic [ref=f1e563]: ¥58.00
+                - generic [ref=f1e564]:
+                  - text: "1"
+                  - generic [ref=f1e565]: /1组
+                - generic [ref=f1e566]: "重量: 1 体积: 21 x 6 x 16 cm"
+                - generic [ref=f1e567]: "-"
+                - generic [ref=f1e569]: 待上架
+                - generic [ref=f1e570]: "-"
+                - generic [ref=f1e571]:
+                  - button "上传" [ref=f1e572] [cursor=pointer]
+                  - button "删除" [ref=f1e573] [cursor=pointer]: ⌫
+              - article [ref=f1e574]:
+                - checkbox [ref=f1e575]
+                - generic [ref=f1e577]:
+                  - button "Rhinestone Flower Hollow-out Evening Clutch" [ref=f1e578] [cursor=pointer]
+                  - generic [ref=f1e579]:
+                    - generic [ref=f1e580]: "1688"
+                    - generic [ref=f1e581]: 1688 ID： 1030358602692
+                  - generic [ref=f1e582]:
+                    - generic [ref=f1e583]: ✓ 已创建草稿
+                    - link "原始链接" [ref=f1e584] [cursor=pointer]:
+                      - /url: https://detail.1688.com/offer/1030358602692.html
+                  - generic [ref=f1e586]: 已调整
+                - generic [ref=f1e588]: ✓
+                - generic [ref=f1e589]: ¥178.00
+                - generic [ref=f1e590]:
+                  - text: "3"
+                  - generic [ref=f1e591]: /3组
+                - generic [ref=f1e592]: "重量: 2 体积: 23 x 6 x 20 cm"
+                - generic [ref=f1e593]: "-"
+                - generic [ref=f1e595]: 待上架
+                - generic [ref=f1e596]: "-"
+                - generic [ref=f1e597]:
+                  - button "上传" [ref=f1e598] [cursor=pointer]
+                  - button "删除" [ref=f1e599] [cursor=pointer]: ⌫
+              - article [ref=f1e600]:
+                - checkbox [ref=f1e601]
+                - generic [ref=f1e603]:
+                  - button "Metallic Sheen Cloud Clutch Bag" [ref=f1e604] [cursor=pointer]
+                  - generic [ref=f1e605]:
+                    - generic [ref=f1e606]: "1688"
+                    - generic [ref=f1e607]: 1688 ID： 1030708861961
+                  - generic [ref=f1e608]:
+                    - generic [ref=f1e609]: ✓ 已创建草稿
+                    - link "原始链接" [ref=f1e610] [cursor=pointer]:
+                      - /url: https://detail.1688.com/offer/1030708861961.html
+                  - generic [ref=f1e612]: 已调整
+                - generic [ref=f1e614]: ✓
+                - generic [ref=f1e615]: ¥23.00
+                - generic [ref=f1e616]:
+                  - text: "2"
+                  - generic [ref=f1e617]: /2组
+                - generic [ref=f1e618]: "重量: 1 体积: 22 x 17 x 7 cm"
+                - generic [ref=f1e619]: "-"
+                - generic [ref=f1e621]: 待上架
+                - generic [ref=f1e622]: "-"
+                - generic [ref=f1e623]:
+                  - button "上传" [ref=f1e624] [cursor=pointer]
+                  - button "删除" [ref=f1e625] [cursor=pointer]: ⌫
+              - article [ref=f1e626]:
+                - checkbox [ref=f1e627]
+                - generic [ref=f1e629]:
+                  - button "Cocktail Glass Clutch Bag" [ref=f1e630] [cursor=pointer]
+                  - generic [ref=f1e631]:
+                    - generic [ref=f1e632]: "1688"
+                    - generic [ref=f1e633]: 1688 ID： 1031271793348
+                  - generic [ref=f1e634]:
+                    - generic [ref=f1e635]: ✓ 已创建草稿
+                    - link "原始链接" [ref=f1e636] [cursor=pointer]:
+                      - /url: https://detail.1688.com/offer/1031271793348.html
+                  - generic [ref=f1e638]: 已调整
+                - generic [ref=f1e640]: ✓
+                - generic [ref=f1e641]: ¥248.00
+                - generic [ref=f1e642]:
+                  - text: "1"
+                  - generic [ref=f1e643]: /1组
+                - generic [ref=f1e644]: "重量: 1 体积: 53.1 x 21 x 53 cm"
+                - generic [ref=f1e645]: "-"
+                - generic [ref=f1e647]: 待上架
+                - generic [ref=f1e648]: "-"
+                - generic [ref=f1e649]:
+                  - button "上传" [ref=f1e650] [cursor=pointer]
+                  - button "删除" [ref=f1e651] [cursor=pointer]: ⌫
+          - generic [ref=f1e653]:
+            - generic [ref=f1e654]: 共 149 条
+            - button "‹" [disabled] [ref=f1e655]
+            - button "1" [ref=f1e656] [cursor=pointer]
+            - button "2" [ref=f1e657] [cursor=pointer]
+            - button "3" [ref=f1e658] [cursor=pointer]
+            - button "4" [ref=f1e659] [cursor=pointer]
+            - button "5" [ref=f1e660] [cursor=pointer]
+            - generic [ref=f1e661]: •••
+            - button "8" [ref=f1e662] [cursor=pointer]
+            - button "›" [ref=f1e663] [cursor=pointer]
+            - combobox "每页条数" [ref=f1e664]:
+              - option "10 条/页"
+              - option "20 条/页" [selected]
+              - option "50 条/页"
+            - generic [ref=f1e665]: 跳至
+            - textbox "跳转页码" [ref=f1e666]
+            - generic [ref=f1e667]: 页
+        - complementary [ref=f1e668]:
+          - generic [ref=f1e670]: noon 上传作业
+          - generic [ref=f1e671]: 上传目标店铺
+          - combobox "上传目标店铺" [ref=f1e672]:
+            - option "PRJ550984 · PRJ550984" [selected]
+          - button "上传全部仓库商品" [ref=f1e674] [cursor=pointer]
+          - generic [ref=f1e676]: 仓库作业日志
+          - generic [ref=f1e677]:
+            - button "停止任务" [disabled] [ref=f1e678]
+            - button "清空日志" [ref=f1e679] [cursor=pointer]
+    - text: ✓ 当前默认

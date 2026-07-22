@@ -1,0 +1,1 @@
+{"timestamp":"2026-07-21T00:00:00+08:00","source":"user_correction","area":"frontend-ui-consistency","signal":"同一操作组不仅要复用组件和布局，按钮视觉样式也必须一致；不能保留未确认的 primary/secondary 权重差异。","evidence":"用户在 Noon 工作台顶部与空状态两处标注 API 快速同步和导出同步样式不一致。","status":"pending_review"}

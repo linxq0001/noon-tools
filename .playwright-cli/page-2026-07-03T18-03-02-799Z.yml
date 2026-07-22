@@ -1,0 +1,36 @@
+- main [ref=f1e3]:
+  - complementary [ref=f1e4]:
+    - generic [ref=f1e5]:
+      - heading "Noon Tools" [level=1] [ref=f1e6]
+      - generic [ref=f1e7]: 1688 collection workspace
+    - navigation "业务导航" [ref=f1e8]:
+      - button "01 工作台" [ref=f1e9] [cursor=pointer]:
+        - generic [ref=f1e10]: "01"
+        - generic [ref=f1e11]: 工作台
+      - button "02 1688 采集" [ref=f1e12] [cursor=pointer]:
+        - generic [ref=f1e13]: "02"
+        - generic [ref=f1e14]: 1688 采集
+      - button "03 商品仓库" [ref=f1e15] [cursor=pointer]:
+        - generic [ref=f1e16]: "03"
+        - generic [ref=f1e17]: 商品仓库
+      - button "04 Noon 工作台" [ref=f1e18] [cursor=pointer]:
+        - generic [ref=f1e19]: "04"
+        - generic [ref=f1e20]: Noon 工作台
+      - button "05 店铺" [ref=f1e21] [cursor=pointer]:
+        - generic [ref=f1e22]: "05"
+        - generic [ref=f1e23]: 店铺
+      - button "06 配置" [ref=f1e24] [cursor=pointer]:
+        - generic [ref=f1e25]: "06"
+        - generic [ref=f1e26]: 配置
+    - generic [ref=f1e27]:
+      - generic [ref=f1e28]: 任务状态
+      - strong [ref=f1e29]: Idle
+  - generic [ref=f1e30]:
+    - generic [ref=f1e31]:
+      - generic [ref=f1e32]:
+        - generic [ref=f1e33]:
+          - paragraph [ref=f1e34]: Noon Operations
+          - heading "Noon 工作台" [level=2] [ref=f1e35]
+        - button "刷新商品" [ref=f1e36] [cursor=pointer]
+      - generic [ref=f1e39]: 正在加载商品...
+    - text: ✓ 当前默认

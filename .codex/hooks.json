@@ -1,0 +1,36 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "shell|local_shell|exec|apply_patch|edit|write",
+        "hooks": [
+          { "type": "command", "command": "\"$(git rev-parse --show-toplevel)/.codex/hooks/guard-git-writes.sh\"", "timeout": 5 },
+          { "type": "command", "command": "\"$(git rev-parse --show-toplevel)/.codex/hooks/guard-dependency-additions.sh\"", "timeout": 5 },
+          { "type": "command", "command": "\"$(git rev-parse --show-toplevel)/.codex/hooks/guard-production-operations.sh\"", "timeout": 5 },
+          { "type": "command", "command": "\"$(git rev-parse --show-toplevel)/.codex/hooks/guard-secrets.sh\"", "timeout": 5 }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "apply_patch|edit|write",
+        "hooks": [
+          { "type": "command", "command": "\"$(git rev-parse --show-toplevel)/.codex/hooks/mark-verification-needed.sh\"", "timeout": 5 }
+        ]
+      },
+      {
+        "matcher": "shell|local_shell|exec",
+        "hooks": [
+          { "type": "command", "command": "\"$(git rev-parse --show-toplevel)/.codex/hooks/record-verification.sh\"", "timeout": 5 }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          { "type": "command", "command": "\"$(git rev-parse --show-toplevel)/.codex/hooks/require-verification.sh\"", "timeout": 5 }
+        ]
+      }
+    ]
+  }
+}

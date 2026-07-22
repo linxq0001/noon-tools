@@ -1,0 +1,61 @@
+- main [ref=e3]:
+  - complementary [ref=e4]:
+    - generic [ref=e5]:
+      - heading "Noon Tools" [level=1] [ref=e6]
+      - generic [ref=e7]: 1688 collection workspace
+    - navigation "业务导航" [ref=e8]:
+      - button "01 工作台" [ref=e9] [cursor=pointer]:
+        - generic [ref=e10]: "01"
+        - generic [ref=e11]: 工作台
+      - button "02 1688 采集" [ref=e12] [cursor=pointer]:
+        - generic [ref=e13]: "02"
+        - generic [ref=e14]: 1688 采集
+      - button "03 商品仓库" [ref=e15] [cursor=pointer]:
+        - generic [ref=e16]: "03"
+        - generic [ref=e17]: 商品仓库
+      - button "04 Noon 工作台" [ref=e18] [cursor=pointer]:
+        - generic [ref=e19]: "04"
+        - generic [ref=e20]: Noon 工作台
+      - button "05 店铺" [ref=e21] [cursor=pointer]:
+        - generic [ref=e22]: "05"
+        - generic [ref=e23]: 店铺
+      - button "06 配置" [ref=e24] [cursor=pointer]:
+        - generic [ref=e25]: "06"
+        - generic [ref=e26]: 配置
+    - generic [ref=e27]:
+      - generic [ref=e28]: 任务状态
+      - strong [ref=e29]: Idle
+  - generic [ref=e30]:
+    - generic [ref=e31]:
+      - generic [ref=e32]:
+        - generic [ref=e33]:
+          - paragraph [ref=e34]: Overview
+          - heading "工作台" [level=2] [ref=e35]
+        - button "刷新数据" [ref=e36] [cursor=pointer]
+      - generic [ref=e37]:
+        - generic [ref=e38]:
+          - generic [ref=e39]: 仓库
+          - strong [ref=e40]: "0"
+        - generic [ref=e41]:
+          - generic [ref=e42]: 商品目录
+          - strong [ref=e43]: "0"
+        - generic [ref=e44]:
+          - generic [ref=e45]: 图片数量
+          - strong [ref=e46]: "0"
+      - generic [ref=e47]:
+        - button "新建采集 填写 1688 列表或详情链接，列表采集会进入独立仓库。" [ref=e48] [cursor=pointer]:
+          - strong [ref=e49]: 新建采集
+          - generic [ref=e50]: 填写 1688 列表或详情链接，列表采集会进入独立仓库。
+        - button "查看仓库 按仓库打开商品集合，查看 meta、noon 属性和上传状态。" [ref=e51] [cursor=pointer]:
+          - strong [ref=e52]: 查看仓库
+          - generic [ref=e53]: 按仓库打开商品集合，查看 meta、noon 属性和上传状态。
+        - button "noon 作业 集中处理检查、上架、停售和 Global 批量更新表。" [ref=e54] [cursor=pointer]:
+          - strong [ref=e55]: noon 作业
+          - generic [ref=e56]: 集中处理检查、上架、停售和 Global 批量更新表。
+        - button "配置 集中维护采集环境、上传方式和运营参数。" [ref=e57] [cursor=pointer]:
+          - strong [ref=e58]: 配置
+          - generic [ref=e59]: 集中维护采集环境、上传方式和运营参数。
+        - button "店铺管理 维护 noon 店铺、登录状态和本机后台运行资料。" [ref=e60] [cursor=pointer]:
+          - strong [ref=e61]: 店铺管理
+          - generic [ref=e62]: 维护 noon 店铺、登录状态和本机后台运行资料。
+    - text: ✓ 当前默认

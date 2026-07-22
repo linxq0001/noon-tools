@@ -1,0 +1,804 @@
+- main [ref=e3]:
+  - complementary [ref=e4]:
+    - generic [ref=e5]:
+      - heading "Noon Tools" [level=1] [ref=e6]
+      - generic [ref=e7]: 1688 collection workspace
+    - navigation "业务导航" [ref=e8]:
+      - button "01 工作台" [ref=e9] [cursor=pointer]:
+        - generic [ref=e10]: "01"
+        - generic [ref=e11]: 工作台
+      - button "02 1688 采集" [ref=e12] [cursor=pointer]:
+        - generic [ref=e13]: "02"
+        - generic [ref=e14]: 1688 采集
+      - button "03 商品仓库" [ref=e15] [cursor=pointer]:
+        - generic [ref=e16]: "03"
+        - generic [ref=e17]: 商品仓库
+      - button "04 Noon 工作台" [active] [ref=e18] [cursor=pointer]:
+        - generic [ref=e19]: "04"
+        - generic [ref=e20]: Noon 工作台
+      - button "05 店铺" [ref=e21] [cursor=pointer]:
+        - generic [ref=e22]: "05"
+        - generic [ref=e23]: 店铺
+      - button "06 配置" [ref=e24] [cursor=pointer]:
+        - generic [ref=e25]: "06"
+        - generic [ref=e26]: 配置
+    - generic [ref=e27]:
+      - generic [ref=e28]: 任务状态
+      - strong [ref=e29]: Idle
+  - generic [ref=e30]:
+    - generic [ref=e696]:
+      - generic [ref=e697]:
+        - generic [ref=e698]:
+          - paragraph [ref=e699]: Noon Operations
+          - heading "Noon 工作台" [level=2] [ref=e700]
+        - button "刷新商品" [ref=e701] [cursor=pointer]
+      - generic [ref=e703]:
+        - generic [ref=e704]:
+          - generic [ref=e705]:
+            - generic [ref=e706]:
+              - heading "商品目录" [level=3] [ref=e707]
+              - paragraph [ref=e708]: 管理 Noon SKU、批量调价、改库存、改时效。批量操作后通常需要等待 1-3 分钟在 Noon 生效。
+            - generic [ref=e709]: Catalog Manager
+          - generic [ref=e710]:
+            - generic [ref=e711]:
+              - button "FBN/FBP 模式" [ref=e712] [cursor=pointer]
+              - button "Global (NGS) 模式" [ref=e713] [cursor=pointer]
+            - generic [ref=e714]: 默认跟随仓库 & 运费配置
+          - generic [ref=e715]:
+            - generic [ref=e716]:
+              - generic [ref=e717]: 总销量
+              - strong [ref=e718]: 265件
+              - text: 统计区间 2026-01-01 至 2026-07-03
+            - generic [ref=e719]:
+              - generic [ref=e720]: 商品查看
+              - strong [ref=e721]: "265"
+              - text: 来自 Noon Catalog 同步
+            - generic [ref=e722]:
+              - generic [ref=e723]: 阿联酋 (AE)
+              - strong [ref=e724]: AED 0.00
+              - text: GMV - 退款/取消金额
+            - generic [ref=e725]:
+              - generic [ref=e726]: 沙特 (SA)
+              - strong [ref=e727]: SAR 0.00
+              - text: GMV - 退款/取消金额
+        - generic [ref=e728]:
+          - generic [ref=e729]:
+            - generic [ref=e730]:
+              - checkbox "选择本页" [ref=e731]
+              - text: 选择本页
+            - generic [ref=e732]: 已选择 0 个商品
+          - generic [ref=e734]:
+            - button "批量改商品属性" [disabled] [ref=e735]
+            - button "批量调价" [disabled] [ref=e736]
+            - button "批量改FBP/NGS库存" [disabled] [ref=e737]
+            - button "批量改时效" [disabled] [ref=e738]
+            - button "重新同步" [ref=e739] [cursor=pointer]
+            - button "导出 Global 表" [ref=e740] [cursor=pointer]
+            - button "取消选择" [disabled] [ref=e741]
+            - button "批量删除" [disabled] [ref=e742]
+          - generic [ref=e743]:
+            - strong [ref=e744]: 跟卖监控配额
+            - generic [ref=e745]:
+              - generic [ref=e746]: 0 / 10
+              - generic [ref=e748]: 0%
+            - generic [ref=e749]: 剩余 10 个配额
+        - generic [ref=e751]:
+          - generic [ref=e752]:
+            - generic [ref=e754]: 商品信息
+            - generic [ref=e756]: 售价
+            - generic [ref=e758]: 库存
+            - generic [ref=e760]: 销售情况
+            - generic [ref=e762]: 利润/规格
+            - generic [ref=e763]: 状态
+            - generic [ref=e765]: 跟卖监控
+            - generic [ref=e766]: 操作
+          - generic [ref=e767]:
+            - article [ref=e768]:
+              - checkbox [ref=e769]
+              - generic [ref=e771]:
+                - heading "Generic New Ethnic Style Earrings Wholesale Tassel Copper Earrings with Electroplated Zircon Inlay - Luxurious and Elegant" [level=4] [ref=e772]
+                - generic [ref=e773]:
+                  - generic [ref=e774]: "PSKU: 1062674380761-04"
+                  - generic [ref=e775]: "SKU: Z4C02FAFD7A7110708A47Z-1"
+                  - generic [ref=e776]: 品牌 Generic 来源 -
+              - generic [ref=e777]:
+                - generic [ref=e778]:
+                  - generic [ref=e779]: AE
+                  - generic [ref=e780]:
+                    - emphasis [ref=e781]: 买家最终价
+                    - strong [ref=e782]: AED 0.00
+                    - emphasis [ref=e783]: USD 0.00
+                    - emphasis [ref=e784]: CNY 0.00
+                - generic [ref=e785]:
+                  - generic [ref=e786]: SA
+                  - generic [ref=e787]:
+                    - emphasis [ref=e788]: 买家最终价
+                    - strong [ref=e789]: SAR 0.00
+                    - emphasis [ref=e790]: USD 0.00
+                    - emphasis [ref=e791]: CNY 0.00
+              - generic [ref=e792]:
+                - generic [ref=e793]:
+                  - generic [ref=e794]: AE
+                  - generic [ref=e795]:
+                    - strong [ref=e796]: 总计 0
+                    - emphasis [ref=e797]: NGS 0
+                - generic [ref=e798]:
+                  - generic [ref=e799]: SA
+                  - generic [ref=e800]:
+                    - strong [ref=e801]: 总计 0
+                    - emphasis [ref=e802]: NGS 0
+              - generic [ref=e803]:
+                - generic [ref=e804]:
+                  - generic [ref=e805]: AE
+                  - generic [ref=e806]:
+                    - strong [ref=e807]: 0件 浏览0
+                    - emphasis [ref=e808]: AED 0.00
+                    - emphasis [ref=e809]: 取消 0 · 退货 0
+                - generic [ref=e810]:
+                  - generic [ref=e811]: SA
+                  - generic [ref=e812]:
+                    - strong [ref=e813]: 0件 浏览0
+                    - emphasis [ref=e814]: SAR 0.00
+                    - emphasis [ref=e815]: 取消 0 · 退货 0
+              - generic [ref=e816]:
+                - generic [ref=e817]:
+                  - generic [ref=e818]: AE
+                  - generic [ref=e819]: 未关联 Noon 大师货源
+                - generic [ref=e820]:
+                  - generic [ref=e821]: SA
+                  - generic [ref=e822]: 未关联 Noon 大师货源
+              - generic [ref=e824]:
+                - generic [ref=e825]:
+                  - generic [ref=e826]: AE
+                  - text: 下线
+                  - text: 卖家停用
+                  - text: no_offer
+                - generic [ref=e827]:
+                  - generic [ref=e828]: SA
+                  - text: 下线
+                  - text: 停用
+                  - text: no_offer
+                - generic [ref=e829]:
+                  - generic [ref=e830]: GLOBAL
+                  - text: 暂无数据
+              - button "删除" [ref=e832] [cursor=pointer]
+            - article [ref=e833]:
+              - checkbox [ref=e834]
+              - generic [ref=e836]:
+                - heading "Generic Fashion Elegant Multicolor Zircon Stone Bracelet - Sparkling Jewelry for Women" [level=4] [ref=e837]
+                - generic [ref=e838]:
+                  - generic [ref=e839]: "PSKU: 1052794354716-01"
+                  - generic [ref=e840]: "SKU: ZF28B2AD2F948169D8EBFZ-1"
+                  - generic [ref=e841]: 品牌 Generic 来源 -
+              - generic [ref=e842]:
+                - generic [ref=e843]:
+                  - generic [ref=e844]: AE
+                  - generic [ref=e845]:
+                    - emphasis [ref=e846]: 买家最终价
+                    - strong [ref=e847]: AED 0.00
+                    - emphasis [ref=e848]: USD 0.00
+                    - emphasis [ref=e849]: CNY 0.00
+                - generic [ref=e850]:
+                  - generic [ref=e851]: SA
+                  - generic [ref=e852]:
+                    - emphasis [ref=e853]: 买家最终价
+                    - strong [ref=e854]: SAR 0.00
+                    - emphasis [ref=e855]: USD 0.00
+                    - emphasis [ref=e856]: CNY 0.00
+              - generic [ref=e857]:
+                - generic [ref=e858]:
+                  - generic [ref=e859]: AE
+                  - generic [ref=e860]:
+                    - strong [ref=e861]: 总计 0
+                    - emphasis [ref=e862]: NGS 0
+                - generic [ref=e863]:
+                  - generic [ref=e864]: SA
+                  - generic [ref=e865]:
+                    - strong [ref=e866]: 总计 0
+                    - emphasis [ref=e867]: NGS 0
+              - generic [ref=e868]:
+                - generic [ref=e869]:
+                  - generic [ref=e870]: AE
+                  - generic [ref=e871]:
+                    - strong [ref=e872]: 0件 浏览0
+                    - emphasis [ref=e873]: AED 0.00
+                    - emphasis [ref=e874]: 取消 0 · 退货 0
+                - generic [ref=e875]:
+                  - generic [ref=e876]: SA
+                  - generic [ref=e877]:
+                    - strong [ref=e878]: 0件 浏览0
+                    - emphasis [ref=e879]: SAR 0.00
+                    - emphasis [ref=e880]: 取消 0 · 退货 0
+              - generic [ref=e881]:
+                - generic [ref=e882]:
+                  - generic [ref=e883]: AE
+                  - generic [ref=e884]: 未关联 Noon 大师货源
+                - generic [ref=e885]:
+                  - generic [ref=e886]: SA
+                  - generic [ref=e887]: 未关联 Noon 大师货源
+              - generic [ref=e889]:
+                - generic [ref=e890]:
+                  - generic [ref=e891]: AE
+                  - text: 下线
+                  - text: 卖家停用
+                  - text: no_offer
+                - generic [ref=e892]:
+                  - generic [ref=e893]: SA
+                  - text: 下线
+                  - text: 停用
+                  - text: no_offer
+                - generic [ref=e894]:
+                  - generic [ref=e895]: GLOBAL
+                  - text: 暂无数据
+              - button "删除" [ref=e897] [cursor=pointer]
+            - article [ref=e898]:
+              - checkbox [ref=e899]
+              - generic [ref=e901]:
+                - 'heading "Generic TikTok Live Bestseller: Colorful Zircon Bracelet for Women - European Style" [level=4] [ref=e902]'
+                - generic [ref=e903]:
+                  - generic [ref=e904]: "PSKU: 1054682092284-01"
+                  - generic [ref=e905]: "SKU: Z98BDDB394F52ADFE3130Z-1"
+                  - generic [ref=e906]: 品牌 Generic 来源 -
+              - generic [ref=e907]:
+                - generic [ref=e908]:
+                  - generic [ref=e909]: AE
+                  - generic [ref=e910]:
+                    - emphasis [ref=e911]: 买家最终价
+                    - strong [ref=e912]: AED 0.00
+                    - emphasis [ref=e913]: USD 0.00
+                    - emphasis [ref=e914]: CNY 0.00
+                - generic [ref=e915]:
+                  - generic [ref=e916]: SA
+                  - generic [ref=e917]:
+                    - emphasis [ref=e918]: 买家最终价
+                    - strong [ref=e919]: SAR 0.00
+                    - emphasis [ref=e920]: USD 0.00
+                    - emphasis [ref=e921]: CNY 0.00
+              - generic [ref=e922]:
+                - generic [ref=e923]:
+                  - generic [ref=e924]: AE
+                  - generic [ref=e925]:
+                    - strong [ref=e926]: 总计 0
+                    - emphasis [ref=e927]: NGS 0
+                - generic [ref=e928]:
+                  - generic [ref=e929]: SA
+                  - generic [ref=e930]:
+                    - strong [ref=e931]: 总计 0
+                    - emphasis [ref=e932]: NGS 0
+              - generic [ref=e933]:
+                - generic [ref=e934]:
+                  - generic [ref=e935]: AE
+                  - generic [ref=e936]:
+                    - strong [ref=e937]: 0件 浏览0
+                    - emphasis [ref=e938]: AED 0.00
+                    - emphasis [ref=e939]: 取消 0 · 退货 0
+                - generic [ref=e940]:
+                  - generic [ref=e941]: SA
+                  - generic [ref=e942]:
+                    - strong [ref=e943]: 0件 浏览0
+                    - emphasis [ref=e944]: SAR 0.00
+                    - emphasis [ref=e945]: 取消 0 · 退货 0
+              - generic [ref=e946]:
+                - generic [ref=e947]:
+                  - generic [ref=e948]: AE
+                  - generic [ref=e949]: 未关联 Noon 大师货源
+                - generic [ref=e950]:
+                  - generic [ref=e951]: SA
+                  - generic [ref=e952]: 未关联 Noon 大师货源
+              - generic [ref=e954]:
+                - generic [ref=e955]:
+                  - generic [ref=e956]: AE
+                  - text: 下线
+                  - text: 卖家停用
+                  - text: no_offer
+                - generic [ref=e957]:
+                  - generic [ref=e958]: SA
+                  - text: 下线
+                  - text: 停用
+                  - text: no_offer
+                - generic [ref=e959]:
+                  - generic [ref=e960]: GLOBAL
+                  - text: 暂无数据
+              - button "删除" [ref=e962] [cursor=pointer]
+            - article [ref=e963]:
+              - checkbox [ref=e964]
+              - generic [ref=e966]:
+                - heading "Generic Luxury Full Zircon Bracelet for Women - Fashionable Simple High-End Silver Plated Handmade Jewelry" [level=4] [ref=e967]
+                - generic [ref=e968]:
+                  - generic [ref=e969]: "PSKU: 1053864110132-01"
+                  - generic [ref=e970]: "SKU: Z9838BF80131AA7045293Z-1"
+                  - generic [ref=e971]: 品牌 Generic 来源 -
+              - generic [ref=e972]:
+                - generic [ref=e973]:
+                  - generic [ref=e974]: AE
+                  - generic [ref=e975]:
+                    - emphasis [ref=e976]: 买家最终价
+                    - strong [ref=e977]: AED 0.00
+                    - emphasis [ref=e978]: USD 0.00
+                    - emphasis [ref=e979]: CNY 0.00
+                - generic [ref=e980]:
+                  - generic [ref=e981]: SA
+                  - generic [ref=e982]:
+                    - emphasis [ref=e983]: 买家最终价
+                    - strong [ref=e984]: SAR 0.00
+                    - emphasis [ref=e985]: USD 0.00
+                    - emphasis [ref=e986]: CNY 0.00
+              - generic [ref=e987]:
+                - generic [ref=e988]:
+                  - generic [ref=e989]: AE
+                  - generic [ref=e990]:
+                    - strong [ref=e991]: 总计 0
+                    - emphasis [ref=e992]: NGS 0
+                - generic [ref=e993]:
+                  - generic [ref=e994]: SA
+                  - generic [ref=e995]:
+                    - strong [ref=e996]: 总计 0
+                    - emphasis [ref=e997]: NGS 0
+              - generic [ref=e998]:
+                - generic [ref=e999]:
+                  - generic [ref=e1000]: AE
+                  - generic [ref=e1001]:
+                    - strong [ref=e1002]: 0件 浏览0
+                    - emphasis [ref=e1003]: AED 0.00
+                    - emphasis [ref=e1004]: 取消 0 · 退货 0
+                - generic [ref=e1005]:
+                  - generic [ref=e1006]: SA
+                  - generic [ref=e1007]:
+                    - strong [ref=e1008]: 0件 浏览0
+                    - emphasis [ref=e1009]: SAR 0.00
+                    - emphasis [ref=e1010]: 取消 0 · 退货 0
+              - generic [ref=e1011]:
+                - generic [ref=e1012]:
+                  - generic [ref=e1013]: AE
+                  - generic [ref=e1014]: 未关联 Noon 大师货源
+                - generic [ref=e1015]:
+                  - generic [ref=e1016]: SA
+                  - generic [ref=e1017]: 未关联 Noon 大师货源
+              - generic [ref=e1019]:
+                - generic [ref=e1020]:
+                  - generic [ref=e1021]: AE
+                  - text: 下线
+                  - text: 卖家停用
+                  - text: no_offer
+                - generic [ref=e1022]:
+                  - generic [ref=e1023]: SA
+                  - text: 下线
+                  - text: 停用
+                  - text: no_offer
+                - generic [ref=e1024]:
+                  - generic [ref=e1025]: GLOBAL
+                  - text: 暂无数据
+              - button "删除" [ref=e1027] [cursor=pointer]
+            - article [ref=e1028]:
+              - checkbox [ref=e1029]
+              - generic [ref=e1031]:
+                - heading "Generic New European-Style Colorful Zircon Bracelet for Women - Shiny, Versatile, and Trendy" [level=4] [ref=e1032]
+                - generic [ref=e1033]:
+                  - generic [ref=e1034]: "PSKU: 1051891087517-01"
+                  - generic [ref=e1035]: "SKU: Z14E9D551B6E6AA77405BZ-1"
+                  - generic [ref=e1036]: 品牌 Generic 来源 -
+              - generic [ref=e1037]:
+                - generic [ref=e1038]:
+                  - generic [ref=e1039]: AE
+                  - generic [ref=e1040]:
+                    - emphasis [ref=e1041]: 买家最终价
+                    - strong [ref=e1042]: AED 0.00
+                    - emphasis [ref=e1043]: USD 0.00
+                    - emphasis [ref=e1044]: CNY 0.00
+                - generic [ref=e1045]:
+                  - generic [ref=e1046]: SA
+                  - generic [ref=e1047]:
+                    - emphasis [ref=e1048]: 买家最终价
+                    - strong [ref=e1049]: SAR 0.00
+                    - emphasis [ref=e1050]: USD 0.00
+                    - emphasis [ref=e1051]: CNY 0.00
+              - generic [ref=e1052]:
+                - generic [ref=e1053]:
+                  - generic [ref=e1054]: AE
+                  - generic [ref=e1055]:
+                    - strong [ref=e1056]: 总计 0
+                    - emphasis [ref=e1057]: NGS 0
+                - generic [ref=e1058]:
+                  - generic [ref=e1059]: SA
+                  - generic [ref=e1060]:
+                    - strong [ref=e1061]: 总计 0
+                    - emphasis [ref=e1062]: NGS 0
+              - generic [ref=e1063]:
+                - generic [ref=e1064]:
+                  - generic [ref=e1065]: AE
+                  - generic [ref=e1066]:
+                    - strong [ref=e1067]: 0件 浏览0
+                    - emphasis [ref=e1068]: AED 0.00
+                    - emphasis [ref=e1069]: 取消 0 · 退货 0
+                - generic [ref=e1070]:
+                  - generic [ref=e1071]: SA
+                  - generic [ref=e1072]:
+                    - strong [ref=e1073]: 0件 浏览0
+                    - emphasis [ref=e1074]: SAR 0.00
+                    - emphasis [ref=e1075]: 取消 0 · 退货 0
+              - generic [ref=e1076]:
+                - generic [ref=e1077]:
+                  - generic [ref=e1078]: AE
+                  - generic [ref=e1079]: 未关联 Noon 大师货源
+                - generic [ref=e1080]:
+                  - generic [ref=e1081]: SA
+                  - generic [ref=e1082]: 未关联 Noon 大师货源
+              - generic [ref=e1084]:
+                - generic [ref=e1085]:
+                  - generic [ref=e1086]: AE
+                  - text: 下线
+                  - text: 卖家停用
+                  - text: no_offer
+                - generic [ref=e1087]:
+                  - generic [ref=e1088]: SA
+                  - text: 下线
+                  - text: 停用
+                  - text: no_offer
+                - generic [ref=e1089]:
+                  - generic [ref=e1090]: GLOBAL
+                  - text: 暂无数据
+              - button "删除" [ref=e1092] [cursor=pointer]
+            - article [ref=e1093]:
+              - checkbox [ref=e1094]
+              - generic [ref=e1096]:
+                - heading "Generic Women's Heart-Shaped Copper Bracelet with Stones - Simple & Elegant Design" [level=4] [ref=e1097]
+                - generic [ref=e1098]:
+                  - generic [ref=e1099]: "PSKU: 1061600778855-01"
+                  - generic [ref=e1100]: "SKU: Z8D197422B79992F16343Z-1"
+                  - generic [ref=e1101]: 品牌 Generic 来源 -
+              - generic [ref=e1102]:
+                - generic [ref=e1103]:
+                  - generic [ref=e1104]: AE
+                  - generic [ref=e1105]:
+                    - emphasis [ref=e1106]: 买家最终价
+                    - strong [ref=e1107]: AED 0.00
+                    - emphasis [ref=e1108]: USD 0.00
+                    - emphasis [ref=e1109]: CNY 0.00
+                - generic [ref=e1110]:
+                  - generic [ref=e1111]: SA
+                  - generic [ref=e1112]:
+                    - emphasis [ref=e1113]: 买家最终价
+                    - strong [ref=e1114]: SAR 0.00
+                    - emphasis [ref=e1115]: USD 0.00
+                    - emphasis [ref=e1116]: CNY 0.00
+              - generic [ref=e1117]:
+                - generic [ref=e1118]:
+                  - generic [ref=e1119]: AE
+                  - generic [ref=e1120]:
+                    - strong [ref=e1121]: 总计 0
+                    - emphasis [ref=e1122]: NGS 0
+                - generic [ref=e1123]:
+                  - generic [ref=e1124]: SA
+                  - generic [ref=e1125]:
+                    - strong [ref=e1126]: 总计 0
+                    - emphasis [ref=e1127]: NGS 0
+              - generic [ref=e1128]:
+                - generic [ref=e1129]:
+                  - generic [ref=e1130]: AE
+                  - generic [ref=e1131]:
+                    - strong [ref=e1132]: 0件 浏览0
+                    - emphasis [ref=e1133]: AED 0.00
+                    - emphasis [ref=e1134]: 取消 0 · 退货 0
+                - generic [ref=e1135]:
+                  - generic [ref=e1136]: SA
+                  - generic [ref=e1137]:
+                    - strong [ref=e1138]: 0件 浏览0
+                    - emphasis [ref=e1139]: SAR 0.00
+                    - emphasis [ref=e1140]: 取消 0 · 退货 0
+              - generic [ref=e1141]:
+                - generic [ref=e1142]:
+                  - generic [ref=e1143]: AE
+                  - generic [ref=e1144]: 未关联 Noon 大师货源
+                - generic [ref=e1145]:
+                  - generic [ref=e1146]: SA
+                  - generic [ref=e1147]: 未关联 Noon 大师货源
+              - generic [ref=e1149]:
+                - generic [ref=e1150]:
+                  - generic [ref=e1151]: AE
+                  - text: 下线
+                  - text: 卖家停用
+                  - text: no_offer
+                - generic [ref=e1152]:
+                  - generic [ref=e1153]: SA
+                  - text: 下线
+                  - text: 停用
+                  - text: no_offer
+                - generic [ref=e1154]:
+                  - generic [ref=e1155]: GLOBAL
+                  - text: 暂无数据
+              - button "删除" [ref=e1157] [cursor=pointer]
+            - article [ref=e1158]:
+              - checkbox [ref=e1159]
+              - generic [ref=e1161]:
+                - heading "Generic Women's Eco-Friendly Copper Earrings with Real Gold Plating and AAA Zirconia - Rose Gold" [level=4] [ref=e1162]
+                - generic [ref=e1163]:
+                  - generic [ref=e1164]: "PSKU: 1063134872992-01"
+                  - generic [ref=e1165]: "SKU: ZA824286BAA7C23150673Z-1"
+                  - generic [ref=e1166]: 品牌 Generic 来源 -
+              - generic [ref=e1167]:
+                - generic [ref=e1168]:
+                  - generic [ref=e1169]: AE
+                  - generic [ref=e1170]:
+                    - emphasis [ref=e1171]: 买家最终价
+                    - strong [ref=e1172]: AED 0.00
+                    - emphasis [ref=e1173]: USD 0.00
+                    - emphasis [ref=e1174]: CNY 0.00
+                - generic [ref=e1175]:
+                  - generic [ref=e1176]: SA
+                  - generic [ref=e1177]:
+                    - emphasis [ref=e1178]: 买家最终价
+                    - strong [ref=e1179]: SAR 0.00
+                    - emphasis [ref=e1180]: USD 0.00
+                    - emphasis [ref=e1181]: CNY 0.00
+              - generic [ref=e1182]:
+                - generic [ref=e1183]:
+                  - generic [ref=e1184]: AE
+                  - generic [ref=e1185]:
+                    - strong [ref=e1186]: 总计 0
+                    - emphasis [ref=e1187]: NGS 0
+                - generic [ref=e1188]:
+                  - generic [ref=e1189]: SA
+                  - generic [ref=e1190]:
+                    - strong [ref=e1191]: 总计 0
+                    - emphasis [ref=e1192]: NGS 0
+              - generic [ref=e1193]:
+                - generic [ref=e1194]:
+                  - generic [ref=e1195]: AE
+                  - generic [ref=e1196]:
+                    - strong [ref=e1197]: 0件 浏览0
+                    - emphasis [ref=e1198]: AED 0.00
+                    - emphasis [ref=e1199]: 取消 0 · 退货 0
+                - generic [ref=e1200]:
+                  - generic [ref=e1201]: SA
+                  - generic [ref=e1202]:
+                    - strong [ref=e1203]: 0件 浏览0
+                    - emphasis [ref=e1204]: SAR 0.00
+                    - emphasis [ref=e1205]: 取消 0 · 退货 0
+              - generic [ref=e1206]:
+                - generic [ref=e1207]:
+                  - generic [ref=e1208]: AE
+                  - generic [ref=e1209]: 未关联 Noon 大师货源
+                - generic [ref=e1210]:
+                  - generic [ref=e1211]: SA
+                  - generic [ref=e1212]: 未关联 Noon 大师货源
+              - generic [ref=e1214]:
+                - generic [ref=e1215]:
+                  - generic [ref=e1216]: AE
+                  - text: 下线
+                  - text: 卖家停用
+                  - text: no_offer
+                - generic [ref=e1217]:
+                  - generic [ref=e1218]: SA
+                  - text: 下线
+                  - text: 停用
+                  - text: no_offer
+                - generic [ref=e1219]:
+                  - generic [ref=e1220]: GLOBAL
+                  - text: 暂无数据
+              - button "删除" [ref=e1222] [cursor=pointer]
+            - article [ref=e1223]:
+              - checkbox [ref=e1224]
+              - generic [ref=e1226]:
+                - heading "Generic Luxury Colorful Zircon Oval Flower Bracelet - Summer Trendy Delicate Jewelry for Women" [level=4] [ref=e1227]
+                - generic [ref=e1228]:
+                  - generic [ref=e1229]: "PSKU: 1059794053299-01"
+                  - generic [ref=e1230]: "SKU: Z93B3DE62E5C76D733058Z-1"
+                  - generic [ref=e1231]: 品牌 Generic 来源 -
+              - generic [ref=e1232]:
+                - generic [ref=e1233]:
+                  - generic [ref=e1234]: AE
+                  - generic [ref=e1235]:
+                    - emphasis [ref=e1236]: 买家最终价
+                    - strong [ref=e1237]: AED 0.00
+                    - emphasis [ref=e1238]: USD 0.00
+                    - emphasis [ref=e1239]: CNY 0.00
+                - generic [ref=e1240]:
+                  - generic [ref=e1241]: SA
+                  - generic [ref=e1242]:
+                    - emphasis [ref=e1243]: 买家最终价
+                    - strong [ref=e1244]: SAR 0.00
+                    - emphasis [ref=e1245]: USD 0.00
+                    - emphasis [ref=e1246]: CNY 0.00
+              - generic [ref=e1247]:
+                - generic [ref=e1248]:
+                  - generic [ref=e1249]: AE
+                  - generic [ref=e1250]:
+                    - strong [ref=e1251]: 总计 0
+                    - emphasis [ref=e1252]: NGS 0
+                - generic [ref=e1253]:
+                  - generic [ref=e1254]: SA
+                  - generic [ref=e1255]:
+                    - strong [ref=e1256]: 总计 0
+                    - emphasis [ref=e1257]: NGS 0
+              - generic [ref=e1258]:
+                - generic [ref=e1259]:
+                  - generic [ref=e1260]: AE
+                  - generic [ref=e1261]:
+                    - strong [ref=e1262]: 0件 浏览0
+                    - emphasis [ref=e1263]: AED 0.00
+                    - emphasis [ref=e1264]: 取消 0 · 退货 0
+                - generic [ref=e1265]:
+                  - generic [ref=e1266]: SA
+                  - generic [ref=e1267]:
+                    - strong [ref=e1268]: 0件 浏览0
+                    - emphasis [ref=e1269]: SAR 0.00
+                    - emphasis [ref=e1270]: 取消 0 · 退货 0
+              - generic [ref=e1271]:
+                - generic [ref=e1272]:
+                  - generic [ref=e1273]: AE
+                  - generic [ref=e1274]: 未关联 Noon 大师货源
+                - generic [ref=e1275]:
+                  - generic [ref=e1276]: SA
+                  - generic [ref=e1277]: 未关联 Noon 大师货源
+              - generic [ref=e1279]:
+                - generic [ref=e1280]:
+                  - generic [ref=e1281]: AE
+                  - text: 下线
+                  - text: 卖家停用
+                  - text: no_offer
+                - generic [ref=e1282]:
+                  - generic [ref=e1283]: SA
+                  - text: 下线
+                  - text: 停用
+                  - text: no_offer
+                - generic [ref=e1284]:
+                  - generic [ref=e1285]: GLOBAL
+                  - text: 暂无数据
+              - button "删除" [ref=e1287] [cursor=pointer]
+            - article [ref=e1288]:
+              - checkbox [ref=e1289]
+              - generic [ref=e1291]:
+                - heading "Generic European and American Style Zircon Bracelet for Women - Rose Gold Color" [level=4] [ref=e1292]
+                - generic [ref=e1293]:
+                  - generic [ref=e1294]: "PSKU: 1052670062143-01"
+                  - generic [ref=e1295]: "SKU: Z923F7844BF1A43B2F1DAZ-1"
+                  - generic [ref=e1296]: 品牌 Generic 来源 -
+              - generic [ref=e1297]:
+                - generic [ref=e1298]:
+                  - generic [ref=e1299]: AE
+                  - generic [ref=e1300]:
+                    - emphasis [ref=e1301]: 买家最终价
+                    - strong [ref=e1302]: AED 0.00
+                    - emphasis [ref=e1303]: USD 0.00
+                    - emphasis [ref=e1304]: CNY 0.00
+                - generic [ref=e1305]:
+                  - generic [ref=e1306]: SA
+                  - generic [ref=e1307]:
+                    - emphasis [ref=e1308]: 买家最终价
+                    - strong [ref=e1309]: SAR 0.00
+                    - emphasis [ref=e1310]: USD 0.00
+                    - emphasis [ref=e1311]: CNY 0.00
+              - generic [ref=e1312]:
+                - generic [ref=e1313]:
+                  - generic [ref=e1314]: AE
+                  - generic [ref=e1315]:
+                    - strong [ref=e1316]: 总计 0
+                    - emphasis [ref=e1317]: NGS 0
+                - generic [ref=e1318]:
+                  - generic [ref=e1319]: SA
+                  - generic [ref=e1320]:
+                    - strong [ref=e1321]: 总计 0
+                    - emphasis [ref=e1322]: NGS 0
+              - generic [ref=e1323]:
+                - generic [ref=e1324]:
+                  - generic [ref=e1325]: AE
+                  - generic [ref=e1326]:
+                    - strong [ref=e1327]: 0件 浏览0
+                    - emphasis [ref=e1328]: AED 0.00
+                    - emphasis [ref=e1329]: 取消 0 · 退货 0
+                - generic [ref=e1330]:
+                  - generic [ref=e1331]: SA
+                  - generic [ref=e1332]:
+                    - strong [ref=e1333]: 0件 浏览0
+                    - emphasis [ref=e1334]: SAR 0.00
+                    - emphasis [ref=e1335]: 取消 0 · 退货 0
+              - generic [ref=e1336]:
+                - generic [ref=e1337]:
+                  - generic [ref=e1338]: AE
+                  - generic [ref=e1339]: 未关联 Noon 大师货源
+                - generic [ref=e1340]:
+                  - generic [ref=e1341]: SA
+                  - generic [ref=e1342]: 未关联 Noon 大师货源
+              - generic [ref=e1344]:
+                - generic [ref=e1345]:
+                  - generic [ref=e1346]: AE
+                  - text: 下线
+                  - text: 卖家停用
+                  - text: no_offer
+                - generic [ref=e1347]:
+                  - generic [ref=e1348]: SA
+                  - text: 下线
+                  - text: 停用
+                  - text: no_offer
+                - generic [ref=e1349]:
+                  - generic [ref=e1350]: GLOBAL
+                  - text: 暂无数据
+              - button "删除" [ref=e1352] [cursor=pointer]
+            - article [ref=e1353]:
+              - checkbox [ref=e1354]
+              - generic [ref=e1356]:
+                - heading "Generic Fashionable European Style Colorful Zircon Bracelet for Women, Rose Gold Plated with Diamonds, Versatile High-End Accessory Wholesale" [level=4] [ref=e1357]
+                - generic [ref=e1358]:
+                  - generic [ref=e1359]: "PSKU: 1055186392411-01"
+                  - generic [ref=e1360]: "SKU: ZF81ED34191082FEB8F48Z-1"
+                  - generic [ref=e1361]: 品牌 Generic 来源 -
+              - generic [ref=e1362]:
+                - generic [ref=e1363]:
+                  - generic [ref=e1364]: AE
+                  - generic [ref=e1365]:
+                    - emphasis [ref=e1366]: 买家最终价
+                    - strong [ref=e1367]: AED 0.00
+                    - emphasis [ref=e1368]: USD 0.00
+                    - emphasis [ref=e1369]: CNY 0.00
+                - generic [ref=e1370]:
+                  - generic [ref=e1371]: SA
+                  - generic [ref=e1372]:
+                    - emphasis [ref=e1373]: 买家最终价
+                    - strong [ref=e1374]: SAR 0.00
+                    - emphasis [ref=e1375]: USD 0.00
+                    - emphasis [ref=e1376]: CNY 0.00
+              - generic [ref=e1377]:
+                - generic [ref=e1378]:
+                  - generic [ref=e1379]: AE
+                  - generic [ref=e1380]:
+                    - strong [ref=e1381]: 总计 0
+                    - emphasis [ref=e1382]: NGS 0
+                - generic [ref=e1383]:
+                  - generic [ref=e1384]: SA
+                  - generic [ref=e1385]:
+                    - strong [ref=e1386]: 总计 0
+                    - emphasis [ref=e1387]: NGS 0
+              - generic [ref=e1388]:
+                - generic [ref=e1389]:
+                  - generic [ref=e1390]: AE
+                  - generic [ref=e1391]:
+                    - strong [ref=e1392]: 0件 浏览0
+                    - emphasis [ref=e1393]: AED 0.00
+                    - emphasis [ref=e1394]: 取消 0 · 退货 0
+                - generic [ref=e1395]:
+                  - generic [ref=e1396]: SA
+                  - generic [ref=e1397]:
+                    - strong [ref=e1398]: 0件 浏览0
+                    - emphasis [ref=e1399]: SAR 0.00
+                    - emphasis [ref=e1400]: 取消 0 · 退货 0
+              - generic [ref=e1401]:
+                - generic [ref=e1402]:
+                  - generic [ref=e1403]: AE
+                  - generic [ref=e1404]: 未关联 Noon 大师货源
+                - generic [ref=e1405]:
+                  - generic [ref=e1406]: SA
+                  - generic [ref=e1407]: 未关联 Noon 大师货源
+              - generic [ref=e1409]:
+                - generic [ref=e1410]:
+                  - generic [ref=e1411]: AE
+                  - text: 下线
+                  - text: 卖家停用
+                  - text: no_offer
+                - generic [ref=e1412]:
+                  - generic [ref=e1413]: SA
+                  - text: 下线
+                  - text: 停用
+                  - text: no_offer
+                - generic [ref=e1414]:
+                  - generic [ref=e1415]: GLOBAL
+                  - text: 暂无数据
+              - button "删除" [ref=e1417] [cursor=pointer]
+        - generic [ref=e1419]:
+          - generic [ref=e1420]: 共 265 条
+          - button "‹" [disabled] [ref=e1421]
+          - button "1" [ref=e1422] [cursor=pointer]
+          - button "2" [ref=e1423] [cursor=pointer]
+          - button "3" [ref=e1424] [cursor=pointer]
+          - button "4" [ref=e1425] [cursor=pointer]
+          - button "5" [ref=e1426] [cursor=pointer]
+          - generic [ref=e1427]: •••
+          - button "27" [ref=e1428] [cursor=pointer]
+          - button "›" [ref=e1429] [cursor=pointer]
+          - combobox "每页条数" [ref=e1430]:
+            - option "10 条/页" [selected]
+            - option "20 条/页"
+            - option "50 条/页"
+          - generic [ref=e1431]: 跳至
+          - textbox "跳转页码" [ref=e1432]
+          - generic [ref=e1433]: 页
+    - text: ✓ 当前默认

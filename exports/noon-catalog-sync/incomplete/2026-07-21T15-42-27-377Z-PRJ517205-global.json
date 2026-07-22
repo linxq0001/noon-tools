@@ -1,0 +1,137 @@
+{
+  "storeId": "PRJ517205",
+  "mode": "global",
+  "catalogUrl": "/v1/export/create",
+  "title": "Noon Global Catalog Export",
+  "textSample": "",
+  "headers": [
+    "Product",
+    "Price",
+    "Inventory",
+    "Performance",
+    "Issues"
+  ],
+  "rows": [
+    {
+      "cells": [
+        "Women’s Evening Clutch Bag with Crystal Rhinestone, Metal Handle, Gold PSKU: SBS-CLUTCH-001 SKU: ZFD7EAA06779B95B6F18AZ-1",
+        "195",
+        "0",
+        "",
+        "live"
+      ],
+      "imageUrl": ""
+    },
+    {
+      "cells": [
+        "Women’s Rhinestone Top Handle Evening Clutch Bag, Gold PSKU: SBS-CLUTCH-003-GLD SKU: ZFF4BDD58A43360EE760DZ-1",
+        "216",
+        "0",
+        "",
+        "live"
+      ],
+      "imageUrl": ""
+    },
+    {
+      "cells": [
+        "Women’s Rhinestone Top Handle Evening Clutch Bag, Green PSKU: SBS-CLUTCH-003-GRN SKU: Z097FC0E98B75FEE33B27Z-1",
+        "216",
+        "0",
+        "",
+        "live"
+      ],
+      "imageUrl": ""
+    },
+    {
+      "cells": [
+        "Women’s Hot Air Balloon Rhinestone Evening Clutch Bag, Gold PSKU: SBS-CLUTCH-005-GLD SKU: ZA3AA58C70BCB710FDE3BZ-1",
+        "216",
+        "0",
+        "",
+        "live"
+      ],
+      "imageUrl": ""
+    },
+    {
+      "cells": [
+        "Women’s Rhinestone Ring Handle Evening Clutch Bag, Gold PSKU: SBS-CLUTCH-006-GLD SKU: Z59C18960B4A6D3120CB3Z-1",
+        "216",
+        "0",
+        "",
+        "live"
+      ],
+      "imageUrl": ""
+    },
+    {
+      "cells": [
+        "Women’s Rhinestone Ring Handle Evening Clutch Bag, Silver PSKU: SBS-CLUTCH-006-SLV SKU: Z463E4C8F18A1A267E8B2Z-1",
+        "216",
+        "0",
+        "",
+        "live"
+      ],
+      "imageUrl": ""
+    },
+    {
+      "cells": [
+        "Women’s Hot Air Balloon Rhinestone Evening Clutch Bag, Pink PSKU: SBS-CLUTCH-005-PNK SKU: Z12CDDEB0D54F683F0CF0Z-1",
+        "216",
+        "0",
+        "",
+        "live"
+      ],
+      "imageUrl": ""
+    },
+    {
+      "cells": [
+        "Women’s Swan Evening Clutch Bag with Crystal Rhinestone, Gold PSKU: SBS-CLUTCH-002 SKU: ZB37EF31964CBD8C5E833Z-1",
+        "216",
+        "0",
+        "",
+        "live"
+      ],
+      "imageUrl": ""
+    },
+    {
+      "cells": [
+        "Women’s Butterfly Rhinestone Evening Clutch Bag, Green PSKU: SBS-CLUTCH-004-GRN SKU: Z4DCDE2F8083DED864417Z-1",
+        "432",
+        "0",
+        "",
+        "live"
+      ],
+      "imageUrl": ""
+    },
+    {
+      "cells": [
+        "Women’s Butterfly Rhinestone Evening Clutch Bag, Blue PSKU: SBS-CLUTCH-004-BLU SKU: Z6064CA4095AF0D1FE28FZ-1",
+        "432",
+        "0",
+        "",
+        "live"
+      ],
+      "imageUrl": ""
+    },
+    {
+      "cells": [
+        "Women’s Butterfly Rhinestone Evening Clutch Bag, Pink PSKU: SBS-CLUTCH-004-PNK SKU: Z3288747B98561BF7C0D5Z-1",
+        "432",
+        "0",
+        "",
+        "live"
+      ],
+      "imageUrl": ""
+    },
+    {
+      "cells": [
+        "Plastic Pedal Trash Bin with Lid, White PSKU: PSKU_517205_88350498509265557239_X SKU: Z77D5EA6A925F7D07CF09Z-1",
+        "432",
+        "0",
+        "",
+        "live"
+      ],
+      "imageUrl": ""
+    }
+  ],
+  "totalPages": 1
+}
